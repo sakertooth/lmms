@@ -30,6 +30,7 @@
 
 #include <QFont>
 #include <QLabel>
+#include <QKeyEvent>
 #include <QVBoxLayout>
 
 #include "embed.h"
@@ -69,7 +70,7 @@ QString TapTempo::nodeName() const
 }
 
 TapTempoView::TapTempoView(ToolPlugin * _tool) :
-	ToolPluginView(_tool), m_bpmAverage(0), m_numTaps(0), m_keyDown(false)
+	ToolPluginView(_tool), m_bpmAverage(0), m_numTaps(0)
 {
 	setFixedSize(200, 200);
 	m_bpmButton = new QPushButton;
@@ -128,15 +129,8 @@ void TapTempoView::onBpmClick()
 void TapTempoView::keyPressEvent(QKeyEvent * event) 
 {
 	QWidget::keyPressEvent(event);
-	if (!m_keyDown) 
+	if (!event->isAutoRepeat()) 
 	{
 		onBpmClick();
-		m_keyDown = true;
 	}
-}
-
-void TapTempoView::keyReleaseEvent(QKeyEvent * event) 
-{
-	QWidget::keyReleaseEvent(event);
-	m_keyDown = false;
 }
