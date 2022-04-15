@@ -28,6 +28,7 @@
 
 #include <cmath>
 
+#include <QCloseEvent>
 #include <QFont>
 #include <QLabel>
 #include <QKeyEvent>
@@ -114,9 +115,7 @@ void TapTempoView::onBpmClick()
 
 		if (period > 2.0) 
 		{
-			m_bpmAverage = 0;
-			m_numTaps = 0;
-			m_bpmButton->setText("0");
+			reset();
 			return;
 		}
 
@@ -126,11 +125,23 @@ void TapTempoView::onBpmClick()
 	}
 }
 
-void TapTempoView::keyPressEvent(QKeyEvent * event) 
+void TapTempoView::keyPressEvent(QKeyEvent* event) 
 {
 	QWidget::keyPressEvent(event);
 	if (!event->isAutoRepeat()) 
 	{
 		onBpmClick();
 	}
+}
+
+void TapTempoView::closeEvent(QCloseEvent* event)
+{
+	reset();
+}
+
+void TapTempoView::reset() 
+{
+	m_bpmAverage = 0;
+	m_numTaps = 0;
+	m_bpmButton->setText("0");
 }

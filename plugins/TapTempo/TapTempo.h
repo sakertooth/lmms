@@ -43,6 +43,11 @@ public:
 	void onBpmClick();
 	
 	void keyPressEvent(QKeyEvent *) override;
+	void closeEvent(QCloseEvent* event) override;
+
+private:
+	void reset();
+	
 private:
 	std::chrono::time_point<std::chrono::steady_clock> m_previousTime;
 	QPushButton * m_bpmButton;
