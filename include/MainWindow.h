@@ -56,6 +56,11 @@ public:
 	{
 		return m_toolBar;
 	}
+	
+	QList<PluginView *> tools() 
+	{
+		return m_tools;
+	}
 
 	int addWidgetToToolBar( QWidget * _w, int _row = -1, int _col = -1 );
 	void addSpacingToToolBar( int _size );
