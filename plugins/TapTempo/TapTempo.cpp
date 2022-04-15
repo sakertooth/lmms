@@ -26,9 +26,9 @@
 
 #include "TapTempo.h"
 
+#include <cfloat>
 #include <cmath>
 
-#include <QCloseEvent>
 #include <QFont>
 #include <QLabel>
 #include <QKeyEvent>
@@ -71,7 +71,7 @@ QString TapTempo::nodeName() const
 }
 
 TapTempoView::TapTempoView(ToolPlugin * _tool) :
-	ToolPluginView(_tool), m_bpmAverage(0), m_numTaps(0)
+	ToolPluginView(_tool), m_firstTime(), m_previousTime(), m_numTaps(0)
 {
 	setFixedSize(200, 200);
 	m_bpmButton = new QPushButton;
@@ -103,26 +103,23 @@ TapTempoView::TapTempoView(ToolPlugin * _tool) :
 
 void TapTempoView::onBpmClick()
 {
-	++m_numTaps;
-	if (m_numTaps == 1)
-	{
-		m_previousTime = std::chrono::steady_clock::now();
-	}
-	else if (m_numTaps >= 2)
-	{
-		auto currentTime = std::chrono::steady_clock::now();
-		auto period = std::chrono::duration_cast<std::chrono::duration<double>>(currentTime - m_previousTime).count();
+	auto currentTime = std::chrono::steady_clock::now();
+	auto distanceFromPreviousTime = std::chrono::duration_cast<std::chrono::duration<double>>(currentTime - m_previousTime).count();
 
-		if (period > 2.0) 
-		{
-			reset();
-			return;
-		}
-
-		m_bpmAverage += (60.0/period - m_bpmAverage)/(m_numTaps - 1);
-		m_bpmButton->setText(QString::number(std::round(m_bpmAverage)));
+	if (distanceFromPreviousTime > 2.0)
+	{
+		m_numTaps = 1;
+		m_firstTime = currentTime;
 		m_previousTime = currentTime;
+		m_bpmButton->setText("0");
+		return;
 	}
+
+	auto distanceFromCurrentTime = std::chrono::duration_cast<std::chrono::duration<double>>(currentTime - m_firstTime).count();
+	++m_numTaps;
+	double bpm = 60 * (m_numTaps - 1) / std::max(DBL_MIN, distanceFromCurrentTime);
+	m_bpmButton->setText(QString::number(std::round(bpm)));
+	m_previousTime = currentTime;
 }
 
 void TapTempoView::keyPressEvent(QKeyEvent* event) 
@@ -136,12 +133,8 @@ void TapTempoView::keyPressEvent(QKeyEvent* event)
 
 void TapTempoView::closeEvent(QCloseEvent* event)
 {
-	reset();
-}
-
-void TapTempoView::reset() 
-{
-	m_bpmAverage = 0;
 	m_numTaps = 0;
 	m_bpmButton->setText("0");
+	m_firstTime = std::chrono::time_point<std::chrono::steady_clock>();
+	m_previousTime = std::chrono::time_point<std::chrono::steady_clock>();
 }

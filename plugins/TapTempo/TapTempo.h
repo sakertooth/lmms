@@ -43,16 +43,16 @@ public:
 	void onBpmClick();
 	
 	void keyPressEvent(QKeyEvent *) override;
-	void closeEvent(QCloseEvent* event) override;
+	void closeEvent(QCloseEvent*) override;
 
 private:
 	void reset();
-	
+
 private:
+	std::chrono::time_point<std::chrono::steady_clock> m_firstTime;
 	std::chrono::time_point<std::chrono::steady_clock> m_previousTime;
-	QPushButton * m_bpmButton;
-	double m_bpmAverage;
 	int m_numTaps;
+	QPushButton* m_bpmButton;
 };
 
 class TapTempo : public ToolPlugin
