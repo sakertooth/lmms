@@ -49,7 +49,6 @@
 #include "PianoRoll.h"
 #include "PositionLine.h"
 #include "SubWindow.h"
-#include "TempoLcdSpinBox.h"
 #include "TextFloat.h"
 #include "TimeDisplayWidget.h"
 #include "TimeLineWidget.h"
@@ -110,7 +109,7 @@ SongEditor::SongEditor( Song * song ) :
 
 	getGUI()->mainWindow()->addSpacingToToolBar( 40 );
 
-	m_tempoSpinBox = new TempoLcdSpinBox( 3, tb, tr( "Tempo" ) );
+	m_tempoSpinBox = new LcdSpinBox( 3, tb, tr( "Tempo" ) );
 	m_tempoSpinBox->setModel( &m_song->m_tempoModel );
 	m_tempoSpinBox->setLabel( tr( "TEMPO" ) );
 	ToolTip::add( m_tempoSpinBox, tr( "Tempo in BPM" ) );

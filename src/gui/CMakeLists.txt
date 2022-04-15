@@ -106,7 +106,6 @@ SET(LMMS_SRCS
 	gui/widgets/SideBarWidget.cpp
 	gui/widgets/TabBar.cpp
 	gui/widgets/TabWidget.cpp
-	gui/widgets/TempoLcdSpinBox.cpp
 	gui/widgets/TempoSyncKnob.cpp
 	gui/widgets/TextFloat.cpp
 	gui/widgets/TimeDisplayWidget.cpp
