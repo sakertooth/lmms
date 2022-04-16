@@ -28,11 +28,13 @@
 
 #include <cfloat>
 #include <cmath>
+#include <string>
 
 #include <QFont>
 #include <QLabel>
 #include <QKeyEvent>
 #include <QVBoxLayout>
+#include <QLabel>
 
 #include "embed.h"
 #include "plugin_export.h"
@@ -78,6 +80,9 @@ TapTempoView::TapTempoView(ToolPlugin * _tool) :
 	m_bpmButton->setText("0");
 	m_bpmButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
+	m_bpmInformation = new QLabel;
+	m_bpmInformation->setText(tr("BPM in ms:\nHz:"));
+	
 	QFont font = m_bpmButton->font();
 	font.setPointSize(25);
 	m_bpmButton->setFont(font);
@@ -85,7 +90,8 @@ TapTempoView::TapTempoView(ToolPlugin * _tool) :
 	QVBoxLayout * layout = new QVBoxLayout(this);
 	layout->setAlignment(Qt::AlignCenter);
 	layout->addWidget(m_bpmButton, Qt::AlignCenter);
-	
+	layout->addWidget(m_bpmInformation);
+
 	connect(m_bpmButton, &QPushButton::pressed, this, &TapTempoView::onBpmClick);
 
 	hide();
@@ -117,8 +123,12 @@ void TapTempoView::onBpmClick()
 
 	auto distanceFromCurrentTime = std::chrono::duration_cast<std::chrono::duration<double>>(currentTime - m_firstTime).count();
 	++m_numTaps;
-	double bpm = 60 * (m_numTaps - 1) / std::max(DBL_MIN, distanceFromCurrentTime);
+	
+	double hz = (m_numTaps - 1) / std::max(DBL_MIN, distanceFromCurrentTime);
+	double bpm = 60 * hz;
+	
 	m_bpmButton->setText(QString::number(std::round(bpm)));
+	m_bpmInformation->setText(tr("BPM in ms: ") + QString::number(bpm / 60000) + "\nHz: " + QString::number(hz));
 	m_previousTime = currentTime;
 }
 
@@ -137,4 +147,5 @@ void TapTempoView::closeEvent(QCloseEvent* event)
 	m_bpmButton->setText("0");
 	m_firstTime = std::chrono::time_point<std::chrono::steady_clock>();
 	m_previousTime = std::chrono::time_point<std::chrono::steady_clock>();
+	m_bpmInformation->setText(tr("BPM in ms:\nHz:"));
 }

@@ -29,6 +29,7 @@
 
 #include <chrono>
 
+#include <QLabel>
 #include <QPushButton>
 
 #include "ToolPlugin.h"
@@ -53,6 +54,7 @@ private:
 	std::chrono::time_point<std::chrono::steady_clock> m_previousTime;
 	int m_numTaps;
 	QPushButton* m_bpmButton;
+	QLabel* m_bpmInformation;
 };
 
 class TapTempo : public ToolPlugin
