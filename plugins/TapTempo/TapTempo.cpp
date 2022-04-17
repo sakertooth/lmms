@@ -81,7 +81,7 @@ TapTempoView::TapTempoView(ToolPlugin * _tool) :
 	m_bpmButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
 	m_bpmInformation = new QLabel;
-	m_bpmInformation->setText(tr("BPM in ms:\nHz:"));
+	m_bpmInformation->setText(tr("Beat length:\nHz:"));
 	
 	QFont font = m_bpmButton->font();
 	font.setPointSize(25);
@@ -118,6 +118,7 @@ void TapTempoView::onBpmClick()
 		m_firstTime = currentTime;
 		m_previousTime = currentTime;
 		m_bpmButton->setText("0");
+		m_bpmInformation->setText("Beat length: 0ms\nHz: 0");
 		return;
 	}
 
@@ -126,9 +127,10 @@ void TapTempoView::onBpmClick()
 	
 	double hz = (m_numTaps - 1) / std::max(DBL_MIN, distanceFromCurrentTime);
 	double bpm = 60 * hz;
-	
+
 	m_bpmButton->setText(QString::number(std::round(bpm)));
-	m_bpmInformation->setText(tr("BPM in ms: ") + QString::number(bpm / 60000) + "\nHz: " + QString::number(hz));
+	m_bpmInformation->setText(tr("Beat length: ") + QString::number(distanceFromPreviousTime * 1000) + "ms"
+								+ "\nHz: " + QString::number(hz));
 	m_previousTime = currentTime;
 }
 
@@ -147,5 +149,5 @@ void TapTempoView::closeEvent(QCloseEvent* event)
 	m_bpmButton->setText("0");
 	m_firstTime = std::chrono::time_point<std::chrono::steady_clock>();
 	m_previousTime = std::chrono::time_point<std::chrono::steady_clock>();
-	m_bpmInformation->setText(tr("BPM in ms:\nHz:"));
+	m_bpmInformation->setText(tr("Beat length:\nHz:"));
 }
