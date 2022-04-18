@@ -40,6 +40,13 @@
 #include "LedCheckBox.h"
 #include "plugin_export.h"
 
+
+double asSeconds(std::chrono::duration<double> duration)
+{
+	return duration.count();
+}
+
+
 extern "C"
 {
 Plugin::Descriptor PLUGIN_EXPORT taptempo_plugin_descriptor =
@@ -74,7 +81,8 @@ QString TapTempo::nodeName() const
 }
 
 TapTempoView::TapTempoView(ToolPlugin * _tool) :
-	ToolPluginView(_tool), m_firstTime(), m_previousTime(), m_numTaps(0)
+	ToolPluginView(_tool),
+	m_numTaps(0)
 {
 	setFixedSize(200, 200);
 	m_bpmButton = new QPushButton;
@@ -123,9 +131,8 @@ TapTempoView::TapTempoView(ToolPlugin * _tool) :
 void TapTempoView::onBpmClick()
 {
 	auto currentTime = std::chrono::steady_clock::now();
-	auto distanceFromPreviousTime = std::chrono::duration_cast<std::chrono::duration<double>>(currentTime - m_previousTime).count();
 
-	if (distanceFromPreviousTime > 2.0)
+	if (asSeconds(currentTime - m_previousTime) > 2.0)
 	{
 		m_numTaps = 1;
 		m_firstTime = currentTime;
@@ -135,10 +142,9 @@ void TapTempoView::onBpmClick()
 		return;
 	}
 
-	auto distanceFromCurrentTime = std::chrono::duration_cast<std::chrono::duration<double>>(currentTime - m_firstTime).count();
 	++m_numTaps;
 	
-	m_bpm = (m_numTaps - 1) / std::max(DBL_MIN, distanceFromCurrentTime) * 60;
+	m_bpm = (m_numTaps - 1) / std::max(DBL_MIN, asSeconds(currentTime - m_firstTime)) * 60;
 	updateLabels();
 
 	m_previousTime = currentTime;
@@ -171,7 +177,5 @@ void TapTempoView::closeEvent(QCloseEvent* event)
 {
 	m_numTaps = 0;
 	m_bpm = 0;
-	m_firstTime = std::chrono::time_point<std::chrono::steady_clock>();
-	m_previousTime = std::chrono::time_point<std::chrono::steady_clock>();
 	updateLabels();
 }
