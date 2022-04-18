@@ -29,11 +29,12 @@
 
 #include <chrono>
 
-#include <QLabel>
-#include <QPushButton>
-
 #include "ToolPlugin.h"
 #include "ToolPluginView.h"
+
+class QLabel;
+class QPushButton;
+class LedCheckBox;
 
 class TapTempoView : public ToolPluginView 
 {
@@ -48,13 +49,17 @@ public:
 
 private:
 	void reset();
+	void updateLabels();
 
 private:
 	std::chrono::time_point<std::chrono::steady_clock> m_firstTime;
 	std::chrono::time_point<std::chrono::steady_clock> m_previousTime;
 	int m_numTaps;
 	QPushButton* m_bpmButton;
-	QLabel* m_bpmInformation;
+	QLabel* m_msLabel;
+	QLabel* m_hzLabel;
+	double m_bpm = 0;
+	bool m_showDecimal = false;
 };
 
 class TapTempo : public ToolPlugin

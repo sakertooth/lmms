@@ -34,9 +34,10 @@
 #include <QLabel>
 #include <QKeyEvent>
 #include <QVBoxLayout>
-#include <QLabel>
+#include <QPushButton>
 
 #include "embed.h"
+#include "LedCheckBox.h"
 #include "plugin_export.h"
 
 extern "C"
@@ -79,18 +80,27 @@ TapTempoView::TapTempoView(ToolPlugin * _tool) :
 	m_bpmButton = new QPushButton;
 	m_bpmButton->setText("0");
 	m_bpmButton->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-	m_bpmInformation = new QLabel;
-	m_bpmInformation->setText(tr("Beat length:\nHz:"));
 	
 	QFont font = m_bpmButton->font();
 	font.setPointSize(25);
 	m_bpmButton->setFont(font);
+
+	QWidget* labelArea = new QWidget(this);
+	m_msLabel = new QLabel;
+	m_hzLabel = new QLabel;
+
+	LedCheckBox* checkBox = new LedCheckBox(labelArea, tr("High precision"));
+	checkBox->setToolTip(tr("High precision"));
+	connect(checkBox, &LedCheckBox::toggled, [this](bool checked){ m_showDecimal = checked; updateLabels(); });
 	
 	QVBoxLayout * layout = new QVBoxLayout(this);
 	layout->setAlignment(Qt::AlignCenter);
 	layout->addWidget(m_bpmButton, Qt::AlignCenter);
-	layout->addWidget(m_bpmInformation);
+	layout->addWidget(labelArea);
+	QHBoxLayout* labelLayout = new QHBoxLayout(labelArea);
+	labelLayout->addWidget(m_msLabel, 1);
+	labelLayout->addWidget(m_hzLabel, 1);
+	labelLayout->addWidget(checkBox, 0);
 
 	connect(m_bpmButton, &QPushButton::pressed, this, &TapTempoView::onBpmClick);
 
@@ -105,7 +115,10 @@ TapTempoView::TapTempoView(ToolPlugin * _tool) :
 		flags &= ~Qt::WindowMaximizeButtonHint;
 		parentWidget()->setWindowFlags(flags);
 	}
+
+	updateLabels();
 }
+
 
 void TapTempoView::onBpmClick()
 {
@@ -117,22 +130,33 @@ void TapTempoView::onBpmClick()
 		m_numTaps = 1;
 		m_firstTime = currentTime;
 		m_previousTime = currentTime;
-		m_bpmButton->setText("0");
-		m_bpmInformation->setText("Beat length: 0ms\nHz: 0");
+		m_bpm = 0;
+		updateLabels();
 		return;
 	}
 
 	auto distanceFromCurrentTime = std::chrono::duration_cast<std::chrono::duration<double>>(currentTime - m_firstTime).count();
 	++m_numTaps;
 	
-	double hz = (m_numTaps - 1) / std::max(DBL_MIN, distanceFromCurrentTime);
-	double bpm = 60 * hz;
+	m_bpm = (m_numTaps - 1) / std::max(DBL_MIN, distanceFromCurrentTime) * 60;
+	updateLabels();
 
-	m_bpmButton->setText(QString::number(std::round(bpm)));
-	m_bpmInformation->setText(tr("Beat length: ") + QString::number(distanceFromPreviousTime * 1000) + "ms"
-								+ "\nHz: " + QString::number(hz));
 	m_previousTime = currentTime;
 }
+
+
+void TapTempoView::updateLabels()
+{
+	// Round the BPM before calculating Hz and ms
+	double bpm = m_showDecimal ? m_bpm : std::round(m_bpm);
+	double hz = bpm / 60;
+	double ms = bpm > 0 ? 1 / hz * 1000 : 0;
+
+	m_bpmButton->setText(QString::number(bpm, 'f', m_showDecimal ? 1 : 0));
+	m_msLabel->setText(tr("%1 ms").arg(ms, 0, 'f', m_showDecimal ? 1 : 0));
+	m_hzLabel->setText(tr("%1 Hz").arg(hz, 0, 'f', 4));
+}
+
 
 void TapTempoView::keyPressEvent(QKeyEvent* event) 
 {
@@ -146,8 +170,8 @@ void TapTempoView::keyPressEvent(QKeyEvent* event)
 void TapTempoView::closeEvent(QCloseEvent* event)
 {
 	m_numTaps = 0;
-	m_bpmButton->setText("0");
+	m_bpm = 0;
 	m_firstTime = std::chrono::time_point<std::chrono::steady_clock>();
 	m_previousTime = std::chrono::time_point<std::chrono::steady_clock>();
-	m_bpmInformation->setText(tr("Beat length:\nHz:"));
+	updateLabels();
 }
