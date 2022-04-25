@@ -30,18 +30,43 @@
 #include <memory>
 #include <QString>
 
-#include "SampleFrames.h"
 #include "lmms_basics.h"
 
+ /**
+  * @brief
+  * SampleCacheEntry encapsulates sample frame data, along with the number of frames and a counter.
+  * data is a std::unique_ptr<sampleFrame> because the frames should not be shared among buffers (maybe not?).
+  */
+struct SampleCacheEntry
+{
+	std::unique_ptr<sampleFrame> data;
+	f_cnt_t numFrames;
+	int cacheRefCounter;
+};
+
+/**
+ * @brief
+ * SampleCache caches sampleFrame*'s, which are encapsulated in SampleCacheEntry.
+ *
+ * When creating a new sample buffer from the QString that is already in the cache,
+ * it should copy it from the frames in the entry rather than reload it into memory.
+ *
+ * The counters are used to track how many sample buffers refer to the entry.
+ * When the counter reaches zero, the entry is removed from the cache.
+ */
 class SampleCache
 {
 public:
-	std::shared_ptr<SampleFrames> addCacheEntry(const QString& id, sampleFrame* data, f_cnt_t numFrames);
-	std::shared_ptr<SampleFrames> getCacheEntry(const QString& id);
-	bool contains(const QString& id) const;
-private:
-	std::map<QString, SampleFrames> m_cache;
-};
+	bool addCacheEntry(const QString &id, sampleFrame *data, f_cnt_t numFrames);
+	SampleCacheEntry *getCacheEntry(const QString &id);
 
+	bool contains(const QString &id);
+
+	void incrementCacheRefCounter(const QString &id);
+	void decrementCacheRefCounter(const QString &id);
+
+private:
+	std::map<QString, SampleCacheEntry> m_cache;
+};
 
 #endif

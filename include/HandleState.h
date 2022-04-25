@@ -1,5 +1,5 @@
 /*
- * SampleBufferV2.h - HandleState
+ * HandleState.h - HandleState
  *
  * Copyright (c) 2022 sakertooth <sakertooth@gmail.com>
  *
@@ -26,9 +26,9 @@
 #define HANDLE_STATE_H
 
 #include <samplerate.h>
-
-#include "SampleBuffer.h"
 #include "lmms_basics.h"
+
+class SampleBuffer;
 
 class HandleState
 {
@@ -41,15 +41,15 @@ public:
 
 	bool isBackwards() const;
 	void setBackwards(bool backwards);
-	
+
 	int interpolationMode() const;
 private:
 	f_cnt_t m_frameIndex;
 	const bool m_varyingPitch;
 	bool m_isBackwards;
-	SRC_STATE * m_resamplingData;
+	SRC_STATE *m_resamplingData;
 	int m_interpolationMode;
 
 	friend class SampleBuffer;
-} ;
+};
 #endif

@@ -25,23 +25,45 @@
 
 #include "SampleCache.h"
 
-std::shared_ptr<SampleFrames> SampleCache::addCacheEntry(const QString& id, sampleFrame* data, f_cnt_t numFrames) 
+bool SampleCache::addCacheEntry(const QString &id, sampleFrame *data, f_cnt_t numFrames)
 {
-	SampleFrames sFrames = {data, numFrames};
-	m_cache.insert({id, std::move(sFrames)});
-	return getCacheEntry(id);
-}
-
-std::shared_ptr<SampleFrames> SampleCache::getCacheEntry(const QString& id) 
-{
-	return std::shared_ptr<SampleFrames>(&m_cache.at(id), [this, id](SampleFrames *frames) 
+	if (numFrames == 0)
 	{
-		delete frames->m_data;
-		m_cache.erase(id);
-	});
+		return false;
+	}
+
+	SampleCacheEntry entry = { std::unique_ptr<sampleFrame>(data), numFrames, 1 };
+	m_cache.insert({ id, std::move(entry) });
+	return true;
 }
 
-bool SampleCache::contains(const QString& id) const 
+SampleCacheEntry *SampleCache::getCacheEntry(const QString &id)
+{
+	return &m_cache.at(id);
+}
+
+bool SampleCache::contains(const QString &id)
 {
 	return m_cache.find(id) != m_cache.end();
+}
+
+void SampleCache::incrementCacheRefCounter(const QString &id)
+{
+	if (contains(id))
+	{
+		SampleCacheEntry *entry = getCacheEntry(id);
+		++entry->cacheRefCounter;
+	}
+}
+
+void SampleCache::decrementCacheRefCounter(const QString &id)
+{
+	if (contains(id))
+	{
+		SampleCacheEntry *entry = getCacheEntry(id);
+		if (--entry->cacheRefCounter == 0)
+		{
+			m_cache.erase(id);
+		}
+	}
 }
