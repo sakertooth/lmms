@@ -23,8 +23,6 @@
  *
  */
 
-#include "SampleCache.h"
-
 bool SampleCache::addCacheEntry(const QString &id, sampleFrame *data, f_cnt_t numFrames)
 {
 	if (numFrames == 0)
