@@ -41,10 +41,12 @@ SampleBufferV2::SampleBufferV2(const QString &audioFilePath)
 
 	SF_INFO sfInfo;
 	sfInfo.format = 0;
-	auto sndFile = std::make_unique<SNDFILE>(sf_open_fd(audioFile.handle(), SFM_READ, &sfInfo, false),
-		[&](SNDFILE *sndFile)
-		{	sf_close(sndFile);
-			audioFile.close(); });
+
+	auto sndFileDeleter = [&](SNDFILE* ptr)
+	{ sf_close(ptr);
+	  audioFile.close(); };
+
+	auto sndFile = std::unique_ptr<SNDFILE, decltype(sndFileDeleter)>(sf_open_fd(audioFile.handle(), SFM_READ, &sfInfo, false), sndFileDeleter);
 
 	if (!sndFile)
 	{
