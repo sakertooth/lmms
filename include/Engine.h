@@ -29,11 +29,9 @@
 #include <QString>
 #include <QObject>
 
-
 #include "lmmsconfig.h"
 #include "lmms_export.h"
 #include "lmms_basics.h"
-#include "SampleCache.h"
 
 class AudioEngine;
 class Mixer;
@@ -41,7 +39,7 @@ class PatternStore;
 class ProjectJournal;
 class Song;
 class Ladspa2LMMS;
-
+class SampleBufferCache;
 
 // Note: This class is called 'LmmsCore' instead of 'Engine' because of naming
 // conflicts caused by ZynAddSubFX. See https://github.com/LMMS/lmms/issues/2269
@@ -86,6 +84,11 @@ public:
 	static ProjectJournal * projectJournal()
 	{
 		return s_projectJournal;
+	}
+
+	static SampleBufferCache* sampleBufferCache() 
+	{
+		return s_sampleBufferCache;
 	}
 
 	static bool ignorePluginBlacklist();
@@ -144,7 +147,7 @@ private:
 	static AudioEngine *s_audioEngine;
 	static Mixer * s_mixer;
 	static Song * s_song;
-	static SampleCache * s_sampleCache;
+	static SampleBufferCache * s_sampleBufferCache;
 	static PatternStore * s_patternStore;
 	static ProjectJournal * s_projectJournal;
 
