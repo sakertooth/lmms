@@ -1,6 +1,7 @@
 /*
- * SampleBufferV2.h - container class for immutable sample data
+ * SampleBufferCache.h - Used to cache sample buffers
  *
+ * Copyright (C) 2022 JGHFunRun <JGHFunRun@gmail.com>
  * Copyright (c) 2022 sakertooth <sakertooth@gmail.com>
  *
  * This file is part of LMMS - https://lmms.io
@@ -22,39 +23,23 @@
  *
  */
 
-#ifndef SAMPLE_BUFFER_V2_H
-#define SAMPLE_BUFFER_V2_H
+#ifndef SAMPLE_BUFFER_CACHE_H
+#define SAMPLE_BUFFER_CACHE_H
 
+#include <map>
 #include <memory>
-#include <vector>
-#include "lmms_basics.h"
-
 #include <QString>
+#include "SampleBufferV2.h"
 
-class SampleBufferV2
+class SampleBufferCache
 {
 public:
-	SampleBufferV2();
-	SampleBufferV2(const QString& audioFilePath);
-	SampleBufferV2(sampleFrame* data, const std::size_t numFrames);
-	SampleBufferV2(const std::size_t numFrames);
-
-	SampleBufferV2(SampleBufferV2&& other);
-	SampleBufferV2& operator=(SampleBufferV2&& other);
-
-	SampleBufferV2(const SampleBufferV2& other) = delete;
-	SampleBufferV2& operator=(const SampleBufferV2& other) = delete;
-
-	const std::vector<sampleFrame>& data() const;
-	sample_rate_t sampleRate() const;
-	const QString& filePath() const;
-	bool hasFilePath() const;
+	std::shared_ptr<const SampleBufferV2> insert(const QString& id, SampleBufferV2* buffer);
+	bool contains(const QString& id);
+	std::size_t size() const;
+	std::shared_ptr<const SampleBufferV2> operator[](const QString& id);
 private:
-	std::vector<sampleFrame> m_data;
-	sample_rate_t m_sampleRate;
-
-	//TODO: C++17 and above: use std::optional<QString>
-	QString m_filePath;
+	std::map<QString, SampleBufferV2*> m_cache;
 };
 
 #endif

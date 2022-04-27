@@ -1,5 +1,5 @@
 /*
- * SampleCache.cpp - Used to cache sample frames
+ * SampleBufferCache.cpp - Used to cache sample buffers
  *
  * Copyright (C) 2022 JGHFunRun <JGHFunRun@gmail.com>
  * Copyright (c) 2022 sakertooth <sakertooth@gmail.com>
@@ -23,45 +23,39 @@
  *
  */
 
-bool SampleCache::addCacheEntry(const QString &id, sampleFrame *data, f_cnt_t numFrames)
+#include "SampleBufferCache.h"
+
+std::shared_ptr<const SampleBufferV2> SampleBufferCache::insert(const QString& id, SampleBufferV2* buffer) 
 {
-	if (numFrames == 0)
+	if (!contains(id))
 	{
-		return false;
+		m_cache.emplace(std::make_pair(id, buffer));
+		return (*this)[id];
 	}
-
-	SampleCacheEntry entry = { std::unique_ptr<sampleFrame>(data), numFrames, 1 };
-	m_cache.insert({ id, std::move(entry) });
-	return true;
+	return nullptr;
 }
 
-SampleCacheEntry *SampleCache::getCacheEntry(const QString &id)
-{
-	return &m_cache.at(id);
-}
-
-bool SampleCache::contains(const QString &id)
+bool SampleBufferCache::contains(const QString& id) 
 {
 	return m_cache.find(id) != m_cache.end();
 }
 
-void SampleCache::incrementCacheRefCounter(const QString &id)
+std::size_t SampleBufferCache::size() const 
 {
-	if (contains(id))
-	{
-		SampleCacheEntry *entry = getCacheEntry(id);
-		++entry->cacheRefCounter;
-	}
+	return m_cache.size();
 }
 
-void SampleCache::decrementCacheRefCounter(const QString &id)
+std::shared_ptr<const SampleBufferV2> SampleBufferCache::operator[](const QString& id) 
 {
-	if (contains(id))
+	if (!contains(id)) 
 	{
-		SampleCacheEntry *entry = getCacheEntry(id);
-		if (--entry->cacheRefCounter == 0)
-		{
-			m_cache.erase(id);
-		}
+		return nullptr;
 	}
+
+	auto deleter = [&](const SampleBufferV2* ptr)
+	{
+		delete ptr;
+		m_cache.erase(id);
+	};
+	return std::shared_ptr<const SampleBufferV2>(m_cache.at(id), deleter);
 }
