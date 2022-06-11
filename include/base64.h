@@ -30,6 +30,8 @@
 #include <QString>
 #include <QVariant>
 
+#include <string>
+#include <cmath>
 
 namespace base64
 {
@@ -53,4 +55,12 @@ namespace base64
 
 }
 
+namespace lmms {
+	namespace base64 {
+		std::string encode(const std::string&);
+		std::string decode(const std::string&);
+		char* encode(const char*, const size_t);
+		//char* decode(const char*, const size_t);
+	}
+}
 #endif
