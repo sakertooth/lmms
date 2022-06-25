@@ -57,10 +57,8 @@ namespace base64
 
 namespace lmms {
 	namespace base64 {
-		std::string encode(const std::string&);
-		std::string decode(const std::string&);
-		char* encode(const char*, const size_t);
-		//char* decode(const char*, const size_t);
+		std::string encode(std::string_view data);
+		std::string decode(std::string_view data);
 	}
 }
 #endif
