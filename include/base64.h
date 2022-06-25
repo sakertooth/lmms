@@ -31,6 +31,7 @@
 #include <QVariant>
 
 #include <string>
+#include <string_view>
 #include <cmath>
 
 namespace base64
