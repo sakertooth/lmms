@@ -84,30 +84,44 @@ namespace lmms
 			if (data.empty()) { return ""; }
 			std::string result;
 
-			std::vector<std::bitset<8>> inputGroup;
-			for (auto& character : data) { inputGroup.emplace_back(static_cast<int>(character)); }
-			int totalBits = inputGroup.size() * inputGroup[0].size();
+			constexpr int numBytesPerChunk = 3;
+			constexpr int numBase64CharPerChunk = 4;
+			constexpr int numBitsPerBase64Char = 6;
+			auto [numChunks, numTrailingBytes] = std::div(data.length(), numBytesPerChunk);
 
-			std::bitset<6> output;
-			int outputBitMarker = output.size() - 1;
-
-			for (int idx = 0; idx < totalBits; ++idx)
+			//Consider the few trailing bytes at the end a chunk
+			if (numTrailingBytes > 0) 
+			{ 
+				++numChunks; 
+				numTrailingBytes = 3 - numTrailingBytes;
+			}
+			
+			for (int currentChunk = 0; currentChunk < numChunks; ++currentChunk)
 			{
-				int inputPos = idx / inputGroup[0].size();
-				int inputBitPos = inputGroup[0].size() - 1 - idx % inputGroup[0].size();
-				output[outputBitMarker--] = inputGroup[inputPos][inputBitPos];
-
-				if ((idx + 1) % output.size() == 0 || (idx == totalBits - 1 && output.any()))
+				std::bitset<24> inputGroup;
+				
+				const int numBytesInChunk = currentChunk == numChunks - 1 ? numBytesPerChunk - numTrailingBytes : numBytesPerChunk;
+				for (int i = 0; i < numBytesInChunk; ++i)
 				{
-					result += map[static_cast<int>(output.to_ulong())];
-					output.reset();
-					outputBitMarker = output.size() - 1;
+					//Push the data bytes to the far left of the inputGroup, which makes processing it easier
+					inputGroup |= static_cast<int>(data[currentChunk * numBytesPerChunk + i]) << (24 - 8 * (i + 1));
+				}
+
+				const int numBase64CharInChunk = currentChunk == numChunks - 1 ? numBase64CharPerChunk - numTrailingBytes : numBase64CharPerChunk;
+				for (int i = 0; i < numBase64CharInChunk; ++i)
+				{
+					std::bitset<24> base64Mask = 0xFC0000 >> i * numBitsPerBase64Char;
+					const int base64Idx = ((inputGroup & base64Mask) >> (3 - i) * numBitsPerBase64Char).to_ulong();
+					result += map[base64Idx];
+				}
+
+				//Add padding at the last chunk
+				if (currentChunk == numChunks - 1) 
+				{
+					for (int i = 0; i < numTrailingBytes; ++i) { result += pad; }
 				}
 			}
-
-			int numPads = ((result.length() - 1) | 3) + 1 - result.length();
-			for (int i = 0; i < numPads; ++i) { result += pad; }
-
+			
 			return result;
 		}
 
@@ -123,6 +137,9 @@ namespace lmms
 			std::string result;
 
 			constexpr int chunkLength = 4;
+			constexpr int outputChunkLength = 3;
+			constexpr int numBitsPerBase64Char = 6;
+
 			const int numChunks = data.length() / chunkLength;
 			const int numPads = std::count_if(data.begin(), data.end(), [](char c) { return c == '='; });
 
@@ -130,21 +147,14 @@ namespace lmms
 			{
 				std::bitset<24> inputGroup;
 
-				const int numBytesInChunk = currentChunk == numChunks - 1 && numPads > 0 ? 2 / numPads : 3;
-				const int numCharsInChunk = currentChunk == numChunks - 1 && numPads > 0 ? chunkLength - numPads : 4;
-				int numBitsRemaining = numBytesInChunk * 8;
-
-				for (int charIdx = 0; charIdx < numCharsInChunk; ++charIdx)
+				const int numBase64CharInChunk = currentChunk == numChunks - 1 ? chunkLength - numPads : chunkLength;
+				for (int i = 0; i < numBase64CharInChunk; ++i) 
 				{
-					const int bitsToRead = std::min(numBitsRemaining, 6);
-					const int base64Idx = std::distance(map.begin(), std::find(map.begin(), map.end(), data[currentChunk * chunkLength + charIdx]));
-					
-					numBitsRemaining -= bitsToRead;
-					inputGroup |= std::bitset<24>(base64Idx >> (6 - bitsToRead));
-					inputGroup <<= std::min(numBitsRemaining, 6);
+					const int base64Idx = std::distance(map.begin(), std::find(map.begin(), map.end(), data[currentChunk * chunkLength + i]));
+					inputGroup |= base64Idx << (3 - i) * numBitsPerBase64Char;
 				}
 
-				for (int i = numBytesInChunk - 1; i >= 0; --i)
+				for (int i = outputChunkLength; i >= 0; --i)
 				{
 					result += static_cast<char>((inputGroup >> 8 * i).to_ulong());
 				}
