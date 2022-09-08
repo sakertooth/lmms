@@ -26,9 +26,12 @@
 #define SLICER_H
 
 #include "Instrument.h"
+#include <sndfile.h>
 
 namespace lmms 
 {
+    namespace gui { class SlicerView; }
+
     class SlicerInstrument : public Instrument 
     {
         Q_OBJECT
@@ -48,10 +51,10 @@ namespace lmms
 
     private:
         QString m_samplePath;
-        friend class SlicerView;
-
+        std::vector<float> m_samples;
+        friend class gui::SlicerView;
     signals:
-        void sampleLoaded(const QString& sample);
+        void sampleLoaded();
     };
 }
 

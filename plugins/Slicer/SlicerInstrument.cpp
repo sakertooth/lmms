@@ -29,7 +29,7 @@
 #include "plugin_export.h"
 #include "SlicerInstrument.h"
 #include "SlicerView.h"
-
+#include <iostream>
 #include <QFileDialog>
 
 namespace lmms 
@@ -72,14 +72,31 @@ namespace lmms
     void SlicerInstrument::loadSample() 
     {
         m_samplePath = openSample();
-        emit sampleLoaded(m_samplePath);
+        
+        SF_INFO sampleInfo;
+        sampleInfo.format = 0;
+
+        auto sndFileDeleter = [](SNDFILE* ptr){ sf_close(ptr); };
+        auto sndFile = std::unique_ptr<SNDFILE, decltype(sndFileDeleter)>(sf_open(m_samplePath.toStdString().c_str(), SFM_READ, &sampleInfo), sndFileDeleter);
+
+        auto numSamples = sampleInfo.frames * sampleInfo.channels;
+        m_samples.resize(numSamples);
+        auto samplesRead = sf_read_float(sndFile.get(), m_samples.data(), numSamples);
+
+        if (samplesRead != numSamples) 
+        {
+            std::cerr << "(Slicer) Failed to read all required samples.\n";
+            return;
+        }
+
+        emit sampleLoaded();
     }
 
     QString SlicerInstrument::openSample() 
     {
         QString sample = QFileDialog::getOpenFileName(nullptr, 
             tr("Open sample"), ConfigManager::inst()->userSamplesDir(), 
-            tr("Samples (*.wav *.ogg)"));
+            tr("Samples (*.wav *.ogg *.aiff)"));
             
         return sample.isNull() ? "" : sample;
     }

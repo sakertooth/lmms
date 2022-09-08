@@ -28,12 +28,15 @@
 
 namespace lmms::gui 
 {
-    SlicerView::SlicerView(Instrument* instrument, QWidget* parent) : InstrumentViewFixedSize(instrument, parent)
+    SlicerView::SlicerView(Instrument* instrument, QWidget* parent) 
+    : InstrumentViewFixedSize(instrument, parent),
+      m_slicerInstrument(dynamic_cast<SlicerInstrument*>(instrument))
     {
         m_samplePathLabel = new QLabel{this};
         m_samplePathLabel->setFrameStyle(QFrame::Box | QFrame::Plain);
         m_samplePathLabel->setFixedSize(650, 25);
         m_samplePathLabel->move(5, 5);
+        m_samplePathLabel->setToolTip(tr("Sample path"));
 
         m_openSampleButton = new PixmapButton{this};
         m_openSampleButton->setActiveGraphic(PLUGIN_NAME::getIconPixmap("select_sample"));
@@ -42,16 +45,21 @@ namespace lmms::gui
         m_openSampleButton->move(665, 0);
         m_openSampleButton->setToolTip(tr("Open sample"));
 
-        const auto& slicerInstrument = static_cast<SlicerInstrument*>(instrument);
-        connect(m_openSampleButton, &PixmapButton::clicked, [slicerInstrument]() { slicerInstrument->loadSample(); });
-        connect(slicerInstrument, &SlicerInstrument::sampleLoaded, [slicerInstrument, this](const QString& sample){ onSampleLoaded(sample); });
+        m_slicerWaveform = new SlicerWaveform(this);
+        m_slicerWaveform->setFixedSize(700, 125);
+        m_slicerWaveform->move(0, 40);
+        m_slicerWaveform->setToolTip(tr("Sample waveform"));
+        
+        connect(m_openSampleButton, &PixmapButton::clicked, [this]() { m_slicerInstrument->loadSample(); });
+        connect(m_slicerInstrument, &SlicerInstrument::sampleLoaded, [this](){ onSampleLoaded(); });
     }
 
     QSize SlicerView::sizeHint() const { return QSize{700, 250}; }
     
-    void SlicerView::onSampleLoaded(const QString& sample) 
+    void SlicerView::onSampleLoaded() 
     {
-        m_samplePathLabel->setText(sample);
+        m_samplePathLabel->setText(m_slicerInstrument->m_samplePath);
+        m_slicerWaveform->loadSample(m_slicerInstrument->m_samples);
+        m_slicerWaveform->update();
     }
-
 }

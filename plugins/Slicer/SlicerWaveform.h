@@ -1,5 +1,5 @@
 /*
- * SlicerView.h - A sample slicer for LMMS
+ * SlicerWaveform.h
  *
  * Copyright (c) 2022 saker <sakertooth@gmail.com>
  *
@@ -22,28 +22,25 @@
  *
  */
 
-#include "InstrumentView.h"
-#include "TextFloat.h"
-#include "PixmapButton.h"
-#include "SlicerInstrument.h"
-#include "SlicerWaveform.h"
+#ifndef SLICER_WAVEFORM_H
+#define SLICER_WAVEFORM_H
 
-#include <QLabel>
+#include <QWidget>
+#include <QRect>
+#include <vector>
+#include "lmms_basics.h"
 
-namespace lmms::gui 
+namespace lmms::gui
 {
-    class SlicerView : public gui::InstrumentViewFixedSize 
+    class SlicerWaveform : public QWidget
     {
-        Q_OBJECT
     public:
-        SlicerView(Instrument* instrument, QWidget* parent);
-        QSize sizeHint() const override;
-        void onSampleLoaded();
+        SlicerWaveform(QWidget* parent);
+        void loadSample(const std::vector<float>& samples);
+        void paintEvent(QPaintEvent* event) override;
     private:
-        QLabel* m_samplePathLabel;
-        PixmapButton* m_openSampleButton;
-        SlicerWaveform* m_slicerWaveform;
-        SlicerInstrument* m_slicerInstrument;
+        std::vector<QLineF> m_waveform;
     };
-
 }
+
+#endif
