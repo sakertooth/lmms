@@ -58,6 +58,7 @@ SET(LMMS_PLUGIN_LIST
 	Sf2Player
 	Sfxr
 	Sid
+	Slicer
 	SpectrumAnalyzer
 	StereoEnhancer
 	StereoMatrix
