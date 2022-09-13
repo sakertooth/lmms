@@ -1,5 +1,5 @@
 /*
- * SlicerView.cpp - A sample slicer for LMMS
+ * SlicerView.cpp
  *
  * Copyright (c) 2022 saker <sakertooth@gmail.com>
  *
@@ -32,34 +32,9 @@ namespace lmms::gui
     : InstrumentViewFixedSize(instrument, parent),
       m_slicerInstrument(dynamic_cast<SlicerInstrument*>(instrument))
     {
-        m_samplePathLabel = new QLabel{this};
-        m_samplePathLabel->setFrameStyle(QFrame::Box | QFrame::Plain);
-        m_samplePathLabel->setFixedSize(650, 25);
-        m_samplePathLabel->move(5, 5);
-        m_samplePathLabel->setToolTip(tr("Sample path"));
-
-        m_openSampleButton = new PixmapButton{this};
-        m_openSampleButton->setActiveGraphic(PLUGIN_NAME::getIconPixmap("select_sample"));
-	    m_openSampleButton->setInactiveGraphic(PLUGIN_NAME::getIconPixmap("select_sample"));
-        m_openSampleButton->setFixedSize(32, 32);
-        m_openSampleButton->move(665, 0);
-        m_openSampleButton->setToolTip(tr("Open sample"));
-
-        m_slicerWaveform = new SlicerWaveform(this);
-        m_slicerWaveform->setFixedSize(700, 125);
-        m_slicerWaveform->move(0, 40);
-        m_slicerWaveform->setToolTip(tr("Sample waveform"));
-        
-        connect(m_openSampleButton, &PixmapButton::clicked, [this]() { m_slicerInstrument->loadSample(); });
-        connect(m_slicerInstrument, &SlicerInstrument::sampleLoaded, [this](){ onSampleLoaded(); });
-    }
-
-    QSize SlicerView::sizeHint() const { return QSize{700, 250}; }
-    
-    void SlicerView::onSampleLoaded() 
-    {
-        m_samplePathLabel->setText(m_slicerInstrument->m_samplePath);
-        m_slicerWaveform->loadSample(m_slicerInstrument->m_samples);
-        m_slicerWaveform->update();
+      m_showGuiButton = new QPushButton(tr("Show GUI"), this);
+      m_showGuiButton->move(125, 125);
+      m_slicerWindow = new SlicerWindow(nullptr, dynamic_cast<SlicerInstrument*>(instrument));        
+      connect(m_showGuiButton, &QPushButton::clicked, [this](){ m_slicerWindow->show(); });
     }
 }

@@ -51,8 +51,8 @@ namespace lmms::gui
     void SlicerWaveform::paintEvent(QPaintEvent*)
     {
         QPainter painter(this);
-        painter.fillRect(rect(), Qt::black);
-        painter.setPen(Qt::green);
+        painter.fillRect(rect(), QColor{"#353333"});
+        painter.setPen(QColor{"#00b530"});
         painter.drawLines(m_waveform.data(), m_waveform.size());
     }
 }

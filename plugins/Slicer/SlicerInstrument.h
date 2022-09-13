@@ -30,7 +30,7 @@
 
 namespace lmms 
 {
-    namespace gui { class SlicerView; }
+    namespace gui { class SlicerWindow; }
 
     class SlicerInstrument : public Instrument 
     {
@@ -47,12 +47,11 @@ namespace lmms
         gui::PluginView* instantiateView(QWidget* parent) override;
 
         void loadSample();
-        QString openSample();
 
     private:
         QString m_samplePath;
         std::vector<float> m_samples;
-        friend class gui::SlicerView;
+        friend class gui::SlicerWindow;
     signals:
         void sampleLoaded();
     };

@@ -71,7 +71,11 @@ namespace lmms
 
     void SlicerInstrument::loadSample() 
     {
-        m_samplePath = openSample();
+        auto sample = QFileDialog::getOpenFileName(nullptr, 
+            tr("Open sample"), ConfigManager::inst()->userSamplesDir(), 
+            tr("Samples (*.wav *.ogg *.aiff)"));
+            
+        m_samplePath = sample.isNull() ? "" : sample;        
         
         SF_INFO sampleInfo;
         sampleInfo.format = 0;
@@ -90,15 +94,6 @@ namespace lmms
         }
 
         emit sampleLoaded();
-    }
-
-    QString SlicerInstrument::openSample() 
-    {
-        QString sample = QFileDialog::getOpenFileName(nullptr, 
-            tr("Open sample"), ConfigManager::inst()->userSamplesDir(), 
-            tr("Samples (*.wav *.ogg *.aiff)"));
-            
-        return sample.isNull() ? "" : sample;
     }
 
     QString SlicerInstrument::nodeName() const 

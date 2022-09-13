@@ -1,5 +1,5 @@
 /*
- * SlicerView.h
+ * SlicerWindow.h
  *
  * Copyright (c) 2022 saker <sakertooth@gmail.com>
  *
@@ -22,21 +22,35 @@
  *
  */
 
-#include "InstrumentView.h"
-#include "SlicerWindow.h"
-#include <QLabel>
+#include "SlicerWaveform.h"
+#include "SlicerInstrument.h"
+#include "LcdSpinBox.h"
 
-namespace lmms::gui 
+#include <QWidget>
+#include <QLabel>
+#include <QPushButton>
+#include <QRadioButton>
+#include <QGroupBox>
+
+namespace lmms::gui
 {
-    class SlicerView : public gui::InstrumentViewFixedSize 
+    class SlicerWindow : public QWidget
     {
-        Q_OBJECT
     public:
-        SlicerView(Instrument* instrument, QWidget* parent);
+        SlicerWindow(QWidget* parent, SlicerInstrument* slicerInstrument);
+        void onSampleLoaded();
+        
     private:
-        QPushButton* m_showGuiButton;
-        SlicerWindow* m_slicerWindow;
+        QLabel* m_samplePathLabel;
+        QPushButton* m_openSampleButton;
+        SlicerWaveform* m_sampleWaveform;
+        LcdSpinBox* m_numSlicesLcd;
+        IntModel m_numSlicesLcdModel{0, 0, 128};
+        QPushButton* m_sliceButton;
+        QPushButton* m_incrementSlice;
+        QPushButton* m_decrementSlice;
+        QRadioButton* m_sliceTypeBasic;
+        QRadioButton* m_sliceTypeOnsets;
         SlicerInstrument* m_slicerInstrument;
     };
-
 }
