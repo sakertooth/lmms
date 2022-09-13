@@ -39,6 +39,7 @@ namespace lmms::gui
     public:
         SlicerWindow(QWidget* parent, SlicerInstrument* slicerInstrument);
         void onSampleLoaded();
+        void onSlice();
         
     private:
         QLabel* m_samplePathLabel;

@@ -46,6 +46,21 @@ namespace lmms::gui
 
             m_waveform.emplace_back(minPoint, maxPoint);
         }
+
+        m_samples = &samples;
+    }
+
+    void SlicerWaveform::addSlice(int sampleIdx)
+    {
+        if (sampleIdx >= static_cast<int>(m_samples->size()) || sampleIdx < 0)
+        {
+            std::cerr << "(Slicer) Invalid sample index\n";
+            return;
+        }
+
+        float sliceLineX = sampleIdx / (m_samples->size() / static_cast<float>(rect().width()));
+        QLineF sliceLine(sliceLineX, rect().y(), sliceLineX, rect().y() + rect().height());
+        m_sliceLines[sampleIdx] = sliceLine;
     }
 
     void SlicerWaveform::paintEvent(QPaintEvent*)
@@ -54,5 +69,12 @@ namespace lmms::gui
         painter.fillRect(rect(), QColor{"#353333"});
         painter.setPen(QColor{"#00b530"});
         painter.drawLines(m_waveform.data(), m_waveform.size());
+
+        painter.setPen(QColor{"#c5c3c3"});
+        for (const auto& slice : m_sliceLines) 
+        {
+            const auto& [_, sliceLine] = slice;
+            painter.drawLine(sliceLine);
+        }
     }
 }

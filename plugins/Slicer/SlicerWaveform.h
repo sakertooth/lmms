@@ -37,9 +37,14 @@ namespace lmms::gui
     public:
         SlicerWaveform(QWidget* parent);
         void loadSample(const std::vector<float>& samples);
-        void paintEvent(QPaintEvent* event) override;
+        void paintEvent(QPaintEvent* event) override;     
+        void addSlice(int frameIdx);
     private:
         std::vector<QLineF> m_waveform;
+        std::unordered_map<int, QLineF> m_sliceLines;
+        const std::vector<float>* m_samples;
+
+        friend class SlicerWindow;
     };
 }
 

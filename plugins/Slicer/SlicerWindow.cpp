@@ -63,6 +63,7 @@ namespace lmms::gui
         m_decrementSlice->setFixedSize(16, 16);
         
         m_sliceTypeBasic = new QRadioButton(tr("BASIC"), this);
+        m_sliceTypeBasic->setChecked(true);
         m_sliceTypeOnsets = new QRadioButton(tr("ONSETS"), this);
         m_sliceButton = new QPushButton(tr("Slice"), this);
 
@@ -86,6 +87,7 @@ namespace lmms::gui
         connect(m_slicerInstrument, &SlicerInstrument::sampleLoaded, [this](){ onSampleLoaded(); });
         connect(m_incrementSlice, &QPushButton::clicked, [this](){ m_numSlicesLcdModel.setValue(m_numSlicesLcdModel.value() + 1); });
         connect(m_decrementSlice, &QPushButton::clicked, [this](){ m_numSlicesLcdModel.setValue(m_numSlicesLcdModel.value() - 1); });
+        connect(m_sliceButton, &QPushButton::clicked, [this](){ onSlice(); });
     }
 
     void SlicerWindow::onSampleLoaded()
@@ -93,5 +95,27 @@ namespace lmms::gui
         m_samplePathLabel->setText(m_slicerInstrument->m_samplePath);
         m_sampleWaveform->loadSample(m_slicerInstrument->m_samples);
         m_sampleWaveform->update();
+    }
+
+    void SlicerWindow::onSlice() 
+    {
+        m_sampleWaveform->m_sliceLines.clear();
+
+        const int sliceCount = m_numSlicesLcdModel.value();
+        
+        if (m_sliceTypeBasic->isChecked())
+        {
+           const int sliceSampleX = m_slicerInstrument->m_samples.size() / static_cast<float>(sliceCount + 1);
+
+           for (int i = 0; i < sliceCount; ++i) 
+           {
+            m_sampleWaveform->addSlice(sliceSampleX + i * sliceSampleX);
+           }
+           update(); 
+        }
+        else if (m_sliceTypeOnsets->isChecked()) 
+        {
+            //Aubio
+        }
     }
 }
