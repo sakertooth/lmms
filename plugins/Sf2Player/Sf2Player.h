@@ -158,7 +158,7 @@ private:
 	FloatModel m_chorusSpeed;
 	FloatModel m_chorusDepth;
 
-	QVector<NotePlayHandle *> m_playingNotes;
+	std::vector<NotePlayHandle*> m_playingNotes;
 	QMutex m_playingNotesMutex;
 
 private:

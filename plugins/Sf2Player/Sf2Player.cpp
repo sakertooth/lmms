@@ -649,7 +649,7 @@ void Sf2Instrument::playNote( NotePlayHandle * _n, sampleFrame * )
 
 		// insert the nph to the playing notes vector
 		m_playingNotesMutex.lock();
-		m_playingNotes.append( _n );
+		m_playingNotes.push_back(_n);
 		m_playingNotesMutex.unlock();
 	}
 	else if( _n->isReleased() && ! _n->instrumentTrack()->isSustainPedalPressed() ) // note is released during this period
@@ -659,7 +659,7 @@ void Sf2Instrument::playNote( NotePlayHandle * _n, sampleFrame * )
 		pluginData->isNew = false;
 
 		m_playingNotesMutex.lock();
-		m_playingNotes.append( _n );
+		m_playingNotes.push_back(_n);
 		m_playingNotesMutex.unlock();
 	}
 }
@@ -750,7 +750,7 @@ void Sf2Instrument::play( sampleFrame * _working_buffer )
 		m_synthMutex.unlock();
 	}
 	// if we have no new noteons/noteoffs, just render a period and call it a day
-	if( m_playingNotes.isEmpty() )
+	if (m_playingNotes.empty())
 	{
 		renderFrames( frames, _working_buffer );
 		instrumentTrack()->processAudioBuffer( _working_buffer, frames, nullptr );
@@ -761,7 +761,7 @@ void Sf2Instrument::play( sampleFrame * _working_buffer )
 	// go through noteplayhandles in processing order
 	f_cnt_t currentFrame = 0;
 
-	while( ! m_playingNotes.isEmpty() )
+	while (!m_playingNotes.empty())
 	{
 		// find the note with lowest offset
 		NotePlayHandle * currentNote = m_playingNotes[0];
@@ -794,7 +794,7 @@ void Sf2Instrument::play( sampleFrame * _working_buffer )
 			else // otherwise remove the handle
 			{
 				m_playingNotesMutex.lock();
-				m_playingNotes.remove( m_playingNotes.indexOf( currentNote ) );
+				m_playingNotes.erase(std::find(m_playingNotes.begin(), m_playingNotes.end(), currentNote));
 				m_playingNotesMutex.unlock();
 			}
 		}
@@ -802,7 +802,7 @@ void Sf2Instrument::play( sampleFrame * _working_buffer )
 		{
 			noteOff( currentData );
 			m_playingNotesMutex.lock();
-			m_playingNotes.remove( m_playingNotes.indexOf( currentNote ) );
+			m_playingNotes.erase(std::find(m_playingNotes.begin(), m_playingNotes.end(), currentNote));
 			m_playingNotesMutex.unlock();
 		}
 	}
@@ -867,9 +867,10 @@ void Sf2Instrument::deleteNotePluginData( NotePlayHandle * _n )
 	{
 		noteOff( pluginData );
 		m_playingNotesMutex.lock();
-		if( m_playingNotes.indexOf( _n ) >= 0 )
+		auto it = std::find(m_playingNotes.begin(), m_playingNotes.end(), _n);
+		if (it != m_playingNotes.end())
 		{
-			m_playingNotes.remove( m_playingNotes.indexOf( _n ) );
+			m_playingNotes.erase(it);
 		}
 		m_playingNotesMutex.unlock();
 	}
