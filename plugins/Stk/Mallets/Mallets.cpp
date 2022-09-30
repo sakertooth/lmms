@@ -94,37 +94,37 @@ MalletsInstrument::MalletsInstrument( InstrumentTrack * _instrument_track ):
 {
 	// ModalBar
 	m_presetsModel.addItem( tr( "Marimba" ) );
-	m_scalers.append( 4.0 );
+	m_scalers.push_back(4.0);
 	m_presetsModel.addItem( tr( "Vibraphone" ) );
-	m_scalers.append( 4.0 );
+	m_scalers.push_back(4.0);
 	m_presetsModel.addItem( tr( "Agogo" ) );
-	m_scalers.append( 5.0 );
+	m_scalers.push_back(5.0);
 	m_presetsModel.addItem( tr( "Wood 1" ) );
-	m_scalers.append( 4.0 );
+	m_scalers.push_back(4.0);
 	m_presetsModel.addItem( tr( "Reso" ) );
-	m_scalers.append( 2.5 );
+	m_scalers.push_back(2.5);
 	m_presetsModel.addItem( tr( "Wood 2" ) );
-	m_scalers.append( 5.0 );
+	m_scalers.push_back(5.0);
 	m_presetsModel.addItem( tr( "Beats" ) );
-	m_scalers.append( 20.0 );
+	m_scalers.push_back(20.0);
 	m_presetsModel.addItem( tr( "Two fixed" ) );
-	m_scalers.append( 5.0 );
+	m_scalers.push_back(5.0);
 	m_presetsModel.addItem( tr( "Clump" ) );
-	m_scalers.append( 4.0 );
+	m_scalers.push_back(4.0);
 	
 	// TubeBell
 	m_presetsModel.addItem( tr( "Tubular bells" ) );
-	m_scalers.append( 1.8 );
+	m_scalers.push_back( 1.8 );
 	
 	// BandedWG
 	m_presetsModel.addItem( tr( "Uniform bar" ) );
-	m_scalers.append( 25.0 );
+	m_scalers.push_back(25.0);
 	m_presetsModel.addItem( tr( "Tuned bar" ) );
-	m_scalers.append( 10.0 );
+	m_scalers.push_back(10.0);
 	m_presetsModel.addItem( tr( "Glass" ) );
-	m_scalers.append( 16.0 );
+	m_scalers.push_back(16.0);
 	m_presetsModel.addItem( tr( "Tibetan bowl" ) );
-	m_scalers.append( 7.0 );
+	m_scalers.push_back(7.0);
 }
 
 

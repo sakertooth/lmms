@@ -200,7 +200,7 @@ private:
 	IntModel m_versionModel;
 	BoolModel m_isOldVersionModel;
 
-	QVector<sample_t> m_scalers;
+	std::vector<sample_t> m_scalers;
 
 	bool m_filesMissing;
 
