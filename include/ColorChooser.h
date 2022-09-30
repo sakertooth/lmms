@@ -24,11 +24,12 @@
 #ifndef COLOR_CHOOSER_H
 #define COLOR_CHOOSER_H
 
+#include <vector>
+
 #include <QApplication>
 #include <QColor>
 #include <QColorDialog>
 #include <QKeyEvent>
-#include <QVector>
 
 namespace lmms::gui
 {
@@ -43,13 +44,13 @@ public:
 	ColorChooser() = default;
 	enum class Palette {Default, Track, Mixer};
 	//! Set global palette via array, checking bounds
-	void setPalette (QVector<QColor>);
+	void setPalette(const std::vector<QColor>&);
 	//! Set global paletter via enum
 	void setPalette (Palette);
 	//! Set palette via enum, return self pointer for chaining
 	ColorChooser* withPalette (Palette);
 	//! Return a certain palette
-	static QVector<QColor> getPalette (Palette);
+	static std::vector<QColor> getPalette(Palette);
 
 protected:
 	//! Forward key events to the parent to prevent stuck notes when the dialog gets focus
@@ -60,9 +61,9 @@ protected:
 	}
 private:
 	//! Copy the current QColorDialog palette into an array
-	static QVector<QColor> defaultPalette();
+	static std::vector<QColor> defaultPalette();
 	//! Generate a nice palette, with adjustable value
-	static QVector<QColor> nicePalette (int);
+	static std::vector<QColor> nicePalette(int);
 };
 
 

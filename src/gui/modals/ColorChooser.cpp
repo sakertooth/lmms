@@ -29,9 +29,9 @@ namespace lmms::gui
 
 
 //! Set global palette via array, checking bounds
-void ColorChooser::setPalette (QVector<QColor> colors)
+void ColorChooser::setPalette(const std::vector<QColor>& colors)
 {
-	const int max = qMin (colors.size(), 48);
+	const int max = std::min(static_cast<int>(colors.size()), 48);
 	for (int i = 0; i < max; i++)
 	{
 		ColorChooser::setStandardColor (i, colors[i]);
@@ -55,7 +55,7 @@ ColorChooser* ColorChooser::withPalette (Palette palette)
 
 
 //! Return a certain palette
-QVector<QColor> ColorChooser::getPalette (Palette palette)
+std::vector<QColor> ColorChooser::getPalette(Palette palette)
 {
 	switch (palette)
 	{
@@ -69,9 +69,9 @@ QVector<QColor> ColorChooser::getPalette (Palette palette)
 
 
 //! Copy the current QColorDialog palette into an array
-QVector<QColor> ColorChooser::defaultPalette()
+std::vector<QColor> ColorChooser::defaultPalette()
 {
-	QVector <QColor> result (48);
+	std::vector<QColor> result (48);
 	for (int i = 0; i < 48; i++)
 	{
 		result[i] = (QColorDialog::standardColor(i));
@@ -81,9 +81,9 @@ QVector<QColor> ColorChooser::defaultPalette()
 
 
 //! Generate a nice palette, with adjustable value
-QVector<QColor> ColorChooser::nicePalette (int base)
+std::vector<QColor> ColorChooser::nicePalette (int base)
 {
-	QVector <QColor> result (48);
+	std::vector<QColor> result (48);
 	for (int x = 0; x < 8; x++)
 	{
 		for (int y = 0; y < 6; y++)
