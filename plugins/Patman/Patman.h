@@ -93,7 +93,7 @@ private:
 	};
 
 	QString m_patchFile;
-	QVector<SampleBuffer *> m_patchSamples;
+	std::vector<SampleBuffer*> m_patchSamples;
 	BoolModel m_loopedModel;
 	BoolModel m_tunedModel;
 
