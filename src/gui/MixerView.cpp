@@ -413,7 +413,7 @@ void MixerView::deleteChannel(int index)
 	{
 		m_mixerChannelViews[i]->m_mixerLine->setChannelIndex(i-1);
 	}
-	m_mixerChannelViews.remove(index);
+	m_mixerChannelViews.erase(m_mixerChannelViews.begin() + index);
 
 	// select the next channel
 	if( selLine >= m_mixerChannelViews.size() )
