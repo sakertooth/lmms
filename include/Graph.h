@@ -215,7 +215,7 @@ signals:
 private:
 	void drawSampleAt( int x, float val );
 
-	QVector<float> m_samples;
+	std::vector<float> m_samples;
 	int m_length;
 	float m_minValue;
 	float m_maxValue;

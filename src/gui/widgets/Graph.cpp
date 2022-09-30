@@ -291,7 +291,7 @@ void Graph::paintEvent( QPaintEvent * )
 	p.setPen( QPen( m_graphColor, 1 ) );
 	QColor gcol = QColor( m_graphColor.red(), m_graphColor.green(), m_graphColor.blue(), 100 );
 
-	QVector<float> * samps = &(model()->m_samples);
+	auto samps = &(model()->m_samples);
 	int length = model()->length();
 	const float maxVal = model()->maxValue();
 	const float minVal = model()->minValue();
@@ -476,7 +476,7 @@ void graphModel::setRange( float _min, float _max )
 		m_minValue = _min;
 		m_maxValue = _max;
 
-		if( !m_samples.isEmpty() )
+		if (!m_samples.empty())
 		{
 			// Trim existing values
 			for( int i=0; i < length(); i++ )
@@ -612,7 +612,7 @@ QString graphModel::setWaveToUser()
 void graphModel::smooth()
 {
 	// store values in temporary array
-	QVector<float> temp = m_samples;
+	auto temp = m_samples;
 
 	// Smoothing
 	m_samples[0] = ( temp[length()-1] + ( temp[0] * 2 ) + temp[1] ) * 0.25f;
@@ -628,7 +628,7 @@ void graphModel::smooth()
 void graphModel::smoothNonCyclic()
 {
 	// store values in temporary array
-	QVector<float> temp = m_samples;
+	auto temp = m_samples;
 
 	// Smoothing
 	//m_samples[0] = ( ( temp[0] * 3 ) + temp[1] ) * 0.25f;
@@ -645,7 +645,7 @@ void graphModel::convolve(const float *convolution,
 	const int convolutionLength, const int centerOffset)
 {
 	// store values in temporary array
-	QVector<float> temp = m_samples;
+	auto temp = m_samples;
 	const int graphLength = length();
 	float sum;
 	// make a cyclic convolution
@@ -705,7 +705,7 @@ void graphModel::shiftPhase( int _deg )
 	const int offset = ( _deg * length() ) / 360; //multiply first because integers
 	
 	// store values in temporary array
-	QVector<float> temp = m_samples;
+	auto temp = m_samples;
 	
 	// shift phase
 	for( int i = 0; i < length(); i++ )
