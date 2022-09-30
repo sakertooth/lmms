@@ -77,7 +77,7 @@ private:
 	}
 
 
-	QVector<EffectView *> m_effectViews;
+	std::vector<EffectView*> m_effectViews;
 
 	GroupBox* m_effectsGroupBox;
 	QScrollArea* m_scrollArea;

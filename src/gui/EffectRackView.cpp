@@ -100,23 +100,11 @@ void EffectRackView::clearViews()
 void EffectRackView::moveUp( EffectView* view )
 {
 	fxChain()->moveUp( view->effect() );
-	if( view != m_effectViews.first() )
+	if (view != m_effectViews.front())
 	{
-		int i = 0;
-		for( QVector<EffectView *>::Iterator it = m_effectViews.begin(); 
-					it != m_effectViews.end(); it++, i++ )
-		{
-			if( *it == view )
-			{
-				break;
-			}
-		}
-
-		EffectView * temp = m_effectViews[ i - 1 ];
-
-		m_effectViews[i - 1] = view;
-		m_effectViews[i] = temp;
-
+		auto it = std::find(m_effectViews.begin(), m_effectViews.end(), view);
+		if (it == m_effectViews.end()) { return; }
+		std::swap(*it, *std::next(it));
 		update();
 	}
 }
@@ -126,7 +114,7 @@ void EffectRackView::moveUp( EffectView* view )
 
 void EffectRackView::moveDown( EffectView* view )
 {
-	if( view != m_effectViews.last() )
+	if (view != m_effectViews.back())
 	{
 		// moving next effect up is the same
 		moveUp( *( std::find( m_effectViews.begin(), m_effectViews.end(), view ) + 1 ) );
@@ -152,8 +140,7 @@ void EffectRackView::deletePlugin( EffectView* view )
 void EffectRackView::update()
 {
 	QWidget * w = m_scrollArea->widget();
-	QVector<bool> view_map( qMax<int>( fxChain()->m_effects.size(),
-						m_effectViews.size() ), false );
+	std::vector<bool> view_map(qMax<int>(fxChain()->m_effects.size(), m_effectViews.size()), false);
 
 	for (const auto& effect : fxChain()->m_effects)
 	{
@@ -178,14 +165,14 @@ void EffectRackView::update()
 				this, SLOT(deletePlugin(lmms::gui::EffectView*)),
 							Qt::QueuedConnection );
 			view->show();
-			m_effectViews.append( view );
+			m_effectViews.push_back(view);
 			if( i < view_map.size() )
 			{
 				view_map[i] = true;
 			}
 			else
 			{
-				view_map.append( true );
+				view_map.push_back(true);
 			}
 
 		}
@@ -196,8 +183,7 @@ void EffectRackView::update()
 	const int EffectViewMargin = 3;
 	m_lastY = EffectViewMargin;
 
-	for( QVector<EffectView *>::Iterator it = m_effectViews.begin(); 
-					it != m_effectViews.end(); i++ )
+	for (auto it = m_effectViews.begin(); it != m_effectViews.end(); i++)
 	{
 		if( i < view_map.size() && view_map[i] == false )
 		{
