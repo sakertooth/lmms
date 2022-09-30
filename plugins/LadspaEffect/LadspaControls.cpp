@@ -45,7 +45,7 @@ LadspaControls::LadspaControls( LadspaEffect * _eff ) :
 				Qt::DirectConnection );
 
 	multi_proc_t controls = m_effect->getPortControls();
-	m_controlCount = controls.count();
+	m_controlCount = controls.size();
 
 	for( ch_cnt_t proc = 0; proc < m_processors; proc++ )
 	{
@@ -59,7 +59,7 @@ LadspaControls::LadspaControls( LadspaEffect * _eff ) :
 			{
 				control->control = new LadspaControl(this, control, linked_control);
 
-				p.append(control->control);
+				p.push_back(control->control);
 
 				if (linked_control)
 				{
@@ -70,7 +70,7 @@ LadspaControls::LadspaControls( LadspaEffect * _eff ) :
 			}
 		}
 
-		m_controls.append( p );
+		m_controls.push_back( p );
 	}
 
 	// now link all controls
@@ -109,7 +109,7 @@ void LadspaControls::saveSettings( QDomDocument & _doc, QDomElement & _this )
 	}
 	
 	multi_proc_t controls = m_effect->getPortControls();
-	_this.setAttribute( "ports", controls.count() );
+	_this.setAttribute("ports", static_cast<int>(controls.size()));
 	for (const auto& control : controls)
 	{
 		QString n = "port" + QString::number(control->proc) + QString::number(control->port_id);

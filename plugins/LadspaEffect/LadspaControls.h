@@ -33,7 +33,7 @@ namespace lmms
 
 
 class LadspaControl;
-using control_list_t = QVector<LadspaControl*>;
+using control_list_t = std::vector<LadspaControl*>;
 
 class LadspaEffect;
 
@@ -75,7 +75,7 @@ private:
 	bool m_noLink;
 	BoolModel m_stereoLinkModel;
 	//! control vector for each processor
-	QVector<control_list_t> m_controls;
+	std::vector<control_list_t> m_controls;
 
 
 	friend class gui::LadspaControlDialog;
