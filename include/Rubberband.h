@@ -27,8 +27,9 @@
 #ifndef RUBBERBAND_H
 #define RUBBERBAND_H
 
+#include <vector>
+
 #include <QRubberBand>
-#include <QVector>
 
 namespace lmms::gui
 {
@@ -80,8 +81,8 @@ public:
 	RubberBand( QWidget * _parent );
 	~RubberBand() override = default;
 
-	QVector<selectableObject *> selectedObjects() const;
-	QVector<selectableObject *> selectableObjects() const;
+	std::vector<selectableObject*> selectedObjects() const;
+	std::vector<selectableObject*> selectableObjects() const;
 
 
 protected:
