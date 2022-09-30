@@ -436,13 +436,12 @@ bool TrackContentWidget::pasteSelection( TimePos clipPos, const QMimeData * md, 
 
 	// Snap the mouse position to the beginning of the dropped bar, in ticks
 	const TrackContainer::TrackList tracks = getTrack()->trackContainer()->tracks();
-	const int currentTrackIndex = tracks.indexOf( getTrack() );
-
-	bool wasSelection = m_trackView->trackContainerView()->rubberBand()->selectedObjects().count();
+	const int currentTrackIndex = std::distance(tracks.begin(), std::find(tracks.begin(), tracks.end(), getTrack()));
+	
+	bool wasSelection = m_trackView->trackContainerView()->rubberBand()->selectedObjects().size();
 
 	// Unselect the old group
-		const QVector<selectableObject *> so =
-			m_trackView->trackContainerView()->selectedObjects();
+		const auto so = m_trackView->trackContainerView()->selectedObjects();
 		for (const auto& obj : so)
 		{
 			obj->setSelected(false);
@@ -545,11 +544,8 @@ void TrackContentWidget::mousePressEvent( QMouseEvent * me )
 	else if( me->button() == Qt::LeftButton &&
 			!m_trackView->trackContainerView()->fixedClips() )
 	{
-		QVector<selectableObject*> so =  m_trackView->trackContainerView()->rubberBand()->selectedObjects();
-		for( int i = 0; i < so.count(); ++i )
-		{
-			so.at( i )->setSelected( false);
-		}
+		auto so = m_trackView->trackContainerView()->rubberBand()->selectedObjects();
+		for (const auto obj : so) { obj->setSelected(false); }
 		getTrack()->addJournalCheckPoint();
 		const TimePos pos = getPosition( me->x() ).getBar() *
 						TimePos::ticksPerBar();

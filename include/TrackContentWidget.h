@@ -132,7 +132,7 @@ private:
 
 	TrackView * m_trackView;
 
-	using clipViewVector = QVector<ClipView*>;
+	using clipViewVector = std::vector<ClipView*>;
 	clipViewVector m_clipViews;
 
 	QPixmap m_background;
