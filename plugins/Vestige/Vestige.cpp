@@ -652,7 +652,7 @@ void VestigeInstrumentView::updateMenu( void )
      		QMenu * to_menu = m_selPresetButton->menu();
     		to_menu->clear();
 
-			QVector<QAction*> presetActions(list1.size());
+			std::vector<QAction*> presetActions(list1.size());
 
      		for (int i = 0; i < list1.size(); i++) {
 			presetActions[i] = new QAction(this);
