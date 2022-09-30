@@ -26,8 +26,9 @@
 #ifndef NSTATE_BUTTON_H
 #define NSTATE_BUTTON_H
 
+#include <vector>
+
 #include <QPixmap>
-#include <QVector>
 #include <QPair>
 
 #include "ToolButton.h"
@@ -68,7 +69,7 @@ protected:
 
 
 private:
-	QVector<QPair<QPixmap, QString> > m_states;
+	std::vector<QPair<QPixmap, QString>> m_states;
 	QString m_generalToolTip;
 
 	int m_curState;
