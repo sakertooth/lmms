@@ -38,7 +38,7 @@ StringContainer::StringContainer(const float _pitch,
 {
 	for( int i = 0; i < _strings; i++ )
 	{
-		m_exists.append( false );
+		m_exists.push_back(false);
 	}
 }
 
@@ -90,7 +90,7 @@ void StringContainer::addString(int _harm,
 			harm = 1.0f;
 	}
 
-	m_strings.append( new VibratingString(	m_pitch * harm,
+	m_strings.push_back(new VibratingString(m_pitch * harm,
 						_pick, 
 						_pickup,
 						const_cast<float*>(_impulse),
@@ -100,7 +100,7 @@ void StringContainer::addString(int _harm,
 						_randomize,
 						_string_loss,
 						_detune,
-						_state ) );
+						_state));
 	m_exists[_id] = true;
 }
 

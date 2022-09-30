@@ -24,7 +24,7 @@
 #ifndef _STRING_CONTAINER_H
 #define _STRING_CONTAINER_H
 
-#include <QVector>
+#include <vector>
 
 #include "VibratingString.h"
 #include "MemoryManager.h"
@@ -60,7 +60,7 @@ public:
 	
 	~StringContainer()
 	{
-		int strings = m_strings.count();
+		int strings = m_strings.size();
 		for( int i = 0; i < strings; i++ )
 		{
 			delete m_strings[i];
@@ -73,11 +73,11 @@ public:
 	}
 	
 private:
-	QVector<VibratingString *> m_strings;
+	std::vector<VibratingString*> m_strings;
 	const float m_pitch;
 	const sample_rate_t m_sampleRate;
 	const int m_bufferLength;
-	QVector<bool> m_exists;
+	std::vector<bool> m_exists;
 } ;
 
 
