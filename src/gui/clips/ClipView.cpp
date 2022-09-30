@@ -88,7 +88,7 @@ ClipView::ClipView( Clip * clip,
 	m_action( NoAction ),
 	m_initialMousePos( QPoint( 0, 0 ) ),
 	m_initialMouseGlobalPos( QPoint( 0, 0 ) ),
-	m_initialOffsets( QVector<TimePos>() ),
+	m_initialOffsets(std::vector<TimePos>()),
 	m_hint( nullptr ),
 	m_mutedColor( 0, 0, 0 ),
 	m_mutedBackgroundColor( 0, 0, 0 ),
@@ -384,7 +384,7 @@ void ClipView::setColor(const QColor* color)
 		// TODO journal whole Song or group of clips instead of one journal entry for each track
 
 		// If only one clip changed, store that in the journal
-		if (selectedClips.length() == 1)
+		if (selectedClips.size() == 1)
 		{
 			clip->addJournalCheckPoint();
 		}
@@ -530,8 +530,7 @@ void ClipView::updateCursor(QMouseEvent * me)
  *
  * \param clips The trackContectObjects to save in a DataFile
  */
-DataFile ClipView::createClipDataFiles(
-    				const QVector<ClipView *> & clipViews) const
+DataFile ClipView::createClipDataFiles(const std::vector<ClipView*>& clipViews) const
 {
 	Track * t = m_trackView->getTrack();
 	TrackContainer * tc = t->trackContainer();
@@ -625,7 +624,7 @@ void ClipView::mousePressEvent( QMouseEvent * me )
 	// Right now, active is only used on right/mid clicks actions, so we use a ternary operator
 	// to avoid the overhead of calling getClickedClips when it's not used
 	auto active = me->button() == Qt::LeftButton
-		? QVector<ClipView *>()
+		? std::vector<ClipView*>()
 		: getClickedClips();
 
 	setInitialPos( me->pos() );
@@ -788,12 +787,11 @@ void ClipView::mouseMoveEvent( QMouseEvent * me )
 	{
 		if( mouseMovedDistance( me, 2 ) == true )
 		{
-			QVector<ClipView *> clipViews;
+			std::vector<ClipView *> clipViews;
 			if( m_action == CopySelection )
 			{
 				// Collect all selected Clips
-				QVector<selectableObject *> so =
-					m_trackView->trackContainerView()->selectedObjects();
+				auto so = m_trackView->trackContainerView()->selectedObjects();
 				for (const auto& selectedClip : so)
 				{
 					auto clipv = dynamic_cast<ClipView*>(selectedClip);
@@ -852,28 +850,25 @@ void ClipView::mouseMoveEvent( QMouseEvent * me )
 		TimePos newPos = draggedClipPos( me );
 
 		// 2: Handle moving the other selected Clips the same distance
-		QVector<selectableObject *> so =
-			m_trackView->trackContainerView()->selectedObjects();
-		QVector<Clip *> clips; // List of selected clips
+		auto so = m_trackView->trackContainerView()->selectedObjects();
+		std::vector<Clip*> clips; // List of selected clips
 		int leftmost = 0; // Leftmost clip's offset from grabbed clip
 		// Populate clips, find leftmost
-		for( QVector<selectableObject *>::iterator it = so.begin();
-							it != so.end(); ++it )
+		for (const auto& obj : so)
 		{
-			auto clipv = dynamic_cast<ClipView*>(*it);
+			auto clipv = dynamic_cast<ClipView*>(obj);
 			if( clipv == nullptr ) { continue; }
 			clips.push_back( clipv->m_clip );
-			int index = std::distance( so.begin(), it );
+			int index = std::distance(so.begin(), std::find(so.begin(), so.end(), obj));
 			leftmost = std::min(leftmost, m_initialOffsets[index].getTicks());
 		}
 		// Make sure the leftmost clip doesn't get moved to a negative position
 		if ( newPos.getTicks() + leftmost < 0 ) { newPos = -leftmost; }
 
-		for( QVector<Clip *>::iterator it = clips.begin();
-							it != clips.end(); ++it )
+		for (const auto& clip : clips)
 		{
-			int index = std::distance( clips.begin(), it );
-			( *it )->movePosition( newPos + m_initialOffsets[index] );
+			int index = std::distance(clips.begin(), std::find(clips.begin(), clips.end(), clip));
+			clip->movePosition(newPos + m_initialOffsets[index]);
 		}
 	}
 	else if( m_action == Resize || m_action == ResizeLeft )
@@ -1038,7 +1033,7 @@ void ClipView::mouseReleaseEvent( QMouseEvent * me )
  */
 void ClipView::contextMenuEvent( QContextMenuEvent * cme )
 {
-	QVector<ClipView*> selectedClips = getClickedClips();
+	auto selectedClips = getClickedClips();
 
 	// Depending on whether we right-clicked a selection or an individual Clip we will have
 	// different labels for the actions.
@@ -1117,7 +1112,7 @@ void ClipView::contextMenuEvent( QContextMenuEvent * cme )
 // This method processes the actions from the context menu of the Clip View.
 void ClipView::contextMenuAction( ContextMenuAction action )
 {
-	QVector<ClipView *> active = getClickedClips();
+	auto active = getClickedClips();
 	// active will be later used for the remove, copy, cut or toggleMute methods
 
 	switch( action )
@@ -1143,39 +1138,39 @@ void ClipView::contextMenuAction( ContextMenuAction action )
 	}
 }
 
-QVector<ClipView *> ClipView::getClickedClips()
+std::vector<ClipView*> ClipView::getClickedClips()
 {
 	// Get a list of selected selectableObjects
-	QVector<selectableObject *> sos = getGUI()->songEditor()->m_editor->selectedObjects();
+	auto sos = getGUI()->songEditor()->m_editor->selectedObjects();
 
 	// Convert to a list of selected ClipVs
-	QVector<ClipView *> selection;
+	std::vector<ClipView*> selection;
 	selection.reserve( sos.size() );
 	for( auto so: sos )
 	{
 		auto clipv = dynamic_cast<ClipView*>(so);
 		if( clipv != nullptr )
 		{
-			selection.append( clipv );
+			selection.push_back(clipv);
 		}
 	}
 
 	// If we clicked part of the selection, affect all selected clips. Otherwise affect the clip we clicked
-	return selection.contains(this)
+	return std::find(selection.begin(), selection.end(), this) != selection.end()
 		? selection
-		: QVector<ClipView *>( 1, this );
+		: std::vector<ClipView*>(1, this);
 }
 
-void ClipView::remove( QVector<ClipView *> clipvs )
+void ClipView::remove(const std::vector<ClipView*>& clipvs)
 {
 	for( auto clipv: clipvs )
 	{
-		// No need to check if it's nullptr because we check when building the QVector
+		// No need to check if it's nullptr because we check when building the vector
 		clipv->remove();
 	}
 }
 
-void ClipView::copy( QVector<ClipView *> clipvs )
+void ClipView::copy(const std::vector<ClipView*>& clipvs)
 {
 	// For copyStringPair()
 	using namespace Clipboard;
@@ -1188,7 +1183,7 @@ void ClipView::copy( QVector<ClipView *> clipvs )
 		dataFile.toString() );
 }
 
-void ClipView::cut( QVector<ClipView *> clipvs )
+void ClipView::cut(const std::vector<ClipView*>& clipvs)
 {
 	// Copy the selected Clips
 	copy( clipvs );
@@ -1214,16 +1209,16 @@ void ClipView::paste()
 	}
 }
 
-void ClipView::toggleMute( QVector<ClipView *> clipvs )
+void ClipView::toggleMute(const std::vector<ClipView*>& clipvs)
 {
 	for( auto clipv: clipvs )
 	{
-		// No need to check for nullptr because we check while building the clipvs QVector
+		// No need to check for nullptr because we check while building the clipvs vector
 		clipv->getClip()->toggleMute();
 	}
 }
 
-bool ClipView::canMergeSelection(QVector<ClipView*> clipvs)
+bool ClipView::canMergeSelection(const std::vector<ClipView*>& clipvs)
 {
 	// Can't merge a single Clip
 	if (clipvs.size() < 2) { return false; }
@@ -1239,7 +1234,7 @@ bool ClipView::canMergeSelection(QVector<ClipView*> clipvs)
 	return isInstrumentTrack && ownerTracks.size() == 1;
 }
 
-void ClipView::mergeClips(QVector<ClipView*> clipvs)
+void ClipView::mergeClips(const std::vector<ClipView*>& clipvs)
 {
 	// Get the track that we are merging Clips in
 	auto track = dynamic_cast<InstrumentTrack*>(clipvs.at(0)->getTrackView()->getTrack());
@@ -1255,7 +1250,7 @@ void ClipView::mergeClips(QVector<ClipView*> clipvs)
 	track->saveJournallingState(false);
 
 	// Find the earliest position of all the selected ClipVs
-	const auto earliestClipV = std::min_element(clipvs.constBegin(), clipvs.constEnd(),
+	const auto earliestClipV = std::min_element(clipvs.begin(), clipvs.end(),
 		[](ClipView* a, ClipView* b)
 		{
 			return a->getClip()->startPosition() <
@@ -1300,7 +1295,7 @@ void ClipView::mergeClips(QVector<ClipView*> clipvs)
 		// We disable the journalling system before removing, so the
 		// removal doesn't get added to the undo/redo history
 		clipv->getClip()->saveJournallingState(false);
-		// No need to check for nullptr because we check while building the clipvs QVector
+		// No need to check for nullptr because we check while building the clipvs vector
 		clipv->remove();
 	}
 
@@ -1332,8 +1327,8 @@ float ClipView::pixelsPerBar()
 /*! \brief Save the offsets between all selected tracks and a clicked track */
 void ClipView::setInitialOffsets()
 {
-	QVector<selectableObject *> so = m_trackView->trackContainerView()->selectedObjects();
-	QVector<TimePos> offsets;
+	auto so = m_trackView->trackContainerView()->selectedObjects();
+	std::vector<TimePos> offsets;
 	for (const auto& selectedClip : so)
 	{
 		auto clipv = dynamic_cast<ClipView*>(selectedClip);

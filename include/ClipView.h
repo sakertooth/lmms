@@ -26,8 +26,6 @@
 #define TRACK_CONTENT_OBJECT_VIEW_H
 
 
-#include <QVector>
-
 #include "ModelView.h"
 #include "Rubberband.h"
 #include "Clip.h"
@@ -107,23 +105,23 @@ public:
 	bool needsUpdate();
 	void setNeedsUpdate( bool b );
 
-	// Method to get a QVector of Clips to be affected by a context menu action
-	QVector<ClipView *> getClickedClips();
+	// Method to get a vector of Clips to be affected by a context menu action
+	std::vector<ClipView*> getClickedClips();
 
-	// Methods to remove, copy, cut, paste and mute a QVector of Clip views
-	void copy( QVector<ClipView *> clipvs );
-	void cut( QVector<ClipView *> clipvs );
+	// Methods to remove, copy, cut, paste and mute a vector of Clip views
+	void copy(const std::vector<ClipView*>& clipvs);
+	void cut(const std::vector<ClipView*>&  clipvs);
 	void paste();
 	// remove and toggleMute are static because they don't depend
 	// being called from a particular Clip view, but can be called anywhere as long
 	// as a valid Clip view list is given, while copy/cut require an instance for
 	// some metadata to be written to the clipboard.
-	static void remove( QVector<ClipView *> clipvs );
-	static void toggleMute( QVector<ClipView *> clipvs );
-	static void mergeClips(QVector<ClipView*> clipvs);
+	static void remove(const std::vector<ClipView*>& clipvs);
+	static void toggleMute(const std::vector<ClipView*>& clipvs);
+	static void mergeClips(const std::vector<ClipView*>& clipvs);
 
 	// Returns true if selection can be merged and false if not
-	static bool canMergeSelection(QVector<ClipView*> clipvs);
+	static bool canMergeSelection(const std::vector<ClipView*>& clipvs);
 
 	QColor getColorForDisplay( QColor );
 
@@ -180,7 +178,7 @@ protected:
 	float pixelsPerBar();
 
 
-	DataFile createClipDataFiles(const QVector<ClipView *> & clips) const;
+	DataFile createClipDataFiles(const std::vector<ClipView*>& clips) const;
 
 	virtual void paintTextLabel(QString const & text, QPainter & painter);
 
@@ -209,7 +207,7 @@ private:
 	Actions m_action;
 	QPoint m_initialMousePos;
 	QPoint m_initialMouseGlobalPos;
-	QVector<TimePos> m_initialOffsets;
+	std::vector<TimePos> m_initialOffsets;
 
 	TextFloat * m_hint;
 
