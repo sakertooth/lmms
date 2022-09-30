@@ -25,9 +25,10 @@
 #ifndef _MIDI_IMPORT_H
 #define _MIDI_IMPORT_H
 
+#include <vector>
+
 #include <QString>
 #include <QPair>
-#include <QVector>
 
 #include "MidiEvent.h"
 #include "ImportFilter.h"
@@ -120,7 +121,7 @@ private:
 		}
 	}
 
-	using EventVector = QVector<QPair<int, MidiEvent>>;
+	using EventVector = std::vector<QPair<int, MidiEvent>>;
 	EventVector m_events;
 	int m_timingDivision;
 
