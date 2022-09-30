@@ -60,7 +60,7 @@ Plugin::Descriptor PLUGIN_EXPORT peakcontrollereffect_plugin_descriptor =
 // an peakEffect-ID to the project.  This ID is referenced in the PeakController
 // settings and is used to set the PeakControllerEffect pointer upon load
 
-//QVector<PeakControllerEffect *> PeakControllerEffect::s_effects;
+//std::vector<PeakControllerEffect *> PeakControllerEffect::s_effects;
 
 PeakControllerEffect::PeakControllerEffect(
 			Model * _parent,
