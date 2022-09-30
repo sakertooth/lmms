@@ -461,18 +461,18 @@ void LadspaEffect::pluginInstantiation()
 
 			p->suggests_logscale = manager->isLogarithmic( m_key, port );
 
-			ports.append( p );
+			ports.push_back(p);
 
 	// For convenience, keep a separate list of the ports that are used 
 	// to control the processors.
 			if( p->rate == AUDIO_RATE_INPUT || 
 					p->rate == CONTROL_RATE_INPUT )
 			{
-				p->control_id = m_portControls.count();
-				m_portControls.append( p );
+				p->control_id = m_portControls.size();
+				m_portControls.push_back(p);
 			}
 		}
-		m_ports.append( ports );
+		m_ports.push_back(ports);
 	}
 
 	// Instantiate the processing units.
@@ -504,7 +504,7 @@ void LadspaEffect::pluginInstantiation()
 			setOkay( false );
 			return;
 		}
-		m_handles.append( effect );
+		m_handles.push_back(effect);
 	}
 
 	// Connect the ports.

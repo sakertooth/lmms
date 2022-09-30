@@ -37,7 +37,7 @@ namespace lmms
 {
 
 struct port_desc_t;
-using multi_proc_t = QVector<port_desc_t*>;
+using multi_proc_t = std::vector<port_desc_t*>;
 
 class LadspaEffect : public Effect
 {
@@ -83,9 +83,9 @@ private:
 	bool m_inPlaceBroken;
 
 	const LADSPA_Descriptor * m_descriptor;
-	QVector<LADSPA_Handle> m_handles;
+	std::vector<LADSPA_Handle> m_handles;
 
-	QVector<multi_proc_t> m_ports;
+	std::vector<multi_proc_t> m_ports;
 	multi_proc_t m_portControls;
 
 } ;
