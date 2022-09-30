@@ -26,7 +26,8 @@
 #ifndef TRACK_CONTAINER_VIEW_H
 #define TRACK_CONTAINER_VIEW_H
 
-#include <QVector>
+#include <vector>
+
 #include <QScrollArea>
 #include <QWidget>
 #include <QThread>
@@ -110,7 +111,7 @@ public:
 		return m_rubberBand->isEnabled() && m_rubberBand->isVisible();
 	}
 
-	inline QVector<selectableObject *> selectedObjects()
+	inline std::vector<selectableObject*> selectedObjects()
 	{
 		return m_rubberBand->selectedObjects();
 	}
