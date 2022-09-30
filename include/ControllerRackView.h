@@ -77,7 +77,7 @@ private slots:
 
 
 private:
-	QVector<ControllerView *> m_controllerViews;
+	std::vector<ControllerView*> m_controllerViews;
 
 	QScrollArea * m_scrollArea;
 	QVBoxLayout * m_scrollAreaLayout;

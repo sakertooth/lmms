@@ -144,7 +144,7 @@ void ControllerRackView::onControllerAdded( Controller * controller )
 	connect( controllerView, SIGNAL(deleteController(lmms::gui::ControllerView*)),
 		 this, SLOT(deleteController(lmms::gui::ControllerView*)), Qt::QueuedConnection );
 
-	m_controllerViews.append( controllerView );
+	m_controllerViews.push_back(controllerView);
 	m_scrollAreaLayout->insertWidget( m_nextIndex, controllerView );
 
 	++m_nextIndex;
@@ -157,13 +157,11 @@ void ControllerRackView::onControllerRemoved( Controller * removedController )
 {
 	ControllerView * viewOfRemovedController = 0;
 
-	QVector<ControllerView *>::const_iterator end = m_controllerViews.end();
-	for ( QVector<ControllerView *>::const_iterator it = m_controllerViews.begin(); it != end; ++it)
+	for (const auto& controllerView : m_controllerViews)
 	{
-		ControllerView *currentControllerView = *it;
-		if ( currentControllerView->getController() == removedController )
+		if (controllerView->getController() == removedController)
 		{
-			viewOfRemovedController = currentControllerView;
+			viewOfRemovedController = controllerView;
 			break;
 		}
 	}
