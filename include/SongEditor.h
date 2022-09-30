@@ -147,7 +147,7 @@ private:
 	ComboBoxModel* m_snappingModel;
 	bool m_proportionalSnap;
 
-	static const QVector<float> m_zoomLevels;
+	static const std::vector<float> m_zoomLevels;
 
 	bool m_scrollBack;
 	bool m_smoothScroll;

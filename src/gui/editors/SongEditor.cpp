@@ -58,7 +58,7 @@ namespace lmms::gui
 {
 
 
-const QVector<float> SongEditor::m_zoomLevels =
+const std::vector<float> SongEditor::m_zoomLevels =
 		{ 0.125f, 0.25f, 0.5f, 1.0f, 2.0f, 4.0f, 8.0f, 16.0f };
 
 SongEditor::SongEditor( Song * song ) :
@@ -506,7 +506,7 @@ void SongEditor::keyPressEvent( QKeyEvent * ke )
 	}
 	else if( ke->key() == Qt::Key_Delete || ke->key() == Qt::Key_Backspace )
 	{
-		QVector<selectableObject *> so = selectedObjects();
+		auto so = selectedObjects();
 		for (const auto& selectedClip : so)
 		{
 			auto clipv = dynamic_cast<ClipView*>(selectedClip);
@@ -850,11 +850,8 @@ void SongEditor::zoomingChanged()
 
 void SongEditor::selectAllClips( bool select )
 {
-	QVector<selectableObject *> so = select ? rubberBand()->selectableObjects() : rubberBand()->selectedObjects();
-	for( int i = 0; i < so.count(); ++i )
-	{
-		so.at(i)->setSelected( select );
-	}
+	auto so = select ? rubberBand()->selectableObjects() : rubberBand()->selectedObjects();
+	for (const auto& clip : so) { return clip->setSelected(select); }
 }
 
 
