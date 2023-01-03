@@ -110,8 +110,8 @@ SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames)
 {
 	if (frames > 0)
 	{
-		m_origData = MM_ALLOC<sampleFrame>( frames);
-		memcpy(m_origData, data, frames * BYTES_PER_FRAME);
+		m_origData = MM_ALLOC<sampleFrame>(frames);
+		std::copy_n(data, frames, m_origData);
 		m_origFrames = frames;
 		update();
 	}
@@ -125,8 +125,8 @@ SampleBuffer::SampleBuffer(const f_cnt_t frames)
 {
 	if (frames > 0)
 	{
-		m_origData = MM_ALLOC<sampleFrame>( frames);
-		memset(m_origData, 0, frames * BYTES_PER_FRAME);
+		m_origData = MM_ALLOC<sampleFrame>(frames);
+		std::fill_n(m_origData, frames, sampleFrame{});
 		m_origFrames = frames;
 		update();
 	}
@@ -141,9 +141,9 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 
 	m_audioFile = orig.m_audioFile;
 	m_origFrames = orig.m_origFrames;
-	m_origData = (m_origFrames > 0) ? MM_ALLOC<sampleFrame>( m_origFrames) : nullptr;
+	m_origData = (m_origFrames > 0) ? MM_ALLOC<sampleFrame>(m_origFrames) : nullptr;
 	m_frames = orig.m_frames;
-	m_data = (m_frames > 0) ? MM_ALLOC<sampleFrame>( m_frames) : nullptr;
+	m_data = (m_frames > 0) ? MM_ALLOC<sampleFrame>(m_frames) : nullptr;
 	m_startFrame = orig.m_startFrame;
 	m_endFrame = orig.m_endFrame;
 	m_loopStartFrame = orig.m_loopStartFrame;
@@ -157,9 +157,9 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 	const auto origFrameBytes = m_origFrames * BYTES_PER_FRAME;
 	const auto frameBytes = m_frames * BYTES_PER_FRAME;
 	if (orig.m_origData != nullptr && origFrameBytes > 0)
-		{ memcpy(m_origData, orig.m_origData, origFrameBytes); }
+		{ std::copy_n(orig.m_origData, origFrameBytes, m_origData); }
 	if (orig.m_data != nullptr && frameBytes > 0)
-		{ memcpy(m_data, orig.m_data, frameBytes); }
+		{ std::copy_n(orig.m_data, frameBytes, m_data); }
 
 	orig.m_varLock.unlock();
 }
@@ -253,8 +253,8 @@ void SampleBuffer::update(bool keepSettings)
 	{
 		// TODO: reverse- and amplification-property is not covered
 		// by following code...
-		m_data = MM_ALLOC<sampleFrame>( m_origFrames);
-		memcpy(m_data, m_origData, m_origFrames * BYTES_PER_FRAME);
+		m_data = MM_ALLOC<sampleFrame>(m_origFrames);
+		std::copy_n(m_origData, m_origFrames, m_data);
 		if (keepSettings == false)
 		{
 			m_frames = m_origFrames;
@@ -327,8 +327,8 @@ void SampleBuffer::update(bool keepSettings)
 		{
 			// sample couldn't be decoded, create buffer containing
 			// one sample-frame
-			m_data = MM_ALLOC<sampleFrame>( 1);
-			memset(m_data, 0, sizeof(*m_data));
+			m_data = MM_ALLOC<sampleFrame>(1);
+			std::fill_n(m_data, m_data->size(), sampleFrame{});
 			m_frames = 1;
 			m_loopStartFrame = m_startFrame = 0;
 			m_loopEndFrame = m_endFrame = 1;
@@ -342,8 +342,8 @@ void SampleBuffer::update(bool keepSettings)
 	{
 		// neither an audio-file nor a buffer to copy from, so create
 		// buffer containing one sample-frame
-		m_data = MM_ALLOC<sampleFrame>( 1);
-		memset(m_data, 0, sizeof(*m_data));
+		m_data = MM_ALLOC<sampleFrame>(1);
+		std::fill_n(m_data, m_data->size(), sampleFrame{});
 		m_frames = 1;
 		m_loopStartFrame = m_startFrame = 0;
 		m_loopEndFrame = m_endFrame = 1;
@@ -391,7 +391,7 @@ void SampleBuffer::convertIntToFloat(
 {
 	// following code transforms int-samples into float-samples and does amplifying & reversing
 	const float fac = 1 / OUTPUT_SAMPLE_MULTIPLIER;
-	m_data = MM_ALLOC<sampleFrame>( frames);
+	m_data = MM_ALLOC<sampleFrame>(frames);
 	const int ch = (channels > 1) ? 1 : 0;
 
 	// if reversing is on, we also reverse when scaling
@@ -414,7 +414,7 @@ void SampleBuffer::directFloatWrite(
 )
 {
 
-	m_data = MM_ALLOC<sampleFrame>( frames);
+	m_data = MM_ALLOC<sampleFrame>(frames);
 	const int ch = (channels > 1) ? 1 : 0;
 
 	// if reversing is on, we also reverse when scaling
@@ -442,8 +442,8 @@ void SampleBuffer::normalizeSampleRate(const sample_rate_t srcSR, bool keepSetti
 		m_sampleRate = audioEngineSampleRate();
 		MM_FREE(m_data);
 		m_frames = resampled->frames();
-		m_data = MM_ALLOC<sampleFrame>( m_frames);
-		memcpy(m_data, resampled->data(), m_frames * sizeof(sampleFrame));
+		m_data = MM_ALLOC<sampleFrame>(m_frames);
+		std::copy_n(resampled->data(), m_frames, m_data);
 		delete resampled;
 	}
 
@@ -819,10 +819,9 @@ bool SampleBuffer::play(
 		// as is into pitched-copy-buffer
 
 		// Generate output
-		memcpy(ab,
-			getSampleFragment(playFrame, frames, loopMode, &tmp, &isBackwards,
-				loopStartFrame, loopEndFrame, endFrame),
-			frames * BYTES_PER_FRAME);
+		std::copy_n(getSampleFragment(playFrame, frames, loopMode, &tmp, &isBackwards,
+				loopStartFrame, loopEndFrame, endFrame), frames, ab);
+
 		// Advance
 		switch (loopMode)
 		{
@@ -906,23 +905,23 @@ sampleFrame * SampleBuffer::getSampleFragment(
 		}
 	}
 
-	*tmp = MM_ALLOC<sampleFrame>( frames);
+	*tmp = MM_ALLOC<sampleFrame>(frames);
 
 	if (loopMode == LoopOff)
 	{
-		f_cnt_t available = end - index;
-		memcpy(*tmp, m_data + index, available * BYTES_PER_FRAME);
-		memset(*tmp + available, 0, (frames - available) * BYTES_PER_FRAME);
+		const auto available = end - index;
+		std::copy_n(m_data + index, available, *tmp);
+		std::fill_n(*tmp + available, frames - available, sampleFrame{});
 	}
 	else if (loopMode == LoopOn)
 	{
 		f_cnt_t copied = qMin(frames, loopEnd - index);
-		memcpy(*tmp, m_data + index, copied * BYTES_PER_FRAME);
+		std::copy_n(m_data + index, copied, *tmp);
 		f_cnt_t loopFrames = loopEnd - loopStart;
 		while (copied < frames)
 		{
 			f_cnt_t todo = qMin(frames - copied, loopFrames);
-			memcpy(*tmp + copied, m_data + loopStart, todo * BYTES_PER_FRAME);
+			std::copy_n(m_data + loopStart, todo, *tmp + copied);
 			copied += todo;
 		}
 	}
@@ -949,7 +948,7 @@ sampleFrame * SampleBuffer::getSampleFragment(
 		else
 		{
 			copied = qMin(frames, loopEnd - pos);
-			memcpy(*tmp, m_data + pos, copied * BYTES_PER_FRAME);
+			std::copy_n(m_data + pos, copied, *tmp);
 			pos += copied;
 			if (pos == loopEnd) { currentBackwards = true; }
 		}
@@ -971,7 +970,7 @@ sampleFrame * SampleBuffer::getSampleFragment(
 			else
 			{
 				f_cnt_t todo = qMin(frames - copied, loopEnd - pos);
-				memcpy(*tmp + copied, m_data + pos, todo * BYTES_PER_FRAME);
+				std::copy_n(m_data + pos, todo, *tmp + copied);
 				pos += todo;
 				copied += todo;
 				if (pos >= loopEnd) { currentBackwards = true; }
@@ -1497,15 +1496,15 @@ void SampleBuffer::loadFromBase64(const QString & data)
 
 	m_origFrames = origData.size() / sizeof(sampleFrame);
 	MM_FREE(m_origData);
-	m_origData = MM_ALLOC<sampleFrame>( m_origFrames);
-	memcpy(m_origData, origData.data(), origData.size());
+	m_origData = MM_ALLOC<sampleFrame>(m_origFrames);
+	std::copy_n(origData.data(), origData.size(), m_origData);
 
 #else /* LMMS_HAVE_FLAC_STREAM_DECODER_H */
 
 	m_origFrames = dsize / sizeof(sampleFrame);
 	MM_FREE(m_origData);
-	m_origData = MM_ALLOC<sampleFrame>( m_origFrames);
-	memcpy(m_origData, dst, dsize);
+	m_origData = MM_ALLOC<sampleFrame>(m_origFrames);
+	std::copy_n(reinterpret_cast<sampleFrame*>(dst), dsize, m_origData);
 
 #endif // LMMS_HAVE_FLAC_STREAM_DECODER_H
 
