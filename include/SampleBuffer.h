@@ -57,11 +57,13 @@ class LMMS_EXPORT SampleBuffer : public QObject, public sharedObject
 	Q_OBJECT
 	MM_OPERATORS
 public:
-	enum LoopMode {
-		LoopOff = 0,
+	enum class LoopMode
+	{
+		LoopOff,
 		LoopOn,
 		LoopPingPong
 	};
+
 	class LMMS_EXPORT handleState
 	{
 		MM_OPERATORS
@@ -125,7 +127,7 @@ public:
 		handleState * state,
 		const fpp_t frames,
 		const float freq,
-		const LoopMode loopMode = LoopOff
+		const LoopMode loopMode = LoopMode::LoopOff
 	);
 
 	void visualize(

@@ -730,7 +730,7 @@ bool SampleBuffer::play(
 	// this holds the index of the first frame to play
 	f_cnt_t playFrame = std::max(state->m_frameIndex, startFrame);
 
-	if (loopMode == LoopOff)
+	if (loopMode == LoopMode::LoopOff)
 	{
 		if (playFrame >= endFrame || (endFrame - playFrame) / freqFactor == 0)
 		{
@@ -738,7 +738,7 @@ bool SampleBuffer::play(
 			return false;
 		}
 	}
-	else if (loopMode == LoopOn)
+	else if (loopMode == LoopMode::LoopOn)
 	{
 		playFrame = getLoopedIndex(playFrame, loopStartFrame, loopEndFrame);
 	}
@@ -778,14 +778,14 @@ bool SampleBuffer::play(
 		// Advance
 		switch (loopMode)
 		{
-			case LoopOff:
+			case LoopMode::LoopOff:
 				playFrame += srcData.input_frames_used;
 				break;
-			case LoopOn:
+			case LoopMode::LoopOn:
 				playFrame += srcData.input_frames_used;
 				playFrame = getLoopedIndex(playFrame, loopStartFrame, loopEndFrame);
 				break;
-			case LoopPingPong:
+			case LoopMode::LoopPingPong:
 			{
 				f_cnt_t left = srcData.input_frames_used;
 				if (state->isBackwards())
@@ -816,14 +816,14 @@ bool SampleBuffer::play(
 		// Advance
 		switch (loopMode)
 		{
-			case LoopOff:
+			case LoopMode::LoopOff:
 				playFrame += frames;
 				break;
-			case LoopOn:
+			case LoopMode::LoopOn:
 				playFrame += frames;
 				playFrame = getLoopedIndex(playFrame, loopStartFrame, loopEndFrame);
 				break;
-			case LoopPingPong:
+			case LoopMode::LoopPingPong:
 			{
 				f_cnt_t left = frames;
 				if (state->isBackwards())
@@ -874,14 +874,14 @@ sampleFrame * SampleBuffer::getSampleFragment(
 	f_cnt_t end
 ) const
 {
-	if (loopMode == LoopOff)
+	if (loopMode == LoopMode::LoopOff)
 	{
 		if (index + frames <= end)
 		{
 			return m_data + index;
 		}
 	}
-	else if (loopMode == LoopOn)
+	else if (loopMode == LoopMode::LoopOn)
 	{
 		if (index + frames <= loopEnd)
 		{
@@ -898,13 +898,13 @@ sampleFrame * SampleBuffer::getSampleFragment(
 
 	*tmp = MM_ALLOC<sampleFrame>(frames);
 
-	if (loopMode == LoopOff)
+	if (loopMode == LoopMode::LoopOff)
 	{
 		const auto available = end - index;
 		std::copy_n(m_data + index, available, *tmp);
 		std::fill_n(*tmp + available, frames - available, sampleFrame{});
 	}
-	else if (loopMode == LoopOn)
+	else if (loopMode == LoopMode::LoopOn)
 	{
 		f_cnt_t copied = std::min(frames, loopEnd - index);
 		std::copy_n(m_data + index, copied, *tmp);
