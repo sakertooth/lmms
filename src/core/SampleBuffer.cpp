@@ -41,15 +41,6 @@
 #include <vorbis/vorbisfile.h>
 #endif
 
-#ifdef LMMS_HAVE_FLAC_STREAM_ENCODER_H
-#include <FLAC/stream_encoder.h>
-#endif
-
-#ifdef LMMS_HAVE_FLAC_STREAM_DECODER_H
-#include <FLAC/stream_decoder.h>
-#endif
-
-
 #include "AudioEngine.h"
 #include "base64.h"
 #include "ConfigManager.h"
@@ -1220,105 +1211,10 @@ QString SampleBuffer::openAndSetWaveformFile()
 }
 
 
-
-#undef LMMS_HAVE_FLAC_STREAM_ENCODER_H	/* not yet... */
-#undef LMMS_HAVE_FLAC_STREAM_DECODER_H
-
-#ifdef LMMS_HAVE_FLAC_STREAM_ENCODER_H
-FLAC__StreamEncoderWriteStatus flacStreamEncoderWriteCallback(
-	const FLAC__StreamEncoder * /*encoder*/,
-	const FLAC__byte buffer[],
-	unsigned int /*samples*/,
-	unsigned int bytes,
-	unsigned int /*currentFrame*/,
-	void * clientData
-)
-{
-/*	if (bytes == 0)
-	{
-		return FLAC__STREAM_ENCODER_WRITE_STATUS_OK;
-	}*/
-	return (static_cast<QBuffer *>(clientData)->write(
-				(const char *) buffer, bytes) == (int) bytes)
-		? FLAC__STREAM_ENCODER_WRITE_STATUS_OK
-		: FLAC__STREAM_ENCODER_WRITE_STATUS_FATAL_ERROR;
-}
-
-
-void flacStreamEncoderMetadataCallback(
-	const FLAC__StreamEncoder *,
-	const FLAC__StreamMetadata * metadata,
-	void * clientData
-)
-{
-	QBuffer * b = static_cast<QBuffer *>(clientData);
-	b->seek(0);
-	b->write((const char *) metadata, sizeof(*metadata));
-}
-
-#endif // LMMS_HAVE_FLAC_STREAM_ENCODER_H
-
-
-
 QString & SampleBuffer::toBase64(QString & dst) const
 {
-#ifdef LMMS_HAVE_FLAC_STREAM_ENCODER_H
-	const f_cnt_t FRAMES_PER_BUF = 1152;
-
-	FLAC__StreamEncoder * flacEnc = FLAC__stream_encoder_new();
-	FLAC__stream_encoder_set_channels(flacEnc, DEFAULT_CHANNELS);
-	FLAC__stream_encoder_set_blocksize(flacEnc, FRAMES_PER_BUF);
-/*	FLAC__stream_encoder_set_do_exhaustive_model_search(flacEnc, true);
-	FLAC__stream_encoder_set_do_mid_side_stereo(flacEnc, true);*/
-	FLAC__stream_encoder_set_sample_rate(flacEnc,
-		Engine::audioEngine()->sampleRate());
-
-	QBuffer baWriter;
-	baWriter.open(QBuffer::WriteOnly);
-
-	FLAC__stream_encoder_set_write_callback(flacEnc,
-		flacStreamEncoderWriteCallback);
-	FLAC__stream_encoder_set_metadata_callback(flacEnc,
-		flacStreamEncoderMetadataCallback);
-	FLAC__stream_encoder_set_client_data(flacEnc, &baWriter);
-
-	if (FLAC__stream_encoder_init(flacEnc) != FLAC__STREAM_ENCODER_OK)
-	{
-		printf("Error within FLAC__stream_encoder_init()!\n");
-	}
-
-	f_cnt_t frameCnt = 0;
-
-	while (frameCnt < m_frames)
-	{
-		f_cnt_t remaining = std::min<f_cnt_t>(FRAMES_PER_BUF, m_frames - frameCnt);
-		FLAC__int32 buf[FRAMES_PER_BUF * DEFAULT_CHANNELS];
-		for (f_cnt_t f = 0; f < remaining; ++f)
-		{
-			for (ch_cnt_t ch = 0; ch < DEFAULT_CHANNELS; ++ch)
-			{
-				buf[f*DEFAULT_CHANNELS+ch] = (FLAC__int32)(
-					AudioEngine::clip(m_data[f+frameCnt][ch]) *
-						OUTPUT_SAMPLE_MULTIPLIER);
-			}
-		}
-		FLAC__stream_encoder_process_interleaved(flacEnc, buf, remaining);
-		frameCnt += remaining;
-	}
-	FLAC__stream_encoder_finish(flacEnc);
-	FLAC__stream_encoder_delete(flacEnc);
-	printf("%d %d\n", frameCnt, (int)baWriter.size());
-	baWriter.close();
-
-	base64::encode(baWriter.buffer().data(), baWriter.buffer().size(), dst);
-
-#else	// LMMS_HAVE_FLAC_STREAM_ENCODER_H
-
 	base64::encode((const char *) m_data,
 		m_frames * sizeof(sampleFrame), dst);
-
-#endif	// LMMS_HAVE_FLAC_STREAM_ENCODER_H
-
 	return dst;
 }
 
@@ -1350,108 +1246,11 @@ SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_ra
 	return dstSB;
 }
 
-
-
-
 void SampleBuffer::setAudioFile(const QString & audioFile)
 {
 	m_audioFile = PathUtil::toShortestRelative(audioFile);
 	update();
 }
-
-
-
-#ifdef LMMS_HAVE_FLAC_STREAM_DECODER_H
-
-struct flacStreamDecoderClientData
-{
-	QBuffer * readBuffer;
-	QBuffer * writeBuffer;
-} ;
-
-
-
-FLAC__StreamDecoderReadStatus flacStreamDecoderReadCallback(
-	const FLAC__StreamDecoder * /*decoder*/,
-	FLAC__byte * buffer,
-	unsigned int * bytes,
-	void * clientData
-)
-{
-	int res = static_cast<flacStreamDecoderClientData *>(
-		clientData)->readBuffer->read((char *) buffer, *bytes);
-
-	if (res > 0)
-	{
-		*bytes = res;
-		return FLAC__STREAM_DECODER_READ_STATUS_CONTINUE;
-	}
-
-	*bytes = 0;
-	return FLAC__STREAM_DECODER_READ_STATUS_END_OF_STREAM;
-}
-
-
-
-
-FLAC__StreamDecoderWriteStatus flacStreamDecoderWriteCallback(
-	const FLAC__StreamDecoder * /*decoder*/,
-	const FLAC__Frame * frame,
-	const FLAC__int32 * const buffer[],
-	void * clientData
-)
-{
-	if (frame->header.channels != 2)
-	{
-		printf("channels != 2 in flacStreamDecoderWriteCallback()\n");
-		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
-	}
-
-	if (frame->header.bits_per_sample != 16)
-	{
-		printf("bits_per_sample != 16 in flacStreamDecoderWriteCallback()\n");
-		return FLAC__STREAM_DECODER_WRITE_STATUS_ABORT;
-	}
-
-	const f_cnt_t numberOfFrames = frame->header.blocksize;
-	for (f_cnt_t f = 0; f < numberOfFrames; ++f)
-	{
-		sampleFrame sframe = { buffer[0][f] / OUTPUT_SAMPLE_MULTIPLIER,
-					buffer[1][f] / OUTPUT_SAMPLE_MULTIPLIER
-		} ;
-		static_cast<flacStreamDecoderClientData *>(
-					clientData )->writeBuffer->write(
-				(const char *) sframe, sizeof(sframe));
-	}
-	return FLAC__STREAM_DECODER_WRITE_STATUS_CONTINUE;
-}
-
-
-void flacStreamDecoderMetadataCallback(
-	const FLAC__StreamDecoder *,
-	const FLAC__StreamMetadata *,
-	void * /*clientData*/
-)
-{
-	printf("stream decoder metadata callback\n");
-/*	QBuffer * b = static_cast<QBuffer *>(clientData);
-	b->seek(0);
-	b->write((const char *) metadata, sizeof(*metadata));*/
-}
-
-
-void flacStreamDecoderErrorCallback(
-	const FLAC__StreamDecoder *,
-	FLAC__StreamDecoderErrorStatus status,
-	void * /*clientData*/
-)
-{
-	printf("error callback! %d\n", status);
-	// what to do now??
-}
-
-#endif // LMMS_HAVE_FLAC_STREAM_DECODER_H
-
 
 void SampleBuffer::loadFromBase64(const QString & data)
 {
@@ -1459,54 +1258,10 @@ void SampleBuffer::loadFromBase64(const QString & data)
 	int dsize = 0;
 	base64::decode(data, &dst, &dsize);
 
-#ifdef LMMS_HAVE_FLAC_STREAM_DECODER_H
-
-	QByteArray origData = QByteArray::fromRawData(dst, dsize);
-	QBuffer baReader(&origData);
-	baReader.open(QBuffer::ReadOnly);
-
-	QBuffer baWriter;
-	baWriter.open(QBuffer::WriteOnly);
-
-	flacStreamDecoderClientData cdata = { &baReader, &baWriter } ;
-
-	FLAC__StreamDecoder * flacDec = FLAC__stream_decoder_new();
-
-	FLAC__stream_decoder_set_read_callback(flacDec,
-		flacStreamDecoderReadCallback);
-	FLAC__stream_decoder_set_write_callback(flacDec,
-		flacStreamDecoderWriteCallback);
-	FLAC__stream_decoder_set_error_callback(flacDec,
-		flacStreamDecoderErrorCallback);
-	FLAC__stream_decoder_set_metadata_callback(flacDec,
-		flacStreamDecoderMetadataCallback);
-	FLAC__stream_decoder_set_client_data(flacDec, &cdata);
-
-	FLAC__stream_decoder_init(flacDec);
-
-	FLAC__stream_decoder_process_until_end_of_stream(flacDec);
-
-	FLAC__stream_decoder_finish(flacDec);
-	FLAC__stream_decoder_delete(flacDec);
-
-	baReader.close();
-
-	origData = baWriter.buffer();
-	printf("%d\n", (int) origData.size());
-
-	m_origFrames = origData.size() / sizeof(sampleFrame);
-	MM_FREE(m_origData);
-	m_origData = MM_ALLOC<sampleFrame>(m_origFrames);
-	std::copy_n(origData.data(), origData.size(), m_origData);
-
-#else /* LMMS_HAVE_FLAC_STREAM_DECODER_H */
-
 	m_origFrames = dsize / sizeof(sampleFrame);
 	MM_FREE(m_origData);
 	m_origData = MM_ALLOC<sampleFrame>(m_origFrames);
 	std::copy_n(reinterpret_cast<sampleFrame*>(dst), dsize, m_origData);
-
-#endif // LMMS_HAVE_FLAC_STREAM_DECODER_H
 
 	delete[] dst;
 
