@@ -26,6 +26,7 @@
 #include "Oscillator.h"
 
 #include <algorithm>
+#include <iostream>
 
 #include <QFile>
 #include <QFileInfo>
@@ -1327,34 +1328,25 @@ QString & SampleBuffer::toBase64(QString & dst) const
 
 SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_rate_t dstSR )
 {
-	sampleFrame * data = m_data;
-	const f_cnt_t frames = m_frames;
-	const auto dstFrames = static_cast<f_cnt_t>((frames / (float)srcSR) * (float)dstSR);
-	auto dstSB = new SampleBuffer(dstFrames);
-	sampleFrame * dstBuf = dstSB->m_origData;
+	const auto dstFrames = static_cast<f_cnt_t>((m_frames / static_cast<float>(srcSR)) * static_cast<float>(dstSR));
+	auto dstSB = new SampleBuffer{dstFrames};
+	auto dstBuf = dstSB->m_origData;
 
 	// yeah, libsamplerate, let's rock with sinc-interpolation!
-	int error;
-	SRC_STATE * state;
-	if ((state = src_new(SRC_SINC_MEDIUM_QUALITY, DEFAULT_CHANNELS, &error)) != nullptr)
+	auto srcData = SRC_DATA{};
+	srcData.end_of_input = 1;
+	srcData.data_in = m_data->data();
+	srcData.data_out = dstBuf->data();
+	srcData.input_frames = m_frames;
+	srcData.output_frames = dstFrames;
+	srcData.src_ratio = static_cast<double>(dstSR) / srcSR;
+
+	auto error = src_simple(&srcData, SRC_SINC_MEDIUM_QUALITY, DEFAULT_CHANNELS);
+	if (error != 0)
 	{
-		SRC_DATA srcData;
-		srcData.end_of_input = 1;
-		srcData.data_in = data->data();
-		srcData.data_out = dstBuf->data();
-		srcData.input_frames = frames;
-		srcData.output_frames = dstFrames;
-		srcData.src_ratio = (double) dstSR / srcSR;
-		if ((error = src_process(state, &srcData)))
-		{
-			printf("SampleBuffer: error while resampling: %s\n", src_strerror(error));
-		}
-		src_delete(state);
+		std::cout << "SampleBuffer: error while resampling:" << src_strerror(error) << '\n';
 	}
-	else
-	{
-		printf("Error: src_new() failed in sample_buffer.cpp!\n");
-	}
+
 	dstSB->update();
 	return dstSB;
 }
