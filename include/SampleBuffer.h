@@ -305,14 +305,7 @@ private:
 		ch_cnt_t & channels,
 		sample_rate_t & samplerate
 	);
-#ifdef LMMS_HAVE_OGGVORBIS
-	f_cnt_t decodeSampleOGGVorbis(
-		QString fileName,
-		int_sample_t * & buf,
-		ch_cnt_t & channels,
-		sample_rate_t & samplerate
-	);
-#endif
+
 	f_cnt_t decodeSampleDS(
 		QString fileName,
 		int_sample_t * & buf,

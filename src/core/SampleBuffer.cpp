@@ -36,11 +36,6 @@
 
 #include <sndfile.h>
 
-#define OV_EXCLUDE_STATIC_CALLBACKS
-#ifdef LMMS_HAVE_OGGVORBIS
-#include <vorbis/vorbisfile.h>
-#endif
-
 #include "AudioEngine.h"
 #include "base64.h"
 #include "ConfigManager.h"
@@ -289,25 +284,11 @@ void SampleBuffer::update(bool keepSettings)
 
 		if (!fileLoadError)
 		{
-#ifdef LMMS_HAVE_OGGVORBIS
-			// workaround for a bug in libsndfile or our libsndfile decoder
-			// causing some OGG files to be distorted -> try with OGG Vorbis
-			// decoder first if filename extension matches "ogg"
-			if (m_frames == 0 && fileInfo.suffix() == "ogg")
-			{
-				m_frames = decodeSampleOGGVorbis(file, buf, channels, samplerate);
-			}
-#endif
 			if (m_frames == 0)
 			{
 				m_frames = decodeSampleSF(file, fbuf, channels, samplerate);
 			}
-#ifdef LMMS_HAVE_OGGVORBIS
-			if (m_frames == 0)
-			{
-				m_frames = decodeSampleOGGVorbis(file, buf, channels, samplerate);
-			}
-#endif
+
 			if (m_frames == 0)
 			{
 				m_frames = decodeSampleDS(file, buf, channels, samplerate);
@@ -512,162 +493,6 @@ f_cnt_t SampleBuffer::decodeSampleSF(
 
 	return frames;
 }
-
-
-
-
-#ifdef LMMS_HAVE_OGGVORBIS
-
-// callback-functions for reading ogg-file
-
-size_t qfileReadCallback(void * ptr, size_t size, size_t n, void * udata )
-{
-	return static_cast<QFile *>(udata)->read((char*) ptr, size * n);
-}
-
-
-
-
-int qfileSeekCallback(void * udata, ogg_int64_t offset, int whence)
-{
-	auto f = static_cast<QFile*>(udata);
-
-	if (whence == SEEK_CUR)
-	{
-		f->seek(f->pos() + offset);
-	}
-	else if (whence == SEEK_END)
-	{
-		f->seek(f->size() + offset);
-	}
-	else
-	{
-		f->seek(offset);
-	}
-	return 0;
-}
-
-
-
-
-int qfileCloseCallback(void * udata)
-{
-	delete static_cast<QFile *>(udata);
-	return 0;
-}
-
-
-
-
-long qfileTellCallback(void * udata)
-{
-	return static_cast<QFile *>(udata)->pos();
-}
-
-
-
-
-f_cnt_t SampleBuffer::decodeSampleOGGVorbis(
-	QString fileName,
-	int_sample_t * & buf,
-	ch_cnt_t & channels,
-	sample_rate_t & samplerate
-)
-{
-	static ov_callbacks callbacks =
-	{
-		qfileReadCallback,
-		qfileSeekCallback,
-		qfileCloseCallback,
-		qfileTellCallback
-	} ;
-
-	OggVorbis_File vf;
-
-	f_cnt_t frames = 0;
-
-	auto f = new QFile(fileName);
-	if (f->open(QFile::ReadOnly) == false)
-	{
-		delete f;
-		return 0;
-	}
-
-	int err = ov_open_callbacks(f, &vf, nullptr, 0, callbacks);
-
-	if (err < 0)
-	{
-		switch (err)
-		{
-			case OV_EREAD:
-				printf("SampleBuffer::decodeSampleOGGVorbis():"
-						" media read error\n");
-				break;
-			case OV_ENOTVORBIS:
-				printf("SampleBuffer::decodeSampleOGGVorbis():"
-					" not an Ogg Vorbis file\n");
-				break;
-			case OV_EVERSION:
-				printf("SampleBuffer::decodeSampleOGGVorbis():"
-						" vorbis version mismatch\n");
-				break;
-			case OV_EBADHEADER:
-				printf("SampleBuffer::decodeSampleOGGVorbis():"
-					" invalid Vorbis bitstream header\n");
-				break;
-			case OV_EFAULT:
-				printf("SampleBuffer::decodeSampleOgg(): "
-					"internal logic fault\n");
-				break;
-		}
-		delete f;
-		return 0;
-	}
-
-	ov_pcm_seek(&vf, 0);
-
-	channels = ov_info(&vf, -1)->channels;
-	samplerate = ov_info(&vf, -1)->rate;
-
-	ogg_int64_t total = ov_pcm_total(&vf, -1);
-
-	buf = new int_sample_t[total * channels];
-	int bitstream = 0;
-	long bytesRead = 0;
-
-	do
-	{
-		bytesRead = ov_read(&vf,
-				(char *) &buf[frames * channels],
-				(total - frames) * channels * BYTES_PER_INT_SAMPLE,
-				isLittleEndian() ? 0 : 1,
-				BYTES_PER_INT_SAMPLE,
-				1,
-				&bitstream
-		);
-
-		if (bytesRead < 0)
-		{
-			break;
-		}
-		frames += bytesRead / (channels * BYTES_PER_INT_SAMPLE);
-	}
-	while (bytesRead != 0 && bitstream == 0);
-
-	ov_clear(&vf);
-
-	// if buffer isn't empty, convert it to float and write it down
-	if (frames > 0 && buf != nullptr)
-	{
-		convertIntToFloat(buf, frames, channels);
-	}
-
-	return frames;
-}
-#endif // LMMS_HAVE_OGGVORBIS
-
-
-
 
 f_cnt_t SampleBuffer::decodeSampleDS(
 	QString fileName,
