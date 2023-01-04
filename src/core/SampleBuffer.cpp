@@ -425,8 +425,18 @@ void SampleBuffer::normalizeSampleRate(const sample_rate_t srcSR, bool keepSetti
 	}
 }
 
-
-
+sample_t SampleBuffer::userWaveSample(const float sample) const
+{
+	f_cnt_t frames = m_frames;
+	sampleFrame * data = m_data;
+	const float frame = sample * frames;
+	f_cnt_t f1 = static_cast<f_cnt_t>(frame) % frames;
+	if (f1 < 0)
+	{
+		f1 += frames;
+	}
+	return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
+}
 
 f_cnt_t SampleBuffer::decodeSampleSF(
 	QString fileName,
@@ -919,8 +929,108 @@ void SampleBuffer::visualize(
 	}
 }
 
+void SampleBuffer::visualize(QPainter & p, const QRect & dr, f_cnt_t fromFrame, f_cnt_t toFrame)
+{
+	visualize(p, dr, dr, fromFrame, toFrame);
+}
 
+const QString& SampleBuffer::audioFile() const
+{
+	return m_audioFile;
+}
 
+f_cnt_t SampleBuffer::startFrame() const
+{
+	return m_startFrame;
+}
+
+f_cnt_t SampleBuffer::endFrame() const
+{
+	return m_endFrame;
+}
+
+f_cnt_t SampleBuffer::loopStartFrame() const
+{
+	return m_loopStartFrame;
+}
+
+f_cnt_t SampleBuffer::loopEndFrame() const
+{
+	return m_loopEndFrame;
+}
+
+void SampleBuffer::setLoopStartFrame(f_cnt_t start)
+{
+	m_loopStartFrame = start;
+}
+
+void SampleBuffer::setLoopEndFrame(f_cnt_t end)
+{
+	m_loopEndFrame = end;
+}
+
+void SampleBuffer::setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopStart, f_cnt_t loopEnd)
+{
+	m_startFrame = start;
+	m_endFrame = end;
+	m_loopStartFrame = loopStart;
+	m_loopEndFrame = loopEnd;
+}
+
+std::shared_mutex& SampleBuffer::mutex()
+{
+	return m_mutex;
+}
+
+f_cnt_t SampleBuffer::frames() const
+{
+	return m_frames;
+}
+
+float SampleBuffer::amplification() const
+{
+	return m_amplification;
+}
+
+bool SampleBuffer::reversed() const
+{
+	return m_reversed;
+}
+
+float SampleBuffer::frequency() const
+{
+	return m_frequency;
+}
+
+sample_rate_t SampleBuffer::sampleRate() const
+{
+	return m_sampleRate;
+}
+
+const std::unique_ptr<OscillatorConstants::waveform_t>& SampleBuffer::userAntiAliasWaveTable() const
+{
+	return m_userAntiAliasWaveTable;
+}
+
+int SampleBuffer::sampleLength() const
+{
+	return static_cast<double>(m_endFrame - m_startFrame) / m_sampleRate * 1000;
+}
+
+void SampleBuffer::setFrequency(float freq)
+{
+	m_frequency = freq;
+}
+
+void SampleBuffer::setSampleRate(sample_rate_t rate)
+{
+	m_sampleRate = rate;
+}
+
+const sampleFrame* SampleBuffer::data() const
+{
+	return m_data;
+}
 
 QString SampleBuffer::openAudioFile() const
 {
@@ -1139,8 +1249,30 @@ SampleBuffer::handleState::handleState(bool varyingPitch, int interpolationMode)
 	}
 }
 
+f_cnt_t SampleBuffer::handleState::frameIndex() const
+{
+	return m_frameIndex;
+}
 
+void SampleBuffer::handleState::setFrameIndex(f_cnt_t index)
+{
+	m_frameIndex = index;
+}
 
+bool SampleBuffer::handleState::isBackwards() const
+{
+	return m_isBackwards;
+}
+
+void SampleBuffer::handleState::setBackwards(bool backwards)
+{
+	m_isBackwards = backwards;
+}
+
+int SampleBuffer::handleState::interpolationMode() const
+{
+	return m_interpolationMode;
+}
 
 SampleBuffer::handleState::~handleState()
 {
