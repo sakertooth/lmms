@@ -39,6 +39,7 @@
 #include "shared_object.h"
 #include "OscillatorConstants.h"
 #include "MemoryManager.h"
+#include "Note.h"
 
 
 class QPainter;
@@ -308,20 +309,20 @@ private:
 		sample_rate_t & samplerate
 	);
 
-	QString m_audioFile;
-	sampleFrame * m_origData;
-	f_cnt_t m_origFrames;
-	sampleFrame * m_data;
+	QString m_audioFile = "";
+	sampleFrame* m_origData = nullptr;
+	f_cnt_t m_origFrames = 0;
+	sampleFrame* m_data = nullptr;
 	mutable std::shared_mutex m_mutex;
-	f_cnt_t m_frames;
-	f_cnt_t m_startFrame;
-	f_cnt_t m_endFrame;
-	f_cnt_t m_loopStartFrame;
-	f_cnt_t m_loopEndFrame;
-	float m_amplification;
-	bool m_reversed;
-	float m_frequency;
-	sample_rate_t m_sampleRate;
+	f_cnt_t m_frames = 0;
+	f_cnt_t m_startFrame = 0;
+	f_cnt_t m_endFrame = 0;
+	f_cnt_t m_loopStartFrame = 0;
+	f_cnt_t m_loopEndFrame = 0;
+	float m_amplification = 1.0f;
+	bool m_reversed = false;
+	float m_frequency = DefaultBaseFreq;
+	sample_rate_t m_sampleRate = audioEngineSampleRate();
 
 	sampleFrame * getSampleFragment(
 		f_cnt_t index,

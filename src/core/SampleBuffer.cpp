@@ -43,7 +43,6 @@
 #include "endian_handling.h"
 #include "Engine.h"
 #include "GuiApplication.h"
-#include "Note.h"
 #include "PathUtil.h"
 
 #include "FileDialog.h"
@@ -51,23 +50,8 @@
 namespace lmms
 {
 
-SampleBuffer::SampleBuffer() :
-	m_userAntiAliasWaveTable(nullptr),
-	m_audioFile(""),
-	m_origData(nullptr),
-	m_origFrames(0),
-	m_data(nullptr),
-	m_frames(0),
-	m_startFrame(0),
-	m_endFrame(0),
-	m_loopStartFrame(0),
-	m_loopEndFrame(0),
-	m_amplification(1.0f),
-	m_reversed(false),
-	m_frequency(DefaultBaseFreq),
-	m_sampleRate(audioEngineSampleRate())
+SampleBuffer::SampleBuffer()
 {
-
 	connect(Engine::audioEngine(), SIGNAL(sampleRateChanged()), this, SLOT(sampleRateChanged()));
 	update();
 }
