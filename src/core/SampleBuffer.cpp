@@ -349,7 +349,7 @@ void SampleBuffer::update(bool keepSettings)
 		}
 		else
 		{
-			fprintf(stderr, "%s\n", message.toUtf8().constData());
+			std::cerr << message.toUtf8().constData() << '\n';
 		}
 	}
 }
@@ -592,13 +592,12 @@ bool SampleBuffer::play(
 		int error = src_process(state->m_resamplingData, &srcData);
 		if (error)
 		{
-			printf("SampleBuffer: error while resampling: %s\n",
-							src_strerror(error));
+			std::cerr << "SampleBuffer: error while resampling: " << src_strerror(error) << '\n';
 		}
+
 		if (srcData.output_frames_gen > frames)
 		{
-			printf("SampleBuffer: not enough frames: %ld / %d\n",
-					srcData.output_frames_gen, frames);
+			std::cerr << "SampleBuffer: not enough frames: " << srcData.output_frames_gen << " / " << frames << '\n';
 		}
 		// Advance
 		switch (loopMode)
