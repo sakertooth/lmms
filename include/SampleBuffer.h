@@ -41,7 +41,6 @@
 #include "MemoryManager.h"
 #include "Note.h"
 
-
 class QPainter;
 class QRect;
 
@@ -52,7 +51,7 @@ namespace lmms
 // the array positions correspond to the converter_type parameter values in libsamplerate
 // if there appears problems with playback on some interpolation mode, then the value for that mode
 // may need to be higher - conversely, to optimize, some may work with lower values
-const f_cnt_t MARGIN[] = { 64, 64, 64, 4, 4 };
+const auto MARGIN = std::array<f_cnt_t, 5>{ 64, 64, 64, 4, 4 };
 
 class LMMS_EXPORT SampleBuffer : public QObject, public sharedObject
 {
@@ -73,31 +72,11 @@ public:
 		handleState(bool varyingPitch = false, int interpolationMode = SRC_LINEAR);
 		virtual ~handleState();
 
-		const f_cnt_t frameIndex() const
-		{
-			return m_frameIndex;
-		}
-
-		void setFrameIndex(f_cnt_t index)
-		{
-			m_frameIndex = index;
-		}
-
-		bool isBackwards() const
-		{
-			return m_isBackwards;
-		}
-
-		void setBackwards(bool backwards)
-		{
-			m_isBackwards = backwards;
-		}
-
-		int interpolationMode() const
-		{
-			return m_interpolationMode;
-		}
-
+		f_cnt_t frameIndex() const;
+		void setFrameIndex(f_cnt_t index);
+		bool isBackwards() const;
+		void setBackwards(bool backwards);
+		int interpolationMode() const;
 
 	private:
 		f_cnt_t m_frameIndex;
@@ -107,9 +86,7 @@ public:
 		int m_interpolationMode;
 
 		friend class SampleBuffer;
-
-	} ;
-
+	};
 
 	SampleBuffer();
 	// constructor which either loads sample _audio_file or decodes
@@ -120,7 +97,7 @@ public:
 	SampleBuffer(const SampleBuffer & orig);
 
 	friend void swap(SampleBuffer & first, SampleBuffer & second) noexcept;
-	SampleBuffer& operator= (const SampleBuffer that);
+	SampleBuffer& operator=(const SampleBuffer that);
 
 	~SampleBuffer() override;
 
@@ -139,120 +116,45 @@ public:
 		f_cnt_t fromFrame = 0,
 		f_cnt_t toFrame = 0
 	);
-	inline void visualize(
+
+	void visualize(
 		QPainter & p,
 		const QRect & dr,
 		f_cnt_t fromFrame = 0,
 		f_cnt_t toFrame = 0
-	)
-	{
-		visualize(p, dr, dr, fromFrame, toFrame);
-	}
+	);
 
-	inline const QString & audioFile() const
-	{
-		return m_audioFile;
-	}
+	const QString & audioFile() const;
 
-	inline f_cnt_t startFrame() const
-	{
-		return m_startFrame;
-	}
+	f_cnt_t startFrame() const;
+	f_cnt_t endFrame() const;
+	f_cnt_t loopStartFrame() const;
 
-	inline f_cnt_t endFrame() const
-	{
-		return m_endFrame;
-	}
+	f_cnt_t loopEndFrame() const;
+	void setLoopStartFrame(f_cnt_t start);
+	void setLoopEndFrame(f_cnt_t end);
+	void setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopStart, f_cnt_t loopEnd);
 
-	inline f_cnt_t loopStartFrame() const
-	{
-		return m_loopStartFrame;
-	}
+	std::shared_mutex& mutex();
 
-	inline f_cnt_t loopEndFrame() const
-	{
-		return m_loopEndFrame;
-	}
+	f_cnt_t frames() const;
+	float amplification() const;
+	bool reversed() const;
+	float frequency() const;
+	sample_rate_t sampleRate() const;
+	const std::unique_ptr<OscillatorConstants::waveform_t>& userAntiAliasWaveTable() const;
 
-	void setLoopStartFrame(f_cnt_t start)
-	{
-		m_loopStartFrame = start;
-	}
+	int sampleLength() const;
 
-	void setLoopEndFrame(f_cnt_t end)
-	{
-		m_loopEndFrame = end;
-	}
-
-	void setAllPointFrames(
-		f_cnt_t start,
-		f_cnt_t end,
-		f_cnt_t loopStart,
-		f_cnt_t loopEnd
-	)
-	{
-		m_startFrame = start;
-		m_endFrame = end;
-		m_loopStartFrame = loopStart;
-		m_loopEndFrame = loopEnd;
-	}
-
-	std::shared_mutex& mutex()
-	{
-		return m_mutex;
-	}
-
-	inline f_cnt_t frames() const
-	{
-		return m_frames;
-	}
-
-	inline float amplification() const
-	{
-		return m_amplification;
-	}
-
-	inline bool reversed() const
-	{
-		return m_reversed;
-	}
-
-	inline float frequency() const
-	{
-		return m_frequency;
-	}
-
-	sample_rate_t sampleRate() const
-	{
-		return m_sampleRate;
-	}
-
-	int sampleLength() const
-	{
-		return double(m_endFrame - m_startFrame) / m_sampleRate * 1000;
-	}
-
-	inline void setFrequency(float freq)
-	{
-		m_frequency = freq;
-	}
-
-	inline void setSampleRate(sample_rate_t rate)
-	{
-		m_sampleRate = rate;
-	}
-
-	inline const sampleFrame * data() const
-	{
-		return m_data;
-	}
+	void setFrequency(float freq);
+	void setSampleRate(sample_rate_t rate);
+	const sampleFrame * data() const;
 
 	QString openAudioFile() const;
 	QString openAndSetAudioFile();
 	QString openAndSetWaveformFile();
 
 	QString & toBase64(QString & dst) const;
-
 
 	// protect calls from the GUI to this function with dataReadLock() and
 	// dataUnlock()
@@ -262,21 +164,7 @@ public:
 
 	// protect calls from the GUI to this function with dataReadLock() and
 	// dataUnlock(), out of loops for efficiency
-	inline sample_t userWaveSample(const float sample) const
-	{
-		f_cnt_t frames = m_frames;
-		sampleFrame * data = m_data;
-		const float frame = sample * frames;
-		f_cnt_t f1 = static_cast<f_cnt_t>(frame) % frames;
-		if (f1 < 0)
-		{
-			f1 += frames;
-		}
-		return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
-	}
-
-	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable;
-
+	sample_t userWaveSample(const float sample) const;
 
 public slots:
 	void setAudioFile(const QString & audioFile);
@@ -287,8 +175,11 @@ public slots:
 	void setReversed(bool on);
 	void sampleRateChanged();
 
+signals:
+	void sampleUpdated();
+
 private:
-	static sample_rate_t audioEngineSampleRate();
+	sample_rate_t audioEngineSampleRate();
 
 	void update(bool keepSettings = false);
 
@@ -311,21 +202,6 @@ private:
 		sample_rate_t & samplerate
 	);
 
-	QString m_audioFile = "";
-	sampleFrame* m_origData = nullptr;
-	f_cnt_t m_origFrames = 0;
-	sampleFrame* m_data = nullptr;
-	mutable std::shared_mutex m_mutex;
-	f_cnt_t m_frames = 0;
-	f_cnt_t m_startFrame = 0;
-	f_cnt_t m_endFrame = 0;
-	f_cnt_t m_loopStartFrame = 0;
-	f_cnt_t m_loopEndFrame = 0;
-	float m_amplification = 1.0f;
-	bool m_reversed = false;
-	float m_frequency = DefaultBaseFreq;
-	sample_rate_t m_sampleRate = audioEngineSampleRate();
-
 	sampleFrame * getSampleFragment(
 		f_cnt_t index,
 		f_cnt_t frames,
@@ -340,11 +216,23 @@ private:
 	f_cnt_t getLoopedIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) const;
 	f_cnt_t getPingPongIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) const;
 
-
-signals:
-	void sampleUpdated();
-
-} ;
+private:
+	QString m_audioFile = "";
+	sampleFrame* m_origData = nullptr;
+	f_cnt_t m_origFrames = 0;
+	sampleFrame* m_data = nullptr;
+	mutable std::shared_mutex m_mutex;
+	f_cnt_t m_frames = 0;
+	f_cnt_t m_startFrame = 0;
+	f_cnt_t m_endFrame = 0;
+	f_cnt_t m_loopStartFrame = 0;
+	f_cnt_t m_loopEndFrame = 0;
+	float m_amplification = 1.0f;
+	bool m_reversed = false;
+	float m_frequency = DefaultBaseFreq;
+	sample_rate_t m_sampleRate = audioEngineSampleRate();
+	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable;
+};
 
 } // namespace lmms
 
