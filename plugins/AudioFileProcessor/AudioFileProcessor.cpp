@@ -210,8 +210,7 @@ void AudioFileProcessor::saveSettings(QDomDocument& doc, QDomElement& elem)
 	elem.setAttribute("src", m_sampleBuffer.audioFile());
 	if (m_sampleBuffer.audioFile().isEmpty())
 	{
-		QString s;
-		elem.setAttribute("sampledata", m_sampleBuffer.toBase64(s));
+		elem.setAttribute("sampledata", m_sampleBuffer.toBase64());
 	}
 	m_reverseModel.saveSettings(doc, elem, "reversed");
 	m_loopModel.saveSettings(doc, elem, "looped");
