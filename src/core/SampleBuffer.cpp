@@ -284,14 +284,13 @@ void SampleBuffer::update(bool keepSettings)
 
 		if (!fileLoadError)
 		{
-			if (m_frames == 0)
-			{
-				m_frames = decodeSampleSF(file, fbuf, channels, samplerate);
-			}
-
-			if (m_frames == 0)
+			if (fileInfo.suffix() == "ds")
 			{
 				m_frames = decodeSampleDS(file, buf, channels, samplerate);
+			}
+			else
+			{
+				m_frames = decodeSampleSF(file, fbuf, channels, samplerate);
 			}
 		}
 
