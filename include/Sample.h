@@ -52,6 +52,6 @@ namespace lmms
 
 		friend class SampleBuffer;
     };
-}
+} // namespace lmms
 
 #endif

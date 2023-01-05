@@ -67,4 +67,4 @@ namespace lmms
     {
         return m_interpolationMode;
     }
-}
+} // namespace lmms
