@@ -40,6 +40,7 @@
 #include "NotePlayHandle.h"
 #include "PathUtil.h"
 #include "PixmapButton.h"
+#include "SampleFileDialog.h"
 #include "Song.h"
 #include "StringPairDrag.h"
 #include "Clipboard.h"
@@ -686,11 +687,10 @@ void AudioFileProcessorView::sampleUpdated()
 
 void AudioFileProcessorView::openAudioFile()
 {
-	QString af = castModel<AudioFileProcessor>()->m_sampleBuffer.
-							openAudioFile();
-	if( af != "" )
+	const auto audioFile = SampleFileDialog::openAudioFile(castModel<AudioFileProcessor>()->m_sampleBuffer.audioFile());
+	if (audioFile != "")
 	{
-		castModel<AudioFileProcessor>()->setAudioFile( af );
+		castModel<AudioFileProcessor>()->setAudioFile(audioFile);
 		Engine::getSong()->setModified();
 		m_waveView->updateSampleRange();
 	}

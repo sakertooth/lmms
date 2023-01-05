@@ -32,6 +32,7 @@
 #include "PathUtil.h"
 #include "SampleBuffer.h"
 #include "SampleClip.h"
+#include "SampleFileDialog.h"
 #include "Song.h"
 #include "StringPairDrag.h"
 
@@ -171,17 +172,16 @@ void SampleClipView::mouseReleaseEvent(QMouseEvent *_me)
 
 void SampleClipView::mouseDoubleClickEvent( QMouseEvent * )
 {
-	QString af = m_clip->m_sampleBuffer->openAudioFile();
-
-	if ( af.isEmpty() ) {} //Don't do anything if no file is loaded
-	else if ( af == m_clip->m_sampleBuffer->audioFile() )
+	const auto audioFile = SampleFileDialog::openAudioFile(m_clip->m_sampleBuffer->audioFile());
+	if (audioFile.isEmpty()) {} //Don't do anything if no file is loaded
+	else if (audioFile == m_clip->m_sampleBuffer->audioFile())
 	{	//Instead of reloading the existing file, just reset the size
 		int length = (int) ( m_clip->m_sampleBuffer->frames() / Engine::framesPerTick() );
 		m_clip->changeLength(length);
 	}
 	else
 	{	//Otherwise load the new file as ususal
-		m_clip->setSampleFile( af );
+		m_clip->setSampleFile(audioFile);
 		Engine::getSong()->setModified();
 	}
 }
