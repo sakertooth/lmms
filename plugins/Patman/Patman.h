@@ -87,7 +87,7 @@ private:
 	struct handle_data
 	{
 		MM_OPERATORS
-		SampleBuffer::handleState* state;
+		Sample* state;
 		bool tuned;
 		SampleBuffer* sample;
 	};
