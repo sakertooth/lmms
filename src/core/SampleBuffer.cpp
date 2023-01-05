@@ -50,6 +50,12 @@
 namespace lmms
 {
 
+// values for buffer margins, used for various libsamplerate interpolation modes
+// the array positions correspond to the converter_type parameter values in libsamplerate
+// if there appears problems with playback on some interpolation mode, then the value for that mode
+// may need to be higher - conversely, to optimize, some may work with lower values
+static auto s_interpolationMargins = std::array<f_cnt_t, 5>{64, 64, 64, 4, 4};
+
 SampleBuffer::SampleBuffer()
 {
 	connect(Engine::audioEngine(), SIGNAL(sampleRateChanged()), this, SLOT(sampleRateChanged()));
@@ -570,7 +576,7 @@ bool SampleBuffer::play(
 		playFrame = getPingPongIndex(playFrame, loopStartFrame, loopEndFrame);
 	}
 
-	f_cnt_t fragmentSize = (f_cnt_t)(frames * freqFactor) + MARGIN[state->interpolationMode()];
+	f_cnt_t fragmentSize = (f_cnt_t)(frames * freqFactor) + s_interpolationMargins[state->interpolationMode()];
 
 	sampleFrame * tmp = nullptr;
 
@@ -977,7 +983,7 @@ void SampleBuffer::setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopSta
 	m_loopEndFrame = loopEnd;
 }
 
-std::shared_mutex& SampleBuffer::mutex()
+std::shared_mutex& SampleBuffer::mutex() const
 {
 	return m_mutex;
 }
@@ -1040,8 +1046,10 @@ QString SampleBuffer::toBase64() const
 	return QString::fromUtf8(byteArray.toBase64());
 }
 
-
-
+const std::array<f_cnt_t, 5>& SampleBuffer::interpolationMargins()
+{
+	return s_interpolationMargins;
+}
 
 SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_rate_t dstSR )
 {
