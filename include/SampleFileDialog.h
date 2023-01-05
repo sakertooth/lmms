@@ -26,10 +26,11 @@
 #define SAMPLE_FILE_DIALOG_H
 
 #include <QString>
+#include "lmms_export.h"
 
 namespace lmms::gui
 {
-    class SampleFileDialog
+    class LMMS_EXPORT SampleFileDialog
     {
     public:
         static QString openAudioFile(const QString& previousFile = "");
