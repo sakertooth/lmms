@@ -151,7 +151,7 @@ private:
 	bool m_reversed = false;
 	float m_frequency = DefaultBaseFreq;
 	sample_rate_t m_sampleRate = audioEngineSampleRate();
-	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable;
+	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
 };
 
 } // namespace lmms
