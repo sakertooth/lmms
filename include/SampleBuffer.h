@@ -26,7 +26,8 @@
 #define LMMS_SAMPLE_BUFFER_H
 
 #include <memory>
-#include <QReadWriteLock>
+#include <shared_mutex>
+
 #include <QObject>
 
 #include <samplerate.h>
@@ -195,6 +196,11 @@ public:
 		m_loopEndFrame = loopEnd;
 	}
 
+	std::shared_mutex& mutex()
+	{
+		return m_mutex;
+	}
+
 	inline f_cnt_t frames() const
 	{
 		return m_frames;
@@ -268,17 +274,6 @@ public:
 		return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
 	}
 
-	void dataReadLock()
-	{
-		m_varLock.lockForRead();
-	}
-
-	void dataUnlock()
-	{
-		m_varLock.unlock();
-	}
-
-
 	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable;
 
 
@@ -317,7 +312,7 @@ private:
 	sampleFrame * m_origData;
 	f_cnt_t m_origFrames;
 	sampleFrame * m_data;
-	mutable QReadWriteLock m_varLock;
+	mutable std::shared_mutex m_mutex;
 	f_cnt_t m_frames;
 	f_cnt_t m_startFrame;
 	f_cnt_t m_endFrame;
