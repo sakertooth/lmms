@@ -40,6 +40,7 @@
 #include "OscillatorConstants.h"
 #include "MemoryManager.h"
 #include "Note.h"
+#include "Sample.h"
 
 class QPainter;
 class QRect;
@@ -64,30 +65,7 @@ public:
 		LoopOn,
 		LoopPingPong
 	};
-
-	class LMMS_EXPORT handleState
-	{
-		MM_OPERATORS
-	public:
-		handleState(bool varyingPitch = false, int interpolationMode = SRC_LINEAR);
-		virtual ~handleState();
-
-		f_cnt_t frameIndex() const;
-		void setFrameIndex(f_cnt_t index);
-		bool isBackwards() const;
-		void setBackwards(bool backwards);
-		int interpolationMode() const;
-
-	private:
-		f_cnt_t m_frameIndex;
-		const bool m_varyingPitch;
-		bool m_isBackwards;
-		SRC_STATE * m_resamplingData;
-		int m_interpolationMode;
-
-		friend class SampleBuffer;
-	};
-
+	
 	SampleBuffer();
 	// constructor which either loads sample _audio_file or decodes
 	// base64-data out of string
@@ -103,7 +81,7 @@ public:
 
 	bool play(
 		sampleFrame * ab,
-		handleState * state,
+		Sample * state,
 		const fpp_t frames,
 		const float freq,
 		const LoopMode loopMode = LoopMode::LoopOff

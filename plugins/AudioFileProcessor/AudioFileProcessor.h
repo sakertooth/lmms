@@ -98,8 +98,6 @@ signals:
 
 
 private:
-	using handleState = SampleBuffer::handleState;
-
 	SampleBuffer m_sampleBuffer;
 
 	FloatModel m_ampModel;

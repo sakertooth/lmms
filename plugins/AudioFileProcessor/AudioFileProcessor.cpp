@@ -154,9 +154,9 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 				srcmode = SRC_SINC_MEDIUM_QUALITY;
 				break;
 		}
-		_n->m_pluginData = new handleState( _n->hasDetuningInfo(), srcmode );
-		((handleState *)_n->m_pluginData)->setFrameIndex( m_nextPlayStartPoint );
-		((handleState *)_n->m_pluginData)->setBackwards( m_nextPlayBackwards );
+		_n->m_pluginData = new Sample(_n->hasDetuningInfo(), srcmode);
+		static_cast<Sample*>(_n->m_pluginData)->setFrameIndex(m_nextPlayStartPoint);
+		static_cast<Sample*>(_n->m_pluginData)->setBackwards(m_nextPlayBackwards);
 
 // debug code
 /*		qDebug( "frames %d", m_sampleBuffer.frames() );
@@ -166,16 +166,16 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 
 	if( ! _n->isFinished() )
 	{
-		if( m_sampleBuffer.play( _working_buffer + offset,
-						(handleState *)_n->m_pluginData,
+		if (m_sampleBuffer.play(_working_buffer + offset,
+						static_cast<Sample*>(_n->m_pluginData),
 						frames, _n->frequency(),
-						static_cast<SampleBuffer::LoopMode>( m_loopModel.value() ) ) )
+						static_cast<SampleBuffer::LoopMode>(m_loopModel.value())))
 		{
 			applyRelease( _working_buffer, _n );
 			instrumentTrack()->processAudioBuffer( _working_buffer,
 									frames + offset, _n );
 
-			emit isPlaying( ((handleState *)_n->m_pluginData)->frameIndex() );
+			emit isPlaying(static_cast<Sample*>(_n->m_pluginData)->frameIndex());
 		}
 		else
 		{
@@ -189,8 +189,8 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 	}
 	if( m_stutterModel.value() == true )
 	{
-		m_nextPlayStartPoint = ((handleState *)_n->m_pluginData)->frameIndex();
-		m_nextPlayBackwards = ((handleState *)_n->m_pluginData)->isBackwards();
+		m_nextPlayStartPoint = static_cast<Sample*>(_n->m_pluginData)->frameIndex();
+		m_nextPlayBackwards = static_cast<Sample*>(_n->m_pluginData)->isBackwards();
 	}
 }
 
@@ -199,7 +199,7 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 
 void AudioFileProcessor::deleteNotePluginData( NotePlayHandle * _n )
 {
-	delete (handleState *)_n->m_pluginData;
+	delete static_cast<Sample*>(_n->m_pluginData);
 }
 
 

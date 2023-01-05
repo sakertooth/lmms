@@ -516,7 +516,7 @@ f_cnt_t SampleBuffer::decodeSampleDS(
 
 bool SampleBuffer::play(
 	sampleFrame * ab,
-	handleState * state,
+	Sample * state,
 	const fpp_t frames,
 	const float freq,
 	const LoopMode loopMode
@@ -1229,54 +1229,6 @@ void SampleBuffer::setReversed(bool on)
 
 	Engine::audioEngine()->doneChangeInModel();
 	emit sampleUpdated();
-}
-
-
-
-
-
-SampleBuffer::handleState::handleState(bool varyingPitch, int interpolationMode) :
-	m_frameIndex(0),
-	m_varyingPitch(varyingPitch),
-	m_isBackwards(false)
-{
-	int error;
-	m_interpolationMode = interpolationMode;
-
-	if ((m_resamplingData = src_new(interpolationMode, DEFAULT_CHANNELS, &error)) == nullptr)
-	{
-		qDebug("Error: src_new() failed in sample_buffer.cpp!\n");
-	}
-}
-
-f_cnt_t SampleBuffer::handleState::frameIndex() const
-{
-	return m_frameIndex;
-}
-
-void SampleBuffer::handleState::setFrameIndex(f_cnt_t index)
-{
-	m_frameIndex = index;
-}
-
-bool SampleBuffer::handleState::isBackwards() const
-{
-	return m_isBackwards;
-}
-
-void SampleBuffer::handleState::setBackwards(bool backwards)
-{
-	m_isBackwards = backwards;
-}
-
-int SampleBuffer::handleState::interpolationMode() const
-{
-	return m_interpolationMode;
-}
-
-SampleBuffer::handleState::~handleState()
-{
-	src_delete(m_resamplingData);
 }
 
 } // namespace lmms
