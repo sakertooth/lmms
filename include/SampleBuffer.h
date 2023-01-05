@@ -295,6 +295,8 @@ private:
 	void convertIntToFloat(int_sample_t * & ibuf, f_cnt_t frames, int channels);
 	void directFloatWrite(sample_t * & fbuf, f_cnt_t frames, int channels);
 
+	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true);
+
 	f_cnt_t decodeSampleSF(
 		QString fileName,
 		sample_t * & buf,
