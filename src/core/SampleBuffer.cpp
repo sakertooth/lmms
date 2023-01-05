@@ -199,11 +199,6 @@ void SampleBuffer::update(bool keepSettings)
 		MM_FREE(m_data);
 	}
 
-	// File size and sample length limits
-	const int fileSizeMax = 300; // MB
-	const int sampleLengthMax = 90; // Minutes
-
-	bool fileLoadError = false;
 	if (m_audioFile.isEmpty() && m_origData != nullptr && m_origFrames > 0)
 	{
 		// TODO: reverse- and amplification-property is not covered
@@ -219,41 +214,31 @@ void SampleBuffer::update(bool keepSettings)
 	}
 	else if (!m_audioFile.isEmpty())
 	{
-		QString file = PathUtil::toAbsolute(m_audioFile);
-		int_sample_t * buf = nullptr;
-		sample_t * fbuf = nullptr;
-		ch_cnt_t channels = DEFAULT_CHANNELS;
+		const auto file = PathUtil::toAbsolute(m_audioFile);
+		auto audioFileTooLarge = false;
+
+		try
+		{
+			audioFileTooLarge = fileExceedsLimits(file);
+		}
+		catch (const std::runtime_error& error)
+		{
+			std::cout << error.what() << '\n';
+			m_data = MM_ALLOC<sampleFrame>(1);
+			std::fill_n(m_data, m_data->size(), sampleFrame{});
+			m_frames = 1;
+			m_loopStartFrame = m_startFrame = 0;
+			m_loopEndFrame = m_endFrame = 1;
+		}
+
 		sample_rate_t samplerate = audioEngineSampleRate();
-		m_frames = 0;
+		if (!audioFileTooLarge)
+		{
+			int_sample_t * buf = nullptr;
+			sample_t * fbuf = nullptr;
+			ch_cnt_t channels = DEFAULT_CHANNELS;
 
-		const QFileInfo fileInfo(file);
-		if (fileInfo.size() > fileSizeMax * 1024 * 1024)
-		{
-			fileLoadError = true;
-		}
-		else
-		{
-			// Use QFile to handle unicode file names on Windows
-			QFile f(file);
-			SNDFILE * sndFile;
-			SF_INFO sfInfo;
-			sfInfo.format = 0;
-			if (f.open(QIODevice::ReadOnly) && (sndFile = sf_open_fd(f.handle(), SFM_READ, &sfInfo, false)))
-			{
-				f_cnt_t frames = sfInfo.frames;
-				int rate = sfInfo.samplerate;
-				if (frames / rate > sampleLengthMax * 60)
-				{
-					fileLoadError = true;
-				}
-				sf_close(sndFile);
-			}
-			f.close();
-		}
-
-		if (!fileLoadError)
-		{
-			if (fileInfo.suffix() == "ds")
+			if (QFileInfo{file}.suffix() == "ds")
 			{
 				m_frames = decodeSampleDS(file, buf, channels, samplerate);
 			}
@@ -263,7 +248,7 @@ void SampleBuffer::update(bool keepSettings)
 			}
 		}
 
-		if (m_frames == 0 || fileLoadError)  // if still no frames, bail
+		if (m_frames == 0 || audioFileTooLarge)  // if still no frames, bail
 		{
 			// sample couldn't be decoded, create buffer containing
 			// one sample-frame
@@ -302,23 +287,6 @@ void SampleBuffer::update(bool keepSettings)
 		m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
 	}
 	Oscillator::generateAntiAliasUserWaveTable(this);
-
-	if (fileLoadError)
-	{
-		QString title = tr("Fail to open file");
-		QString message = tr("Audio files are limited to %1 MB "
-				"in size and %2 minutes of playing time"
-				).arg(fileSizeMax).arg(sampleLengthMax);
-		if (gui::getGUI() != nullptr)
-		{
-			QMessageBox::information(nullptr,
-				title, message,	QMessageBox::Ok);
-		}
-		else
-		{
-			std::cerr << message.toUtf8().constData() << '\n';
-		}
-	}
 }
 
 
@@ -367,6 +335,59 @@ void SampleBuffer::directFloatWrite(
 	}
 
 	delete[] fbuf;
+}
+
+bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
+{
+	if (audioFile.isEmpty()) { return true; }
+
+	constexpr auto maxFileSize = 300; // In MBs
+	constexpr auto maxFileLength = 90; // In minutes
+	auto exceedsLimits = QFileInfo{audioFile}.size() > maxFileSize * 1024 * 1024;
+
+	if (!exceedsLimits)
+	{
+		auto sfInfo = SF_INFO{};
+		auto file = QFile{audioFile};
+		SNDFILE* sndFile = nullptr;
+
+		if (!file.open(QIODevice::ReadOnly))
+		{
+			throw std::runtime_error{"SampleBuffer::fileExceedsLimit: Could not open file handle: " +
+				file.errorString().toStdString()};
+		}
+		else
+		{
+			sndFile = sf_open_fd(file.handle(), SFM_READ, &sfInfo, false);
+			if (sndFile != nullptr)
+			{
+				exceedsLimits = sfInfo.frames / sfInfo.samplerate > maxFileLength * 60;
+			}
+			else
+			{
+				throw std::runtime_error{"SampleBuffer::fileExceedsLimit: Could not open sndfile handle: " +
+					std::string{sf_strerror(sndFile)}};
+			}
+		}
+	}
+
+	if (exceedsLimits && reportToGui)
+	{
+		const auto title = tr("Fail to open file");
+		const auto message = tr("Audio files are limited to %1 MB "
+				"in size and %2 minutes of playing time").arg(maxFileSize).arg(maxFileLength);
+
+		if (gui::getGUI() != nullptr)
+		{
+			QMessageBox::information(nullptr, title, message, QMessageBox::Ok);
+		}
+		else
+		{
+			std::cerr << message.toUtf8().constData() << '\n';
+		}
+	}
+
+	return exceedsLimits;
 }
 
 
