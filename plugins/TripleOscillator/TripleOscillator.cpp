@@ -37,6 +37,7 @@
 #include "Oscillator.h"
 #include "PixmapButton.h"
 #include "SampleBuffer.h"
+#include "SampleFileDialog.h"
 
 #include "embed.h"
 #include "plugin_export.h"
@@ -146,8 +147,8 @@ OscillatorObject::~OscillatorObject()
 
 void OscillatorObject::oscUserDefWaveDblClick()
 {
-	QString af = m_sampleBuffer->openAndSetWaveformFile();
-	if( af != "" )
+	const auto audioFile = gui::SampleFileDialog::openWaveformFile(m_sampleBuffer->audioFile());
+	if (audioFile != "")
 	{
 		// TODO:
 		//m_usrWaveBtn->setToolTip(m_sampleBuffer->audioFile());

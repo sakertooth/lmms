@@ -31,6 +31,7 @@
 #include "Knob.h"
 #include "TempoSyncKnob.h"
 #include "PixmapButton.h"
+#include "SampleFileDialog.h"
 
 namespace lmms::gui
 {
@@ -212,8 +213,8 @@ void LfoControllerDialog::askUserDefWave()
 {
 	SampleBuffer * sampleBuffer = dynamic_cast<LfoController*>(this->model())->
 									m_userDefSampleBuffer;
-	QString fileName = sampleBuffer->openAndSetWaveformFile();
-	if( fileName.isEmpty() == false )
+	const auto fileName = gui::SampleFileDialog::openWaveformFile(sampleBuffer->audioFile());
+	if (fileName.isEmpty() == false)
 	{
 		// TODO:
 		m_userWaveBtn->setToolTip(sampleBuffer->audioFile());

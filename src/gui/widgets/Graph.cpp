@@ -28,6 +28,7 @@
 #include "Graph.h"
 #include "StringPairDrag.h"
 #include "SampleBuffer.h"
+#include "SampleFileDialog.h"
 #include "Oscillator.h"
 
 namespace lmms
@@ -589,8 +590,8 @@ void graphModel::setWaveToNoise()
 QString graphModel::setWaveToUser()
 {
 	auto sampleBuffer = new SampleBuffer;
-	QString fileName = sampleBuffer->openAndSetWaveformFile();
-	if( fileName.isEmpty() == false )
+	const auto fileName = gui::SampleFileDialog::openWaveformFile(sampleBuffer->audioFile());
+	if (fileName.isEmpty() == false)
 	{
 		const auto lockGuard = std::shared_lock{sampleBuffer->mutex()};
 		for( int i = 0; i < length(); i++ )

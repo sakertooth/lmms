@@ -128,10 +128,6 @@ public:
 	void setSampleRate(sample_rate_t rate);
 	const sampleFrame * data() const;
 
-	QString openAudioFile() const;
-	QString openAndSetAudioFile();
-	QString openAndSetWaveformFile();
-
 	QString & toBase64(QString & dst) const;
 
 	// protect calls from the GUI to this function with dataReadLock() and
