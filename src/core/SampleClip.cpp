@@ -263,8 +263,7 @@ void SampleClip::saveSettings( QDomDocument & _doc, QDomElement & _this )
 	_this.setAttribute( "off", startTimeOffset() );
 	if( sampleFile() == "" )
 	{
-		QString s;
-		_this.setAttribute( "data", m_sampleBuffer->toBase64( s ) );
+		_this.setAttribute("data", m_sampleBuffer->toBase64());
 	}
 
 	_this.setAttribute( "sample_rate", m_sampleBuffer->sampleRate());

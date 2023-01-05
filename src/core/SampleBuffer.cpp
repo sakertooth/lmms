@@ -1032,11 +1032,12 @@ const sampleFrame* SampleBuffer::data() const
 	return m_data;
 }
 
-QString & SampleBuffer::toBase64(QString & dst) const
+QString SampleBuffer::toBase64() const
 {
-	base64::encode((const char *) m_data,
-		m_frames * sizeof(sampleFrame), dst);
-	return dst;
+	// TODO: Replace with non-Qt equivalent
+	auto data = reinterpret_cast<const char*>(m_data);
+	auto byteArray = QByteArray{data, m_frames};
+	return QString::fromUtf8(byteArray.toBase64());
 }
 
 

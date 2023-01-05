@@ -128,7 +128,7 @@ public:
 	void setSampleRate(sample_rate_t rate);
 	const sampleFrame * data() const;
 
-	QString & toBase64(QString & dst) const;
+	QString toBase64() const;
 
 	// protect calls from the GUI to this function with dataReadLock() and
 	// dataUnlock()
