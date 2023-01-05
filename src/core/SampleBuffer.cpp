@@ -123,7 +123,7 @@ SampleBuffer::SampleBuffer(const f_cnt_t frames)
 
 SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 {
-	orig.m_varLock.lockForRead();
+	const auto lockGuard = std::shared_lock{orig.m_mutex};
 
 	m_audioFile = orig.m_audioFile;
 	m_origFrames = orig.m_origFrames;
@@ -146,8 +146,6 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 		{ std::copy_n(orig.m_origData, origFrameBytes, m_origData); }
 	if (orig.m_data != nullptr && frameBytes > 0)
 		{ std::copy_n(orig.m_data, frameBytes, m_data); }
-
-	orig.m_varLock.unlock();
 }
 
 
@@ -157,18 +155,9 @@ void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 {
 	using std::swap;
 
-	// Lock both buffers for writing, with address as lock ordering
 	if (&first == &second) { return; }
-	else if (&first > &second)
-	{
-		first.m_varLock.lockForWrite();
-		second.m_varLock.lockForWrite();
-	}
-	else
-	{
-		second.m_varLock.lockForWrite();
-		first.m_varLock.lockForWrite();
-	}
+	const auto firstLockGuard = std::unique_lock{first.m_mutex};
+	const auto secondLockGuard = std::unique_lock{second.m_mutex};
 
 	first.m_audioFile.swap(second.m_audioFile);
 	swap(first.m_origData, second.m_origData);
@@ -183,10 +172,6 @@ void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 	swap(first.m_frequency, second.m_frequency);
 	swap(first.m_reversed, second.m_reversed);
 	swap(first.m_sampleRate, second.m_sampleRate);
-
-	// Unlock again
-	first.m_varLock.unlock();
-	second.m_varLock.unlock();
 }
 
 
@@ -226,7 +211,7 @@ void SampleBuffer::update(bool keepSettings)
 	if (lock)
 	{
 		Engine::audioEngine()->requestChangeInModel();
-		m_varLock.lockForWrite();
+		const auto lockGuard = std::unique_lock{m_mutex};
 		MM_FREE(m_data);
 	}
 
@@ -322,7 +307,6 @@ void SampleBuffer::update(bool keepSettings)
 
 	if (lock)
 	{
-		m_varLock.unlock();
 		Engine::audioEngine()->doneChangeInModel();
 	}
 
@@ -1123,10 +1107,11 @@ void SampleBuffer::setAmplification(float a)
 void SampleBuffer::setReversed(bool on)
 {
 	Engine::audioEngine()->requestChangeInModel();
-	m_varLock.lockForWrite();
+	const auto lockGuard = std::unique_lock{m_mutex};
+
 	if (m_reversed != on) { std::reverse(m_data, m_data + m_frames); }
 	m_reversed = on;
-	m_varLock.unlock();
+
 	Engine::audioEngine()->doneChangeInModel();
 	emit sampleUpdated();
 }
