@@ -99,7 +99,7 @@ signals:
 	void sampleUpdated();
 
 public slots:
-	void setAudioFile(const QString& audioFile);
+	void loadFromAudioFile(const QString& audioFile);
 	void loadFromBase64(const QString& data);
 
 	void setStartFrame(f_cnt_t startFrame);

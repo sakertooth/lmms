@@ -327,7 +327,7 @@ void AudioFileProcessor::setAudioFile( const QString & _audio_file,
 	}
 	// else we don't touch the track-name, because the user named it self
 
-	m_sampleBuffer.setAudioFile( _audio_file );
+	m_sampleBuffer.loadFromAudioFile(_audio_file);
 	loopPointChanged();
 }
 

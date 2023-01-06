@@ -1076,7 +1076,7 @@ SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_ra
 	return dstSB;
 }
 
-void SampleBuffer::setAudioFile(const QString & audioFile)
+void SampleBuffer::loadFromAudioFile(const QString & audioFile)
 {
 	m_audioFile = PathUtil::toShortestRelative(audioFile);
 	update();
