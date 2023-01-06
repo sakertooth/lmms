@@ -99,7 +99,7 @@ signals:
 	void sampleUpdated();
 
 public slots:
-	void loadFromAudioFile(const QString& audioFile);
+	void loadFromAudioFile(const QString& audioFile, bool keepSettings = false);
 	void loadFromBase64(const QString& data, bool keepSettings = false);
 
 	void setStartFrame(f_cnt_t startFrame);
@@ -115,7 +115,7 @@ public slots:
 	void sampleRateChanged();
 
 private:
-	void update(bool keepSettings = false);
+	void update();
 	void convertIntToFloat(int_sample_t*& ibuf, f_cnt_t frames, int channels);
 	void directFloatWrite(sample_t*& fbuf, f_cnt_t frames, int channels);
 	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true);

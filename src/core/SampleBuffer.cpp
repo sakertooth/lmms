@@ -63,7 +63,7 @@ SampleBuffer::SampleBuffer()
 
 
 
-SampleBuffer::SampleBuffer(const QString & audioFile, bool isBase64Data)
+SampleBuffer::SampleBuffer(const QString& audioFile, bool isBase64Data)
 	: SampleBuffer()
 {
 	if (isBase64Data)
@@ -72,8 +72,7 @@ SampleBuffer::SampleBuffer(const QString & audioFile, bool isBase64Data)
 	}
 	else
 	{
-		m_audioFile = audioFile;
-		update();
+		loadFromAudioFile(audioFile);
 	}
 }
 
@@ -181,7 +180,7 @@ SampleBuffer::~SampleBuffer()
 
 void SampleBuffer::sampleRateChanged()
 {
-	update(true);
+	update();
 }
 
 sample_rate_t SampleBuffer::audioEngineSampleRate()
@@ -190,64 +189,8 @@ sample_rate_t SampleBuffer::audioEngineSampleRate()
 }
 
 
-void SampleBuffer::update(bool keepSettings)
+void SampleBuffer::update()
 {
-	if (!m_audioFile.isEmpty())
-	{
-		Engine::audioEngine()->requestChangeInModel();
-		const auto lockGuard = std::unique_lock{m_mutex};
-		const auto file = PathUtil::toAbsolute(m_audioFile);
-		auto audioFileTooLarge = false;
-		
-		auto bail = [&]()
-		{
-			m_data = MM_ALLOC<sampleFrame>(1);
-			m_frames = 1;
-			std::fill_n(m_data, 1, sampleFrame{});
-			setAllPointFrames(0, 1, 0, 1);
-		};
-
-		try
-		{
-			audioFileTooLarge = fileExceedsLimits(file);
-		}
-		catch (const std::runtime_error& error)
-		{
-			std::cout << error.what() << '\n';
-			bail();
-		}
-
-		sample_rate_t samplerate = audioEngineSampleRate();
-		if (!audioFileTooLarge)
-		{
-			int_sample_t * buf = nullptr;
-			sample_t * fbuf = nullptr;
-			ch_cnt_t channels = DEFAULT_CHANNELS;
-
-			if (QFileInfo{file}.suffix() == "ds")
-			{
-				m_frames = decodeSampleDS(file, buf, channels, samplerate);
-			}
-			else
-			{
-				m_frames = decodeSampleSF(file, fbuf, channels, samplerate);
-			}
-		}
-
-		if (m_frames == 0 || audioFileTooLarge)  // if still no frames, bail
-		{
-			// sample couldn't be decoded, create buffer containing
-			// one sample-frame
-			bail();
-		}
-		else // otherwise normalize sample rate
-		{
-			normalizeSampleRate(samplerate, keepSettings);
-		}
-		
-		Engine::audioEngine()->doneChangeInModel();
-	}
-
 	if (m_frames > 0)
 	{
 		Oscillator::generateAntiAliasUserWaveTable(this);
@@ -1036,10 +979,63 @@ SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_ra
 	return dstSB;
 }
 
-void SampleBuffer::loadFromAudioFile(const QString & audioFile)
+void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings)
 {
+	Engine::audioEngine()->requestChangeInModel();
+	const auto lockGuard = std::unique_lock{m_mutex};
+	
 	m_audioFile = PathUtil::toShortestRelative(audioFile);
-	update();
+	const auto file = PathUtil::toAbsolute(m_audioFile);
+
+	auto bail = [&]()
+	{
+		m_data = MM_ALLOC<sampleFrame>(1);
+		m_frames = 1;
+		std::fill_n(m_data, 1, sampleFrame{});
+		setAllPointFrames(0, 1, 0, 1);
+	};
+
+	auto audioFileTooLarge = false;
+	try
+	{
+		audioFileTooLarge = fileExceedsLimits(file);
+	}
+	catch (const std::runtime_error& error)
+	{
+		std::cout << error.what() << '\n';
+		bail();
+	}
+	
+	sample_rate_t samplerate = audioEngineSampleRate();
+	if (!audioFileTooLarge)
+	{
+		int_sample_t * buf = nullptr;
+		sample_t * fbuf = nullptr;
+		ch_cnt_t channels = DEFAULT_CHANNELS;
+
+		if (QFileInfo{file}.suffix() == "ds")
+		{
+			m_frames = decodeSampleDS(file, buf, channels, samplerate);
+		}
+		else
+		{
+			m_frames = decodeSampleSF(file, fbuf, channels, samplerate);
+		}
+	}
+
+	if (m_frames == 0 || audioFileTooLarge)  // if still no frames, bail
+	{
+		// sample couldn't be decoded, create buffer containing
+		// one sample-frame
+		bail();
+	}
+	else // otherwise normalize sample rate
+	{
+		normalizeSampleRate(samplerate, keepSettings);
+		update();
+	}
+
+	Engine::audioEngine()->doneChangeInModel();
 }
 
 void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
