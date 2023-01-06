@@ -154,7 +154,7 @@ void SampleClip::setSampleFile( const QString & _sf )
 	}
 	else
 	{	//Otherwise set it to the sample's length
-		m_sampleBuffer->setAudioFile( _sf );
+		m_sampleBuffer->loadFromAudioFile(_sf);
 		length = sampleLength();
 	}
 	changeLength(length);

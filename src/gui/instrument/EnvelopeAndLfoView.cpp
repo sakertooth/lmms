@@ -322,8 +322,7 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	QString value = StringPairDrag::decodeValue( _de );
 	if( type == "samplefile" )
 	{
-		m_params->m_userWave.setAudioFile(
-					StringPairDrag::decodeValue( _de ) );
+		m_params->m_userWave.loadFromAudioFile(StringPairDrag::decodeValue(_de));
 		m_userLfoBtn->model()->setValue( true );
 		m_params->m_lfoWaveModel.setValue(EnvelopeAndLfoParameters::UserDefinedWave);
 		_de->accept();
@@ -332,9 +331,9 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	else if( type == QString( "clip_%1" ).arg( Track::SampleTrack ) )
 	{
 		DataFile dataFile( value.toUtf8() );
-		m_params->m_userWave.setAudioFile( dataFile.content().
+		m_params->m_userWave.loadFromAudioFile(dataFile.content().
 					firstChildElement().firstChildElement().
-					firstChildElement().attribute( "src" ) );
+					firstChildElement().attribute("src"));
 		m_userLfoBtn->model()->setValue( true );
 		m_params->m_lfoWaveModel.setValue(EnvelopeAndLfoParameters::UserDefinedWave);
 		_de->accept();
