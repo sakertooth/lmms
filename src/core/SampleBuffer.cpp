@@ -59,7 +59,6 @@ static auto s_interpolationMargins = std::array<f_cnt_t, 5>{64, 64, 64, 4, 4};
 SampleBuffer::SampleBuffer()
 {
 	connect(Engine::audioEngine(), SIGNAL(sampleRateChanged()), this, SLOT(sampleRateChanged()));
-	update();
 }
 
 
@@ -89,7 +88,9 @@ SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames)
 		m_data = MM_ALLOC<sampleFrame>(frames);
 		m_frames = frames;
 		std::copy_n(data, frames, m_data);
+
 		setAllPointFrames(0, frames, 0, frames);
+		update();
 	}
 }
 
@@ -104,7 +105,9 @@ SampleBuffer::SampleBuffer(const f_cnt_t frames)
 		m_data = MM_ALLOC<sampleFrame>(frames);
 		m_frames = frames;
 		std::fill_n(m_data, frames, sampleFrame{});
+		
 		setAllPointFrames(0, frames, 0, frames);
+		update();
 	}
 }
 
@@ -1029,7 +1032,6 @@ SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_ra
 		std::cout << "SampleBuffer: error while resampling:" << src_strerror(error) << '\n';
 	}
 
-	dstSB->update();
 	return dstSB;
 }
 
