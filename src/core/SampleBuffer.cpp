@@ -198,6 +198,14 @@ void SampleBuffer::update(bool keepSettings)
 		const auto lockGuard = std::unique_lock{m_mutex};
 		const auto file = PathUtil::toAbsolute(m_audioFile);
 		auto audioFileTooLarge = false;
+		
+		auto bail = [&]()
+		{
+			m_data = MM_ALLOC<sampleFrame>(1);
+			m_frames = 1;
+			std::fill_n(m_data, 1, sampleFrame{});
+			setAllPointFrames(0, 1, 0, 1);
+		};
 
 		try
 		{
@@ -206,11 +214,7 @@ void SampleBuffer::update(bool keepSettings)
 		catch (const std::runtime_error& error)
 		{
 			std::cout << error.what() << '\n';
-			m_data = MM_ALLOC<sampleFrame>(1);
-			std::fill_n(m_data, m_data->size(), sampleFrame{});
-			m_frames = 1;
-			m_loopStartFrame = m_startFrame = 0;
-			m_loopEndFrame = m_endFrame = 1;
+			bail();
 		}
 
 		sample_rate_t samplerate = audioEngineSampleRate();
@@ -234,16 +238,13 @@ void SampleBuffer::update(bool keepSettings)
 		{
 			// sample couldn't be decoded, create buffer containing
 			// one sample-frame
-			m_data = MM_ALLOC<sampleFrame>(1);
-			std::fill_n(m_data, m_data->size(), sampleFrame{});
-			m_frames = 1;
-			m_loopStartFrame = m_startFrame = 0;
-			m_loopEndFrame = m_endFrame = 1;
+			bail();
 		}
 		else // otherwise normalize sample rate
 		{
 			normalizeSampleRate(samplerate, keepSettings);
 		}
+		
 		Engine::audioEngine()->doneChangeInModel();
 	}
 
