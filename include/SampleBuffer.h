@@ -138,8 +138,6 @@ private:
 	f_cnt_t getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const;
 private:
 	QString m_audioFile = "";
-	sampleFrame* m_origData = nullptr;
-	f_cnt_t m_origFrames = 0;
 	sampleFrame* m_data = nullptr;
 	mutable std::shared_mutex m_mutex;
 	f_cnt_t m_frames = 0;
