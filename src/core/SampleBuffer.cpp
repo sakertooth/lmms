@@ -244,12 +244,12 @@ void SampleBuffer::update(bool keepSettings)
 		Engine::audioEngine()->doneChangeInModel();
 	}
 
-	emit sampleUpdated();
-
 	if (m_frames > 0)
 	{
 		Oscillator::generateAntiAliasUserWaveTable(this);
 	}
+
+	emit sampleUpdated();
 }
 
 
