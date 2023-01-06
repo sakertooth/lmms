@@ -86,10 +86,10 @@ SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames)
 {
 	if (frames > 0)
 	{
-		m_origData = MM_ALLOC<sampleFrame>(frames);
-		std::copy_n(data, frames, m_origData);
-		m_origFrames = frames;
-		update();
+		m_data = MM_ALLOC<sampleFrame>(frames);
+		m_frames = frames;
+		std::copy_n(data, frames, m_data);
+		setAllPointFrames(0, frames, 0, frames);
 	}
 }
 
@@ -101,10 +101,10 @@ SampleBuffer::SampleBuffer(const f_cnt_t frames)
 {
 	if (frames > 0)
 	{
-		m_origData = MM_ALLOC<sampleFrame>(frames);
-		std::fill_n(m_origData, frames, sampleFrame{});
-		m_origFrames = frames;
-		update();
+		m_data = MM_ALLOC<sampleFrame>(frames);
+		m_frames = frames;
+		std::fill_n(m_data, frames, sampleFrame{});
+		setAllPointFrames(0, frames, 0, frames);
 	}
 }
 
@@ -116,8 +116,6 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 	const auto lockGuard = std::shared_lock{orig.m_mutex};
 
 	m_audioFile = orig.m_audioFile;
-	m_origFrames = orig.m_origFrames;
-	m_origData = (m_origFrames > 0) ? MM_ALLOC<sampleFrame>(m_origFrames) : nullptr;
 	m_frames = orig.m_frames;
 	m_data = (m_frames > 0) ? MM_ALLOC<sampleFrame>(m_frames) : nullptr;
 	m_startFrame = orig.m_startFrame;
@@ -129,11 +127,8 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 	m_frequency = orig.m_frequency;
 	m_sampleRate = orig.m_sampleRate;
 
-	//Deep copy m_origData and m_data from original
-	const auto origFrameBytes = m_origFrames * BYTES_PER_FRAME;
+	//Deep copy m_data from original
 	const auto frameBytes = m_frames * BYTES_PER_FRAME;
-	if (orig.m_origData != nullptr && origFrameBytes > 0)
-		{ std::copy_n(orig.m_origData, origFrameBytes, m_origData); }
 	if (orig.m_data != nullptr && frameBytes > 0)
 		{ std::copy_n(orig.m_data, frameBytes, m_data); }
 }
@@ -150,9 +145,7 @@ void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 	const auto secondLockGuard = std::unique_lock{second.m_mutex};
 
 	first.m_audioFile.swap(second.m_audioFile);
-	swap(first.m_origData, second.m_origData);
 	swap(first.m_data, second.m_data);
-	swap(first.m_origFrames, second.m_origFrames);
 	swap(first.m_frames, second.m_frames);
 	swap(first.m_startFrame, second.m_startFrame);
 	swap(first.m_endFrame, second.m_endFrame);
@@ -178,7 +171,6 @@ SampleBuffer& SampleBuffer::operator=(SampleBuffer that)
 
 SampleBuffer::~SampleBuffer()
 {
-	MM_FREE(m_origData);
 	MM_FREE(m_data);
 }
 
@@ -197,29 +189,10 @@ sample_rate_t SampleBuffer::audioEngineSampleRate()
 
 void SampleBuffer::update(bool keepSettings)
 {
-	const bool lock = (m_data != nullptr);
-	if (lock)
+	if (!m_audioFile.isEmpty())
 	{
 		Engine::audioEngine()->requestChangeInModel();
 		const auto lockGuard = std::unique_lock{m_mutex};
-		MM_FREE(m_data);
-	}
-
-	if (m_audioFile.isEmpty() && m_origData != nullptr && m_origFrames > 0)
-	{
-		// TODO: reverse- and amplification-property is not covered
-		// by following code...
-		m_data = MM_ALLOC<sampleFrame>(m_origFrames);
-		std::copy_n(m_origData, m_origFrames, m_data);
-		if (keepSettings == false)
-		{
-			m_frames = m_origFrames;
-			m_loopStartFrame = m_startFrame = 0;
-			m_loopEndFrame = m_endFrame = m_frames;
-		}
-	}
-	else if (!m_audioFile.isEmpty())
-	{
 		const auto file = PathUtil::toAbsolute(m_audioFile);
 		auto audioFileTooLarge = false;
 
@@ -268,31 +241,20 @@ void SampleBuffer::update(bool keepSettings)
 		{
 			normalizeSampleRate(samplerate, keepSettings);
 		}
-	}
-	else
-	{
-		// neither an audio-file nor a buffer to copy from, so create
-		// buffer containing one sample-frame
-		m_data = MM_ALLOC<sampleFrame>(1);
-		std::fill_n(m_data, m_data->size(), sampleFrame{});
-		m_frames = 1;
-		m_loopStartFrame = m_startFrame = 0;
-		m_loopEndFrame = m_endFrame = 1;
-	}
-
-	if (lock)
-	{
 		Engine::audioEngine()->doneChangeInModel();
 	}
 
 	emit sampleUpdated();
 
-	// allocate space for anti-aliased wave table
-	if (m_userAntiAliasWaveTable == nullptr)
+	if (m_frames > 0)
 	{
-		m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
+		// allocate space for anti-aliased wave table
+		if (m_userAntiAliasWaveTable == nullptr)
+		{
+			m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
+		}
+		Oscillator::generateAntiAliasUserWaveTable(this);
 	}
-	Oscillator::generateAntiAliasUserWaveTable(this);
 }
 
 
@@ -1055,7 +1017,7 @@ SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_ra
 {
 	const auto dstFrames = static_cast<f_cnt_t>((m_frames / static_cast<float>(srcSR)) * static_cast<float>(dstSR));
 	auto dstSB = new SampleBuffer{dstFrames};
-	auto dstBuf = dstSB->m_origData;
+	auto dstBuf = dstSB->m_data;
 
 	// yeah, libsamplerate, let's rock with sinc-interpolation!
 	auto srcData = SRC_DATA{};
@@ -1084,18 +1046,23 @@ void SampleBuffer::loadFromAudioFile(const QString & audioFile)
 
 void SampleBuffer::loadFromBase64(const QString & data)
 {
+	Engine::audioEngine()->requestChangeInModel();
+	const auto lockGuard = std::lock_guard{m_mutex};
+
 	char * dst = nullptr;
 	int dsize = 0;
 	base64::decode(data, &dst, &dsize);
 
-	m_origFrames = dsize / sizeof(sampleFrame);
-	MM_FREE(m_origData);
-	m_origData = MM_ALLOC<sampleFrame>(m_origFrames);
-	std::copy_n(reinterpret_cast<sampleFrame*>(dst), dsize, m_origData);
+	m_frames = dsize / sizeof(sampleFrame);
+	MM_FREE(m_data);
+	m_data = MM_ALLOC<sampleFrame>(m_frames);
+	std::copy_n(reinterpret_cast<sampleFrame*>(dst), dsize, m_data);
 
 	delete[] dst;
 
 	m_audioFile = QString();
+	Engine::audioEngine()->doneChangeInModel();
+	
 	update();
 }
 
