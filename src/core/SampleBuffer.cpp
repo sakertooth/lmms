@@ -248,11 +248,6 @@ void SampleBuffer::update(bool keepSettings)
 
 	if (m_frames > 0)
 	{
-		// allocate space for anti-aliased wave table
-		if (m_userAntiAliasWaveTable == nullptr)
-		{
-			m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
-		}
 		Oscillator::generateAntiAliasUserWaveTable(this);
 	}
 }
