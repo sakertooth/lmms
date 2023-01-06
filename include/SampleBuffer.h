@@ -100,7 +100,7 @@ signals:
 
 public slots:
 	void loadFromAudioFile(const QString& audioFile);
-	void loadFromBase64(const QString& data);
+	void loadFromBase64(const QString& data, bool keepSettings = false);
 
 	void setStartFrame(f_cnt_t startFrame);
 	void setEndFrame(f_cnt_t endFrame);

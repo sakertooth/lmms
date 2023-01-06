@@ -1042,25 +1042,31 @@ void SampleBuffer::loadFromAudioFile(const QString & audioFile)
 	update();
 }
 
-void SampleBuffer::loadFromBase64(const QString & data)
+void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
 {
 	Engine::audioEngine()->requestChangeInModel();
-	const auto lockGuard = std::lock_guard{m_mutex};
+	const auto lockGuard = std::unique_lock{m_mutex};
 
-	char * dst = nullptr;
-	int dsize = 0;
-	base64::decode(data, &dst, &dsize);
+	// TODO: Replace with non-Qt equivalent
+	const auto base64Data = data.toUtf8().toBase64();
+	const auto sampleFrameData = reinterpret_cast<const sampleFrame*>(base64Data.constData());
+	const auto numFrames = base64Data.size() / sizeof(sampleFrame);
 
-	m_frames = dsize / sizeof(sampleFrame);
-	MM_FREE(m_data);
-	m_data = MM_ALLOC<sampleFrame>(m_frames);
-	std::copy_n(reinterpret_cast<sampleFrame*>(dst), dsize, m_data);
+	if (m_data != nullptr)
+	{
+		MM_FREE(m_data);
+	}
 
-	delete[] dst;
+	m_data = MM_ALLOC<sampleFrame>(numFrames);
+	m_frames = numFrames;
+	std::copy_n(sampleFrameData, numFrames, m_data);
 
-	m_audioFile = QString();
+	if (!keepSettings)
+	{
+		setAllPointFrames(0, numFrames, 0, numFrames);
+	}
+
 	Engine::audioEngine()->doneChangeInModel();
-	
 	update();
 }
 
