@@ -170,30 +170,6 @@ void SampleBuffer::update()
 }
 
 
-void SampleBuffer::convertIntToFloat(
-	int_sample_t * & ibuf,
-	f_cnt_t frames,
-	int channels
-)
-{
-	// following code transforms int-samples into float-samples and does amplifying & reversing
-	const float fac = 1 / OUTPUT_SAMPLE_MULTIPLIER;
-	m_data = std::vector<sampleFrame>(frames);
-	const int ch = (channels > 1) ? 1 : 0;
-
-	// if reversing is on, we also reverse when scaling
-	bool isReversed = m_reversed;
-	int idx = isReversed ? (frames - 1) * channels : 0;
-	for (f_cnt_t frame = 0; frame < frames; ++frame)
-	{
-		m_data[frame][0] = ibuf[idx+0] * fac;
-		m_data[frame][1] = ibuf[idx+ch] * fac;
-		idx += isReversed ? -channels : channels;
-	}
-
-	delete[] ibuf;
-}
-
 void SampleBuffer::directFloatWrite(
 	sample_t * & fbuf,
 	f_cnt_t frames,
@@ -367,23 +343,30 @@ f_cnt_t SampleBuffer::decodeSampleSF(
 	return frames;
 }
 
-f_cnt_t SampleBuffer::decodeSampleDS(
-	QString fileName,
-	int_sample_t * & buf,
-	ch_cnt_t & channels,
-	sample_rate_t & samplerate
-)
+std::vector<sampleFrame> SampleBuffer::decodeSampleDS(const QString& fileName)
 {
-	DrumSynth ds;
-	f_cnt_t frames = ds.GetDSFileSamples(fileName, buf, channels, samplerate);
+	auto data = std::unique_ptr<int_sample_t>{};
+	int_sample_t* dataPtr = nullptr;
 
-	if (frames > 0 && buf != nullptr)
+	auto ds = DrumSynth{};
+	const auto frames = ds.GetDSFileSamples(fileName, dataPtr, DEFAULT_CHANNELS, audioEngineSampleRate());
+	data.reset(dataPtr);
+
+	auto result = std::vector<sampleFrame>(frames);
+	if (frames > 0 && data != nullptr)
 	{
-		convertIntToFloat(buf, frames, channels);
+		src_short_to_float_array(data.get(), &result[0][0], frames);
+		if (m_reversed)
+		{
+			std::reverse(result.begin(), result.end());
+		}
+	}
+	else
+	{
+		throw std::runtime_error{"SampleBuffer::decodeSampleDS: Failed to decode DrumSynth file."};
 	}
 
-	return frames;
-
+	return result;
 }
 
 
@@ -970,7 +953,7 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 
 		if (QFileInfo{file}.suffix() == "ds")
 		{
-			decodeSampleDS(file, buf, channels, samplerate);
+			m_data = decodeSampleDS(file);
 		}
 		else
 		{
