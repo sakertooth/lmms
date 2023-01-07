@@ -953,6 +953,8 @@ SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_ra
 
 void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings)
 {
+	if (audioFile.isEmpty()) { return; }
+
 	Engine::audioEngine()->requestChangeInModel();
 	const auto lockGuard = std::unique_lock{m_mutex};
 	
@@ -1010,6 +1012,8 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 
 void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
 {
+	if (data.isEmpty()) { return; }
+	
 	Engine::audioEngine()->requestChangeInModel();
 	const auto lockGuard = std::unique_lock{m_mutex};
 
