@@ -296,10 +296,9 @@ std::pair<std::vector<sampleFrame>, sample_rate_t> SampleBuffer::decodeSampleSF(
 	if (sfInfo.channels == 1)
 	{
 		// Upmix mono to stereo
-		for (int i = 0; i < static_cast<int>(buf.size()); ++i)
+		for (int i = 0; i < static_cast<int>(result.size()); ++i)
 		{
-			result[i][0] = buf[i];
-			result[i][1] = buf[i];
+			result[i] = {buf[i], buf[i]};
 		}
 	}
 	else if (sfInfo.channels > 1)
