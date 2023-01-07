@@ -124,7 +124,7 @@ private:
 	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true);
 	sample_rate_t audioEngineSampleRate();
 
-	std::vector<sampleFrame> decodeSampleSF(const QString& fileName);
+	std::pair<std::vector<sampleFrame>, sample_rate_t> decodeSampleSF(const QString& fileName);
 	std::vector<sampleFrame> decodeSampleDS(const QString& fileName);
 
 	std::vector<sampleFrame> getSampleFragment(

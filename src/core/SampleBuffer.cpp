@@ -265,7 +265,7 @@ sample_t SampleBuffer::userWaveSample(const float sample) const
 	return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
 }
 
-std::vector<sampleFrame> SampleBuffer::decodeSampleSF(const QString& fileName)
+std::pair<std::vector<sampleFrame>, sample_rate_t> SampleBuffer::decodeSampleSF(const QString& fileName)
 {
 	SNDFILE* sndFile = nullptr;
 	auto sfInfo = SF_INFO{};
@@ -313,7 +313,7 @@ std::vector<sampleFrame> SampleBuffer::decodeSampleSF(const QString& fileName)
 		// The current behavior assumes stereo in all cases excluding mono.
 		// This may not be the expected behavior, given some audio files with a higher number of channels.
 		std::copy_n(buf.begin(), buf.size(), &result[0][0]);
-		return result;
+		return {result, sfInfo.samplerate};
 	}
 
 	if (m_reversed)
@@ -321,7 +321,7 @@ std::vector<sampleFrame> SampleBuffer::decodeSampleSF(const QString& fileName)
 		std::reverse(result.begin(), result.end());
 	}
 
-	return result;
+	return {result, sfInfo.samplerate};
 }
 
 std::vector<sampleFrame> SampleBuffer::decodeSampleDS(const QString& fileName)
@@ -925,7 +925,6 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 		bail();
 	}
 
-	sample_rate_t samplerate = audioEngineSampleRate();
 	if (!audioFileTooLarge)
 	{
 		if (QFileInfo{file}.suffix() == "ds")
@@ -934,7 +933,9 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 		}
 		else
 		{
-			m_data = decodeSampleSF(file);
+			auto [data, sampleRate] = decodeSampleSF(file);
+			m_data = std::move(data);
+			normalizeSampleRate(sampleRate, keepSettings);
 		}
 	}
 
@@ -944,9 +945,8 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 		// one sample-frame
 		bail();
 	}
-	else // otherwise normalize sample rate
+	else
 	{
-		normalizeSampleRate(samplerate, keepSettings);
 		update();
 	}
 
