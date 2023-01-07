@@ -70,7 +70,7 @@ public:
 	void visualize(QPainter& p, const QRect& dr, const QRect& clip, f_cnt_t fromFrame = 0, f_cnt_t toFrame = 0);
 	void visualize(QPainter& p, const QRect& dr, f_cnt_t fromFrame = 0, f_cnt_t toFrame = 0);
 
-	SampleBuffer* resample(sample_rate_t srcSR, sample_rate_t dstSR);
+	std::vector<sampleFrame> resample(sample_rate_t srcSR, sample_rate_t dstSR);
 	void normalizeSampleRate(sample_rate_t srcSR, bool keepSettings = false);
 	sample_t userWaveSample(float sample) const;
 	int sampleLength() const;

@@ -283,10 +283,8 @@ void SampleBuffer::normalizeSampleRate(const sample_rate_t srcSR, bool keepSetti
 	// do samplerate-conversion to our default-samplerate
 	if (srcSR != audioEngineSampleRate())
 	{
-		SampleBuffer * resampled = resample(srcSR, audioEngineSampleRate());
 		m_sampleRate = audioEngineSampleRate();
-		m_data = std::move(resampled->m_data);
-		delete resampled;
+		m_data = resample(srcSR, audioEngineSampleRate());
 	}
 
 	if (keepSettings == false)
@@ -928,16 +926,16 @@ const std::array<f_cnt_t, 5>& SampleBuffer::interpolationMargins()
 	return s_interpolationMargins;
 }
 
-SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_rate_t dstSR )
+std::vector<sampleFrame> SampleBuffer::resample(const sample_rate_t srcSR, const sample_rate_t dstSR )
 {
 	const auto dstFrames = static_cast<f_cnt_t>((frames() / static_cast<float>(srcSR)) * static_cast<float>(dstSR));
-	auto dstSB = new SampleBuffer{dstFrames};
+	auto dst = std::vector<sampleFrame>(dstFrames);
 
 	// yeah, libsamplerate, let's rock with sinc-interpolation!
 	auto srcData = SRC_DATA{};
 	srcData.end_of_input = 1;
 	srcData.data_in = &m_data[0][0];
-	srcData.data_out = &dstSB->m_data[0][0];
+	srcData.data_out = &dst[0][0];
 	srcData.input_frames = frames();
 	srcData.output_frames = dstFrames;
 	srcData.src_ratio = static_cast<double>(dstSR) / srcSR;
@@ -948,7 +946,7 @@ SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_ra
 		std::cout << "SampleBuffer: error while resampling:" << src_strerror(error) << '\n';
 	}
 
-	return dstSB;
+	return dst;
 }
 
 void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings)
@@ -1013,7 +1011,7 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
 {
 	if (data.isEmpty()) { return; }
-	
+
 	Engine::audioEngine()->requestChangeInModel();
 	const auto lockGuard = std::unique_lock{m_mutex};
 
