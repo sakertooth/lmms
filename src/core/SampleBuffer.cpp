@@ -61,8 +61,6 @@ SampleBuffer::SampleBuffer()
 	connect(Engine::audioEngine(), SIGNAL(sampleRateChanged()), this, SLOT(sampleRateChanged()));
 }
 
-
-
 SampleBuffer::SampleBuffer(const QString& audioFile, bool isBase64Data)
 	: SampleBuffer()
 {
@@ -76,9 +74,6 @@ SampleBuffer::SampleBuffer(const QString& audioFile, bool isBase64Data)
 	}
 }
 
-
-
-
 SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames)
 	: SampleBuffer()
 {
@@ -89,9 +84,6 @@ SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames)
 		update();
 	}
 }
-
-
-
 
 SampleBuffer::SampleBuffer(const f_cnt_t frames)
 	: SampleBuffer()
@@ -104,9 +96,6 @@ SampleBuffer::SampleBuffer(const f_cnt_t frames)
 	}
 }
 
-
-
-
 SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 {
 	const auto lockGuard = std::shared_lock{orig.m_mutex};
@@ -118,9 +107,6 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 	m_frequency = orig.m_frequency;
 	m_sampleRate = orig.m_sampleRate;
 }
-
-
-
 
 void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 {
@@ -139,9 +125,6 @@ void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 	swap(first.m_sampleRate, second.m_sampleRate);
 }
 
-
-
-
 SampleBuffer& SampleBuffer::operator=(SampleBuffer that)
 {
 	swap(*this, that);
@@ -158,7 +141,6 @@ sample_rate_t SampleBuffer::audioEngineSampleRate()
 {
 	return Engine::audioEngine()->processingSampleRate();
 }
-
 
 void SampleBuffer::update()
 {
@@ -219,7 +201,6 @@ bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
 	return exceedsLimits;
 }
 
-
 void SampleBuffer::normalizeSampleRate(const sample_rate_t srcSR, bool keepSettings)
 {
 	const sample_rate_t oldRate = m_sampleRate;
@@ -253,12 +234,14 @@ sample_t SampleBuffer::userWaveSample(const float sample) const
 {
 	const auto frames = m_data.size();
 	const auto data = m_data.data();
-	const float frame = sample * frames;
-	f_cnt_t f1 = static_cast<f_cnt_t>(frame) % frames;
+	const auto frame = sample * frames;
+
+	auto f1 = static_cast<f_cnt_t>(frame) % frames;
 	if (f1 < 0)
 	{
 		f1 += frames;
 	}
+
 	return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
 }
 
@@ -342,9 +325,6 @@ std::vector<sampleFrame> SampleBuffer::decodeSampleDS(const QString& fileName)
 
 	return result;
 }
-
-
-
 
 bool SampleBuffer::play(
 	sampleFrame * ab,
@@ -505,9 +485,6 @@ bool SampleBuffer::play(
 	return true;
 }
 
-
-
-
 std::vector<sampleFrame> SampleBuffer::getSampleFragment(
 	f_cnt_t index,
 	f_cnt_t frames,
@@ -620,9 +597,6 @@ std::vector<sampleFrame> SampleBuffer::getSampleFragment(
 	return out;
 }
 
-
-
-
 f_cnt_t SampleBuffer::getLoopedIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) const
 {
 	if (index < endf)
@@ -646,7 +620,6 @@ f_cnt_t SampleBuffer::getPingPongIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t en
 		? endf - loopPos
 		: startf + (loopPos - loopLen);
 }
-
 
 /* @brief Draws a sample buffer on the QRect given in the range [fromFrame, toFrame)
  * @param QPainter p: Painter object for the painting operations
@@ -950,33 +923,21 @@ void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
 	update();
 }
 
-
-
-
 void SampleBuffer::setStartFrame(const f_cnt_t s)
 {
 	m_playMarkers.startFrame = s;
 }
-
-
-
 
 void SampleBuffer::setEndFrame(const f_cnt_t e)
 {
 	m_playMarkers.endFrame = e;
 }
 
-
-
-
 void SampleBuffer::setAmplification(float a)
 {
 	m_amplification = a;
 	emit sampleUpdated();
 }
-
-
-
 
 void SampleBuffer::setReversed(bool on)
 {
