@@ -150,6 +150,7 @@ SampleBuffer& SampleBuffer::operator=(SampleBuffer that)
 
 void SampleBuffer::sampleRateChanged()
 {
+	normalizeSampleRate(m_sampleRate, true);
 	update();
 }
 
