@@ -329,7 +329,7 @@ std::vector<sampleFrame> SampleBuffer::decodeSampleDS(const QString& fileName)
 	auto result = std::vector<sampleFrame>(frames);
 	if (frames > 0 && data != nullptr)
 	{
-		src_short_to_float_array(data.get(), &result[0][0], frames);
+		src_short_to_float_array(data.get(), &result[0][0], frames * DEFAULT_CHANNELS);
 		if (m_reversed)
 		{
 			std::reverse(result.begin(), result.end());
