@@ -56,6 +56,14 @@ public:
 		LoopOff, LoopOn, LoopPingPong
 	};
 
+	struct PlayMarkers
+	{
+		f_cnt_t startFrame;
+		f_cnt_t endFrame;
+		f_cnt_t loopStartFrame;
+		f_cnt_t loopEndFrame;
+	};
+
 	SampleBuffer();
 	SampleBuffer(const QString& audioFile, bool isBase64Data = false);
 	SampleBuffer(const sampleFrame* data, f_cnt_t frames);
@@ -104,7 +112,7 @@ public slots:
 	void setLoopStartFrame(f_cnt_t loopStart);
 	void setLoopEndFrame(f_cnt_t loopEnd);
 	void setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopStart, f_cnt_t loopEnd);
-	
+
 	void setAmplification(float amplification);
 	void setReversed(bool on);
 	void setFrequency(float frequency);
@@ -136,10 +144,7 @@ private:
 	QString m_audioFile = "";
 	std::vector<sampleFrame> m_data;
 	mutable std::shared_mutex m_mutex;
-	f_cnt_t m_startFrame = 0;
-	f_cnt_t m_endFrame = 0;
-	f_cnt_t m_loopStartFrame = 0;
-	f_cnt_t m_loopEndFrame = 0;
+	PlayMarkers m_playMarkers;
 	float m_amplification = 1.0f;
 	bool m_reversed = false;
 	float m_frequency = DefaultBaseFreq;

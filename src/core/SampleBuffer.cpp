@@ -112,10 +112,7 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 	const auto lockGuard = std::shared_lock{orig.m_mutex};
 	m_audioFile = orig.m_audioFile;
 	m_data = orig.m_data;
-	m_startFrame = orig.m_startFrame;
-	m_endFrame = orig.m_endFrame;
-	m_loopStartFrame = orig.m_loopStartFrame;
-	m_loopEndFrame = orig.m_loopEndFrame;
+	m_playMarkers = orig.m_playMarkers;
 	m_amplification = orig.m_amplification;
 	m_reversed = orig.m_reversed;
 	m_frequency = orig.m_frequency;
@@ -135,10 +132,7 @@ void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 
 	first.m_audioFile.swap(second.m_audioFile);
 	swap(first.m_data, second.m_data);
-	swap(first.m_startFrame, second.m_startFrame);
-	swap(first.m_endFrame, second.m_endFrame);
-	swap(first.m_loopStartFrame, second.m_loopStartFrame);
-	swap(first.m_loopEndFrame, second.m_loopEndFrame);
+	swap(first.m_playMarkers, second.m_playMarkers);
 	swap(first.m_amplification, second.m_amplification);
 	swap(first.m_frequency, second.m_frequency);
 	swap(first.m_reversed, second.m_reversed);
@@ -296,11 +290,12 @@ void SampleBuffer::normalizeSampleRate(const sample_rate_t srcSR, bool keepSetti
 	{
 		auto oldRateToNewRateRatio = static_cast<float>(audioEngineSampleRate()) / oldRate;
 		const auto numFrames = frames();
+		auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_playMarkers;
 
-		m_startFrame = std::clamp(static_cast<f_cnt_t>(m_startFrame * oldRateToNewRateRatio), 0, numFrames);
-		m_endFrame = std::clamp(static_cast<f_cnt_t>(m_endFrame * oldRateToNewRateRatio), m_startFrame, numFrames);
-		m_loopStartFrame = std::clamp(static_cast<f_cnt_t>(m_loopStartFrame * oldRateToNewRateRatio), 0, numFrames);
-		m_loopEndFrame = std::clamp(static_cast<f_cnt_t>(m_loopEndFrame * oldRateToNewRateRatio), m_loopStartFrame, numFrames);
+		startFrame = std::clamp(static_cast<f_cnt_t>(startFrame * oldRateToNewRateRatio), 0, numFrames);
+		endFrame = std::clamp(static_cast<f_cnt_t>(endFrame * oldRateToNewRateRatio), startFrame, numFrames);
+		loopStartFrame = std::clamp(static_cast<f_cnt_t>(loopStartFrame * oldRateToNewRateRatio), 0, numFrames);
+		loopEndFrame = std::clamp(static_cast<f_cnt_t>(loopEndFrame * oldRateToNewRateRatio), loopStartFrame, numFrames);
 		m_sampleRate = audioEngineSampleRate();
 	}
 }
@@ -402,10 +397,7 @@ bool SampleBuffer::play(
 	const LoopMode loopMode
 )
 {
-	f_cnt_t startFrame = m_startFrame;
-	f_cnt_t endFrame = m_endFrame;
-	f_cnt_t loopStartFrame = m_loopStartFrame;
-	f_cnt_t loopEndFrame = m_loopEndFrame;
+	auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_playMarkers;
 
 	if (endFrame == 0 || frames == 0)
 	{
@@ -818,40 +810,37 @@ const QString& SampleBuffer::audioFile() const
 
 f_cnt_t SampleBuffer::startFrame() const
 {
-	return m_startFrame;
+	return m_playMarkers.startFrame;
 }
 
 f_cnt_t SampleBuffer::endFrame() const
 {
-	return m_endFrame;
+	return m_playMarkers.endFrame;
 }
 
 f_cnt_t SampleBuffer::loopStartFrame() const
 {
-	return m_loopStartFrame;
+	return m_playMarkers.loopStartFrame;
 }
 
 f_cnt_t SampleBuffer::loopEndFrame() const
 {
-	return m_loopEndFrame;
+	return m_playMarkers.loopEndFrame;
 }
 
 void SampleBuffer::setLoopStartFrame(f_cnt_t start)
 {
-	m_loopStartFrame = start;
+	m_playMarkers.loopStartFrame = start;
 }
 
 void SampleBuffer::setLoopEndFrame(f_cnt_t end)
 {
-	m_loopEndFrame = end;
+	m_playMarkers.loopEndFrame = end;
 }
 
 void SampleBuffer::setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopStart, f_cnt_t loopEnd)
 {
-	m_startFrame = start;
-	m_endFrame = end;
-	m_loopStartFrame = loopStart;
-	m_loopEndFrame = loopEnd;
+	m_playMarkers = {start, end, loopStart, loopEnd};
 }
 
 std::shared_mutex& SampleBuffer::mutex() const
@@ -891,7 +880,7 @@ const std::unique_ptr<OscillatorConstants::waveform_t>& SampleBuffer::userAntiAl
 
 int SampleBuffer::sampleLength() const
 {
-	return static_cast<double>(m_endFrame - m_startFrame) / m_sampleRate * 1000;
+	return static_cast<double>(m_playMarkers.endFrame - m_playMarkers.startFrame) / m_sampleRate * 1000;
 }
 
 void SampleBuffer::setFrequency(float freq)
@@ -951,7 +940,7 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 
 	Engine::audioEngine()->requestChangeInModel();
 	const auto lockGuard = std::unique_lock{m_mutex};
-	
+
 	m_audioFile = PathUtil::toShortestRelative(audioFile);
 	const auto file = PathUtil::toAbsolute(m_audioFile);
 
@@ -971,7 +960,7 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 		std::cout << error.what() << '\n';
 		bail();
 	}
-	
+
 	sample_rate_t samplerate = audioEngineSampleRate();
 	if (!audioFileTooLarge)
 	{
@@ -1032,7 +1021,7 @@ void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
 
 void SampleBuffer::setStartFrame(const f_cnt_t s)
 {
-	m_startFrame = s;
+	m_playMarkers.startFrame = s;
 }
 
 
@@ -1040,7 +1029,7 @@ void SampleBuffer::setStartFrame(const f_cnt_t s)
 
 void SampleBuffer::setEndFrame(const f_cnt_t e)
 {
-	m_endFrame = e;
+	m_playMarkers.endFrame = e;
 }
 
 
