@@ -313,7 +313,6 @@ std::pair<std::vector<sampleFrame>, sample_rate_t> SampleBuffer::decodeSampleSF(
 		// The current behavior assumes stereo in all cases excluding mono.
 		// This may not be the expected behavior, given some audio files with a higher number of channels.
 		std::copy_n(buf.begin(), buf.size(), &result[0][0]);
-		return {result, sfInfo.samplerate};
 	}
 
 	if (m_reversed)
