@@ -1046,6 +1046,8 @@ void SampleBuffer::setAmplification(float a)
 
 void SampleBuffer::setReversed(bool on)
 {
+	// TODO: Locking while reversing creates noticeable pauses.
+	// Change later so that this operation happens in real-time.
 	Engine::audioEngine()->requestChangeInModel();
 	const auto lockGuard = std::unique_lock{m_mutex};
 
