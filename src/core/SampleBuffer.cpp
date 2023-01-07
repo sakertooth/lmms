@@ -169,30 +169,6 @@ void SampleBuffer::update()
 	emit sampleUpdated();
 }
 
-
-void SampleBuffer::directFloatWrite(
-	sample_t * & fbuf,
-	f_cnt_t frames,
-	int channels
-)
-{
-
-	m_data = std::vector<sampleFrame>(frames);
-	const int ch = (channels > 1) ? 1 : 0;
-
-	// if reversing is on, we also reverse when scaling
-	bool isReversed = m_reversed;
-	int idx = isReversed ? (frames - 1) * channels : 0;
-	for (f_cnt_t frame = 0; frame < frames; ++frame)
-	{
-		m_data[frame][0] = fbuf[idx+0];
-		m_data[frame][1] = fbuf[idx+ch];
-		idx += isReversed ? -channels : channels;
-	}
-
-	delete[] fbuf;
-}
-
 bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
 {
 	if (audioFile.isEmpty()) { return true; }
@@ -289,58 +265,63 @@ sample_t SampleBuffer::userWaveSample(const float sample) const
 	return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
 }
 
-f_cnt_t SampleBuffer::decodeSampleSF(
-	QString fileName,
-	sample_t * & buf,
-	ch_cnt_t & channels,
-	sample_rate_t & samplerate
-)
+std::vector<sampleFrame> SampleBuffer::decodeSampleSF(const QString& fileName)
 {
-	SNDFILE * sndFile;
-	SF_INFO sfInfo;
-	sfInfo.format = 0;
-	f_cnt_t frames = 0;
-	sf_count_t sfFramesRead;
-
+	SNDFILE* sndFile = nullptr;
+	auto sfInfo = SF_INFO{};
 
 	// Use QFile to handle unicode file names on Windows
-	QFile f(fileName);
-	if (f.open(QIODevice::ReadOnly) && (sndFile = sf_open_fd(f.handle(), SFM_READ, &sfInfo, false)))
+	auto file = QFile{fileName};
+	if (!file.open(QIODevice::ReadOnly))
 	{
-		frames = sfInfo.frames;
+		throw std::runtime_error{"SampleBuffer::decodeSampleSF: Failed to open sample " 
+			+ fileName.toStdString() + ": " + file.errorString().toStdString()}; 
+	}
 
-		buf = new sample_t[sfInfo.channels * frames];
-		sfFramesRead = sf_read_float(sndFile, buf, sfInfo.channels * frames);
+	sndFile = sf_open_fd(file.handle(), SFM_READ, &sfInfo, false);
+	if (sf_error(sndFile) != 0)
+	{
+		throw std::runtime_error{"SampleBuffer::decodeSampleSF: Failed to open sndfile handle: " 
+			+ std::string{sf_strerror(sndFile)}};
+	}
 
-		if (sfFramesRead < sfInfo.channels * frames)
+	auto buf = std::vector<sample_t>(sfInfo.channels * sfInfo.frames);
+	const auto sfFramesRead = sf_read_float(sndFile, buf.data(), buf.size());
+
+	if (sfFramesRead < sfInfo.channels * sfInfo.frames)
+	{
+		throw std::runtime_error{"SampleBuffer::decodeSampleSF: Failed to read sample " 
+			+ fileName.toStdString() + ": " + sf_strerror(sndFile)};
+	}
+
+	sf_close(sndFile);
+	file.close();
+
+	auto result = std::vector<sampleFrame>(sfInfo.frames);
+	if (sfInfo.channels == 1)
+	{
+		// Upmix mono to stereo
+		for (int i = 0; i < static_cast<int>(buf.size()); ++i)
 		{
-#ifdef DEBUG_LMMS
-			qDebug("SampleBuffer::decodeSampleSF(): could not read"
-				" sample %s: %s", fileName, sf_strerror(nullptr));
-#endif
+			result[i][0] = buf[i];
+			result[i][1] = buf[i];
 		}
-		channels = sfInfo.channels;
-		samplerate = sfInfo.samplerate;
-
-		sf_close(sndFile);
 	}
-	else
+	else if (sfInfo.channels > 1)
 	{
-#ifdef DEBUG_LMMS
-		qDebug("SampleBuffer::decodeSampleSF(): could not load "
-				"sample %s: %s", fileName, sf_strerror(nullptr));
-#endif
+		// TODO: Add support for higher number of channels (i.e., 5.1 channel systems)
+		// The current behavior assumes stereo in all cases excluding mono.
+		// This may not be the expected behavior, given some audio files with a higher number of channels.
+		std::copy_n(buf.begin(), buf.size(), &result[0][0]);
+		return result;
 	}
-	f.close();
 
-	//write down either directly or convert i->f depending on file type
-
-	if (frames > 0 && buf != nullptr)
+	if (m_reversed)
 	{
-		directFloatWrite(buf, frames, channels);
+		std::reverse(result.begin(), result.end());
 	}
 
-	return frames;
+	return result;
 }
 
 std::vector<sampleFrame> SampleBuffer::decodeSampleDS(const QString& fileName)
@@ -947,17 +928,13 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 	sample_rate_t samplerate = audioEngineSampleRate();
 	if (!audioFileTooLarge)
 	{
-		int_sample_t * buf = nullptr;
-		sample_t * fbuf = nullptr;
-		ch_cnt_t channels = DEFAULT_CHANNELS;
-
 		if (QFileInfo{file}.suffix() == "ds")
 		{
 			m_data = decodeSampleDS(file);
 		}
 		else
 		{
-			decodeSampleSF(file, fbuf, channels, samplerate);
+			m_data = decodeSampleSF(file);
 		}
 	}
 
