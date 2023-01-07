@@ -121,13 +121,12 @@ public slots:
 
 private:
 	void update();
-	void convertIntToFloat(int_sample_t*& ibuf, f_cnt_t frames, int channels);
 	void directFloatWrite(sample_t*& fbuf, f_cnt_t frames, int channels);
 	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true);
 	sample_rate_t audioEngineSampleRate();
 
 	f_cnt_t decodeSampleSF(QString fileName, sample_t*& buf, ch_cnt_t& channels, sample_rate_t& sampleRate);
-	f_cnt_t decodeSampleDS(QString fileName, int_sample_t*& buf, ch_cnt_t& channels, sample_rate_t& sampleRate);
+	std::vector<sampleFrame> decodeSampleDS(const QString& fileName);
 
 	std::vector<sampleFrame> getSampleFragment(
 		f_cnt_t index,
