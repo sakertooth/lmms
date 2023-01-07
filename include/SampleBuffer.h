@@ -63,8 +63,6 @@ public:
 	explicit SampleBuffer(f_cnt_t frames);
 	SampleBuffer(const SampleBuffer& orig);
 
-	~SampleBuffer() override;
-
 	friend void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
 	SampleBuffer& operator=(const SampleBuffer that);
 
@@ -124,7 +122,7 @@ private:
 	f_cnt_t decodeSampleSF(QString fileName, sample_t*& buf, ch_cnt_t& channels, sample_rate_t& sampleRate);
 	f_cnt_t decodeSampleDS(QString fileName, int_sample_t*& buf, ch_cnt_t& channels, sample_rate_t& sampleRate);
 
-	sampleFrame* getSampleFragment(
+	const sampleFrame* getSampleFragment(
 		f_cnt_t index,
 		f_cnt_t frames,
 		LoopMode loopMode,
@@ -138,9 +136,8 @@ private:
 	f_cnt_t getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const;
 private:
 	QString m_audioFile = "";
-	sampleFrame* m_data = nullptr;
+	std::vector<sampleFrame> m_data;
 	mutable std::shared_mutex m_mutex;
-	f_cnt_t m_frames = 0;
 	f_cnt_t m_startFrame = 0;
 	f_cnt_t m_endFrame = 0;
 	f_cnt_t m_loopStartFrame = 0;
