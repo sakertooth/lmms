@@ -136,6 +136,7 @@ private:
 		f_cnt_t loopEnd,
 		f_cnt_t end) const;
 
+	f_cnt_t advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sample* state);
 	f_cnt_t getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const;
 	f_cnt_t getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const;
 private:

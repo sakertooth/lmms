@@ -334,7 +334,7 @@ bool SampleBuffer::play(
 	const LoopMode loopMode
 )
 {
-	auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_playMarkers;
+	const auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_playMarkers;
 
 	if (endFrame == 0 || frames == 0)
 	{
@@ -404,34 +404,9 @@ bool SampleBuffer::play(
 		{
 			std::cerr << "SampleBuffer: not enough frames: " << srcData.output_frames_gen << " / " << frames << '\n';
 		}
+
 		// Advance
-		switch (loopMode)
-		{
-			case LoopMode::LoopOff:
-				playFrame += srcData.input_frames_used;
-				break;
-			case LoopMode::LoopOn:
-				playFrame += srcData.input_frames_used;
-				playFrame = getLoopedIndex(playFrame, loopStartFrame, loopEndFrame);
-				break;
-			case LoopMode::LoopPingPong:
-			{
-				f_cnt_t left = srcData.input_frames_used;
-				if (state->isBackwards())
-				{
-					playFrame -= srcData.input_frames_used;
-					if (playFrame < loopStartFrame)
-					{
-						left -= (loopStartFrame - playFrame);
-						playFrame = loopStartFrame;
-					}
-					else left = 0;
-				}
-				playFrame += left;
-				playFrame = getPingPongIndex(playFrame, loopStartFrame, loopEndFrame);
-				break;
-			}
-		}
+		playFrame = advance(playFrame, frames, loopMode, state);
 	}
 	else
 	{
@@ -444,33 +419,7 @@ bool SampleBuffer::play(
 		std::copy_n(sampleFragment.begin(), frames, ab);
 
 		// Advance
-		switch (loopMode)
-		{
-			case LoopMode::LoopOff:
-				playFrame += frames;
-				break;
-			case LoopMode::LoopOn:
-				playFrame += frames;
-				playFrame = getLoopedIndex(playFrame, loopStartFrame, loopEndFrame);
-				break;
-			case LoopMode::LoopPingPong:
-			{
-				f_cnt_t left = frames;
-				if (state->isBackwards())
-				{
-					playFrame -= frames;
-					if (playFrame < loopStartFrame)
-					{
-						left -= (loopStartFrame - playFrame);
-						playFrame = loopStartFrame;
-					}
-					else left = 0;
-				}
-				playFrame += left;
-				playFrame = getPingPongIndex(playFrame, loopStartFrame, loopEndFrame);
-				break;
-			}
-		}
+		playFrame = advance(playFrame, frames, loopMode, state);
 	}
 
 	state->setBackwards(isBackwards);
@@ -483,6 +432,36 @@ bool SampleBuffer::play(
 	}
 
 	return true;
+}
+
+f_cnt_t SampleBuffer::advance(f_cnt_t playFrame, f_cnt_t frames,  LoopMode loopMode, Sample* state)
+{
+	switch (loopMode)
+	{
+		case LoopMode::LoopOff:
+			return playFrame + frames;
+		case LoopMode::LoopOn:
+			playFrame += frames;
+			playFrame = getLoopedIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
+			return playFrame;
+		case LoopMode::LoopPingPong:
+		{
+			f_cnt_t left = frames;
+			if (state->isBackwards())
+			{
+				playFrame -= frames;
+				if (playFrame < m_playMarkers.loopStartFrame)
+				{
+					left -= (m_playMarkers.loopStartFrame - playFrame);
+					playFrame = m_playMarkers.loopStartFrame;
+				}
+				else left = 0;
+			}
+			playFrame += left;
+			playFrame = getPingPongIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
+			return playFrame;
+		}
+	}
 }
 
 std::vector<sampleFrame> SampleBuffer::getSampleFragment(
@@ -503,7 +482,7 @@ std::vector<sampleFrame> SampleBuffer::getSampleFragment(
 		std::copy_n(m_data.begin() + index, frames, out.begin());
 		return out;
 	}
-	
+
 	if (loopMode == LoopMode::LoopOff)
 	{
 		const auto available = end - index;
