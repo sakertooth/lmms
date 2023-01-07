@@ -452,16 +452,14 @@ bool SampleBuffer::play(
 
 	f_cnt_t fragmentSize = (f_cnt_t)(frames * freqFactor) + s_interpolationMargins[state->interpolationMode()];
 
-	sampleFrame * tmp = nullptr;
-
 	// check whether we have to change pitch...
 	if (freqFactor != 1.0 || state->m_varyingPitch)
 	{
 		SRC_DATA srcData;
 		// Generate output
-		srcData.data_in =
-			getSampleFragment(playFrame, fragmentSize, loopMode, &tmp, &isBackwards,
-			loopStartFrame, loopEndFrame, endFrame )->data();
+		const auto sampleFragment = getSampleFragment(playFrame, fragmentSize, loopMode, &isBackwards,
+			loopStartFrame, loopEndFrame, endFrame);
+		srcData.data_in = &sampleFragment[0][0];
 		srcData.data_out = ab->data();
 		srcData.input_frames = fragmentSize;
 		srcData.output_frames = frames;
@@ -512,8 +510,9 @@ bool SampleBuffer::play(
 		// as is into pitched-copy-buffer
 
 		// Generate output
-		std::copy_n(getSampleFragment(playFrame, frames, loopMode, &tmp, &isBackwards,
-				loopStartFrame, loopEndFrame, endFrame), frames, ab);
+		const auto sampleFragment = getSampleFragment(playFrame, frames, loopMode, &isBackwards,
+				loopStartFrame, loopEndFrame, endFrame);
+		std::copy_n(sampleFragment.begin(), frames, ab);
 
 		// Advance
 		switch (loopMode)
@@ -545,11 +544,6 @@ bool SampleBuffer::play(
 		}
 	}
 
-	if (tmp != nullptr)
-	{
-		MM_FREE(tmp);
-	}
-
 	state->setBackwards(isBackwards);
 	state->setFrameIndex(playFrame);
 
@@ -565,56 +559,58 @@ bool SampleBuffer::play(
 
 
 
-const sampleFrame* SampleBuffer::getSampleFragment(
+std::vector<sampleFrame> SampleBuffer::getSampleFragment(
 	f_cnt_t index,
 	f_cnt_t frames,
 	LoopMode loopMode,
-	sampleFrame * * tmp,
 	bool * backwards,
 	f_cnt_t loopStart,
 	f_cnt_t loopEnd,
 	f_cnt_t end
 ) const
 {
+	auto out = std::vector<sampleFrame>(frames);
 	if (loopMode == LoopMode::LoopOff)
 	{
 		if (index + frames <= end)
 		{
-			return m_data.data() + index;
+			std::copy_n(m_data.begin() + index, frames, out.begin());
+			return out;
 		}
 	}
 	else if (loopMode == LoopMode::LoopOn)
 	{
 		if (index + frames <= loopEnd)
 		{
-			return m_data.data() + index;
+			std::copy_n(m_data.begin() + index, frames, out.begin());
+			return out;
 		}
 	}
 	else
 	{
 		if (!*backwards && index + frames < loopEnd)
 		{
-			return m_data.data() + index;
+			std::copy_n(m_data.begin() + index, frames, out.begin());
+			return out;
 		}
 	}
 
-	*tmp = MM_ALLOC<sampleFrame>(frames);
 
 	if (loopMode == LoopMode::LoopOff)
 	{
 		const auto available = end - index;
-		std::copy_n(m_data.begin() + index, available, *tmp);
-		std::fill_n(*tmp + available, frames - available, sampleFrame{});
+		std::copy_n(m_data.begin() + index, available, out.begin());
+		std::fill_n(out.begin() + available, frames - available, sampleFrame{});
 	}
 	else if (loopMode == LoopMode::LoopOn)
 	{
 		f_cnt_t copied = std::min(frames, loopEnd - index);
-		std::copy_n(m_data.begin() + index, copied, *tmp);
+		std::copy_n(m_data.begin() + index, copied, out.begin());
 		f_cnt_t loopFrames = loopEnd - loopStart;
 		while (copied < frames)
 		{
 			f_cnt_t todo = std::min(frames - copied, loopFrames);
-			std::copy_n(m_data.begin() + loopStart, todo, *tmp + copied);
+			std::copy_n(m_data.begin() + loopStart, todo, out.begin() + copied);
 			copied += todo;
 		}
 	}
@@ -632,8 +628,8 @@ const sampleFrame* SampleBuffer::getSampleFragment(
 			copied = std::min(frames, pos - loopStart);
 			for (int i = 0; i < copied; i++)
 			{
-				(*tmp)[i][0] = m_data[pos - i][0];
-				(*tmp)[i][1] = m_data[pos - i][1];
+				out[i][0] = m_data[pos - i][0];
+				out[i][1] = m_data[pos - i][1];
 			}
 			pos -= copied;
 			if (pos == loopStart) { currentBackwards = false; }
@@ -641,7 +637,7 @@ const sampleFrame* SampleBuffer::getSampleFragment(
 		else
 		{
 			copied = std::min(frames, loopEnd - pos);
-			std::copy_n(m_data.begin() + pos, copied, *tmp);
+			std::copy_n(m_data.begin() + pos, copied, out.begin());
 			pos += copied;
 			if (pos == loopEnd) { currentBackwards = true; }
 		}
@@ -653,8 +649,8 @@ const sampleFrame* SampleBuffer::getSampleFragment(
 				f_cnt_t todo = std::min(frames - copied, pos - loopStart);
 				for (int i = 0; i < todo; i++)
 				{
-					(*tmp)[copied + i][0] = m_data[pos - i][0];
-					(*tmp)[copied + i][1] = m_data[pos - i][1];
+					out[copied + i][0] = m_data[pos - i][0];
+					out[copied + i][1] = m_data[pos - i][1];
 				}
 				pos -= todo;
 				copied += todo;
@@ -663,7 +659,7 @@ const sampleFrame* SampleBuffer::getSampleFragment(
 			else
 			{
 				f_cnt_t todo = std::min(frames - copied, loopEnd - pos);
-				std::copy_n(m_data.begin() + pos, todo, *tmp + copied);
+				std::copy_n(m_data.begin() + pos, todo, out.begin() + copied);
 				pos += todo;
 				copied += todo;
 				if (pos >= loopEnd) { currentBackwards = true; }
@@ -672,7 +668,7 @@ const sampleFrame* SampleBuffer::getSampleFragment(
 		*backwards = currentBackwards;
 	}
 
-	return *tmp;
+	return out;
 }
 
 

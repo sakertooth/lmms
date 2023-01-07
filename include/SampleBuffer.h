@@ -50,7 +50,6 @@ namespace lmms
 class LMMS_EXPORT SampleBuffer : public QObject, public sharedObject
 {
 	Q_OBJECT
-	MM_OPERATORS
 public:
 	enum class LoopMode
 	{
@@ -122,11 +121,10 @@ private:
 	f_cnt_t decodeSampleSF(QString fileName, sample_t*& buf, ch_cnt_t& channels, sample_rate_t& sampleRate);
 	f_cnt_t decodeSampleDS(QString fileName, int_sample_t*& buf, ch_cnt_t& channels, sample_rate_t& sampleRate);
 
-	const sampleFrame* getSampleFragment(
+	std::vector<sampleFrame> getSampleFragment(
 		f_cnt_t index,
 		f_cnt_t frames,
 		LoopMode loopMode,
-		sampleFrame ** tmp,
 		bool* backwards,
 		f_cnt_t loopStart,
 		f_cnt_t loopEnd,
