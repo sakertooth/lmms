@@ -84,10 +84,7 @@ SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames)
 {
 	if (frames > 0)
 	{
-		m_data = MM_ALLOC<sampleFrame>(frames);
-		m_frames = frames;
-		std::copy_n(data, frames, m_data);
-
+		m_data = std::vector<sampleFrame>(data, data + frames);
 		setAllPointFrames(0, frames, 0, frames);
 		update();
 	}
@@ -101,10 +98,7 @@ SampleBuffer::SampleBuffer(const f_cnt_t frames)
 {
 	if (frames > 0)
 	{
-		m_data = MM_ALLOC<sampleFrame>(frames);
-		m_frames = frames;
-		std::fill_n(m_data, frames, sampleFrame{});
-		
+		m_data = std::vector<sampleFrame>(frames);
 		setAllPointFrames(0, frames, 0, frames);
 		update();
 	}
@@ -116,10 +110,8 @@ SampleBuffer::SampleBuffer(const f_cnt_t frames)
 SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 {
 	const auto lockGuard = std::shared_lock{orig.m_mutex};
-
 	m_audioFile = orig.m_audioFile;
-	m_frames = orig.m_frames;
-	m_data = (m_frames > 0) ? MM_ALLOC<sampleFrame>(m_frames) : nullptr;
+	m_data = orig.m_data;
 	m_startFrame = orig.m_startFrame;
 	m_endFrame = orig.m_endFrame;
 	m_loopStartFrame = orig.m_loopStartFrame;
@@ -128,11 +120,6 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 	m_reversed = orig.m_reversed;
 	m_frequency = orig.m_frequency;
 	m_sampleRate = orig.m_sampleRate;
-
-	//Deep copy m_data from original
-	const auto frameBytes = m_frames * BYTES_PER_FRAME;
-	if (orig.m_data != nullptr && frameBytes > 0)
-		{ std::copy_n(orig.m_data, frameBytes, m_data); }
 }
 
 
@@ -148,7 +135,6 @@ void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 
 	first.m_audioFile.swap(second.m_audioFile);
 	swap(first.m_data, second.m_data);
-	swap(first.m_frames, second.m_frames);
 	swap(first.m_startFrame, second.m_startFrame);
 	swap(first.m_endFrame, second.m_endFrame);
 	swap(first.m_loopStartFrame, second.m_loopStartFrame);
@@ -168,16 +154,6 @@ SampleBuffer& SampleBuffer::operator=(SampleBuffer that)
 	return *this;
 }
 
-
-
-
-SampleBuffer::~SampleBuffer()
-{
-	MM_FREE(m_data);
-}
-
-
-
 void SampleBuffer::sampleRateChanged()
 {
 	update();
@@ -191,7 +167,7 @@ sample_rate_t SampleBuffer::audioEngineSampleRate()
 
 void SampleBuffer::update()
 {
-	if (m_frames > 0)
+	if (frames() > 0)
 	{
 		Oscillator::generateAntiAliasUserWaveTable(this);
 	}
@@ -208,7 +184,7 @@ void SampleBuffer::convertIntToFloat(
 {
 	// following code transforms int-samples into float-samples and does amplifying & reversing
 	const float fac = 1 / OUTPUT_SAMPLE_MULTIPLIER;
-	m_data = MM_ALLOC<sampleFrame>(frames);
+	m_data = std::vector<sampleFrame>(frames);
 	const int ch = (channels > 1) ? 1 : 0;
 
 	// if reversing is on, we also reverse when scaling
@@ -231,7 +207,7 @@ void SampleBuffer::directFloatWrite(
 )
 {
 
-	m_data = MM_ALLOC<sampleFrame>(frames);
+	m_data = std::vector<sampleFrame>(frames);
 	const int ch = (channels > 1) ? 1 : 0;
 
 	// if reversing is on, we also reverse when scaling
@@ -308,37 +284,33 @@ void SampleBuffer::normalizeSampleRate(const sample_rate_t srcSR, bool keepSetti
 	if (srcSR != audioEngineSampleRate())
 	{
 		SampleBuffer * resampled = resample(srcSR, audioEngineSampleRate());
-
 		m_sampleRate = audioEngineSampleRate();
-		MM_FREE(m_data);
-		m_frames = resampled->frames();
-		m_data = MM_ALLOC<sampleFrame>(m_frames);
-		std::copy_n(resampled->data(), m_frames, m_data);
+		m_data = std::move(resampled->m_data);
 		delete resampled;
 	}
 
 	if (keepSettings == false)
 	{
 		// update frame-variables
-		m_loopStartFrame = m_startFrame = 0;
-		m_loopEndFrame = m_endFrame = m_frames;
+		setAllPointFrames(0, frames(), 0, frames());
 	}
 	else if (oldRate != audioEngineSampleRate())
 	{
 		auto oldRateToNewRateRatio = static_cast<float>(audioEngineSampleRate()) / oldRate;
+		const auto numFrames = frames();
 
-		m_startFrame = std::clamp(static_cast<f_cnt_t>(m_startFrame * oldRateToNewRateRatio), 0, m_frames);
-		m_endFrame = std::clamp(static_cast<f_cnt_t>(m_endFrame * oldRateToNewRateRatio), m_startFrame, m_frames);
-		m_loopStartFrame = std::clamp(static_cast<f_cnt_t>(m_loopStartFrame * oldRateToNewRateRatio), 0, m_frames);
-		m_loopEndFrame = std::clamp(static_cast<f_cnt_t>(m_loopEndFrame * oldRateToNewRateRatio), m_loopStartFrame, m_frames);
+		m_startFrame = std::clamp(static_cast<f_cnt_t>(m_startFrame * oldRateToNewRateRatio), 0, numFrames);
+		m_endFrame = std::clamp(static_cast<f_cnt_t>(m_endFrame * oldRateToNewRateRatio), m_startFrame, numFrames);
+		m_loopStartFrame = std::clamp(static_cast<f_cnt_t>(m_loopStartFrame * oldRateToNewRateRatio), 0, numFrames);
+		m_loopEndFrame = std::clamp(static_cast<f_cnt_t>(m_loopEndFrame * oldRateToNewRateRatio), m_loopStartFrame, numFrames);
 		m_sampleRate = audioEngineSampleRate();
 	}
 }
 
 sample_t SampleBuffer::userWaveSample(const float sample) const
 {
-	f_cnt_t frames = m_frames;
-	sampleFrame * data = m_data;
+	const auto frames = m_data.size();
+	const auto data = m_data.data();
 	const float frame = sample * frames;
 	f_cnt_t f1 = static_cast<f_cnt_t>(frame) % frames;
 	if (f1 < 0)
@@ -595,7 +567,7 @@ bool SampleBuffer::play(
 
 
 
-sampleFrame * SampleBuffer::getSampleFragment(
+const sampleFrame* SampleBuffer::getSampleFragment(
 	f_cnt_t index,
 	f_cnt_t frames,
 	LoopMode loopMode,
@@ -610,21 +582,21 @@ sampleFrame * SampleBuffer::getSampleFragment(
 	{
 		if (index + frames <= end)
 		{
-			return m_data + index;
+			return m_data.data() + index;
 		}
 	}
 	else if (loopMode == LoopMode::LoopOn)
 	{
 		if (index + frames <= loopEnd)
 		{
-			return m_data + index;
+			return m_data.data() + index;
 		}
 	}
 	else
 	{
 		if (!*backwards && index + frames < loopEnd)
 		{
-			return m_data + index;
+			return m_data.data() + index;
 		}
 	}
 
@@ -633,18 +605,18 @@ sampleFrame * SampleBuffer::getSampleFragment(
 	if (loopMode == LoopMode::LoopOff)
 	{
 		const auto available = end - index;
-		std::copy_n(m_data + index, available, *tmp);
+		std::copy_n(m_data.begin() + index, available, *tmp);
 		std::fill_n(*tmp + available, frames - available, sampleFrame{});
 	}
 	else if (loopMode == LoopMode::LoopOn)
 	{
 		f_cnt_t copied = std::min(frames, loopEnd - index);
-		std::copy_n(m_data + index, copied, *tmp);
+		std::copy_n(m_data.begin() + index, copied, *tmp);
 		f_cnt_t loopFrames = loopEnd - loopStart;
 		while (copied < frames)
 		{
 			f_cnt_t todo = std::min(frames - copied, loopFrames);
-			std::copy_n(m_data + loopStart, todo, *tmp + copied);
+			std::copy_n(m_data.begin() + loopStart, todo, *tmp + copied);
 			copied += todo;
 		}
 	}
@@ -671,7 +643,7 @@ sampleFrame * SampleBuffer::getSampleFragment(
 		else
 		{
 			copied = std::min(frames, loopEnd - pos);
-			std::copy_n(m_data + pos, copied, *tmp);
+			std::copy_n(m_data.begin() + pos, copied, *tmp);
 			pos += copied;
 			if (pos == loopEnd) { currentBackwards = true; }
 		}
@@ -693,7 +665,7 @@ sampleFrame * SampleBuffer::getSampleFragment(
 			else
 			{
 				f_cnt_t todo = std::min(frames - copied, loopEnd - pos);
-				std::copy_n(m_data + pos, todo, *tmp + copied);
+				std::copy_n(m_data.begin() + pos, todo, *tmp + copied);
 				pos += todo;
 				copied += todo;
 				if (pos >= loopEnd) { currentBackwards = true; }
@@ -748,9 +720,10 @@ void SampleBuffer::visualize(
 	f_cnt_t toFrame
 )
 {
-	if (m_frames == 0) { return; }
+	const auto numFrames = frames();
+	if (numFrames == 0) { return; }
 
-	const bool focusOnRange = toFrame <= m_frames && 0 <= fromFrame && fromFrame < toFrame;
+	const bool focusOnRange = toFrame <= numFrames && 0 <= fromFrame && fromFrame < toFrame;
 	//TODO: If the clip QRect is not being used we should remove it
 	//p.setClipRect(clip);
 	const int w = dr.width();
@@ -758,7 +731,7 @@ void SampleBuffer::visualize(
 
 	const int yb = h / 2 + dr.y();
 	const float ySpace = h * 0.5f;
-	const int nbFrames = focusOnRange ? toFrame - fromFrame : m_frames;
+	const int nbFrames = focusOnRange ? toFrame - fromFrame : numFrames;
 
 	const double fpp = std::max(1., static_cast<double>(nbFrames) / w);
 	// There are 2 possibilities: Either nbFrames is bigger than
@@ -775,7 +748,7 @@ void SampleBuffer::visualize(
 	int curPixel = 0;
 	const int xb = dr.x();
 	const int first = focusOnRange ? fromFrame : 0;
-	const int last = focusOnRange ? toFrame - 1 : m_frames - 1;
+	const int last = focusOnRange ? toFrame - 1 : numFrames - 1;
 	// When the number of frames isn't perfectly divisible by the
 	// width, the remaining frames don't fit the last pixel and are
 	// past the visible area. lastVisibleFrame is the index number of
@@ -894,7 +867,7 @@ std::shared_mutex& SampleBuffer::mutex() const
 
 f_cnt_t SampleBuffer::frames() const
 {
-	return m_frames;
+	return static_cast<f_cnt_t>(m_data.size());
 }
 
 float SampleBuffer::amplification() const
@@ -939,14 +912,14 @@ void SampleBuffer::setSampleRate(sample_rate_t rate)
 
 const sampleFrame* SampleBuffer::data() const
 {
-	return m_data;
+	return m_data.data();
 }
 
 QString SampleBuffer::toBase64() const
 {
 	// TODO: Replace with non-Qt equivalent
-	auto data = reinterpret_cast<const char*>(m_data);
-	auto byteArray = QByteArray{data, m_frames};
+	auto data = reinterpret_cast<const char*>(m_data.data());
+	auto byteArray = QByteArray{data, frames()};
 	return QString::fromUtf8(byteArray.toBase64());
 }
 
@@ -957,16 +930,15 @@ const std::array<f_cnt_t, 5>& SampleBuffer::interpolationMargins()
 
 SampleBuffer * SampleBuffer::resample(const sample_rate_t srcSR, const sample_rate_t dstSR )
 {
-	const auto dstFrames = static_cast<f_cnt_t>((m_frames / static_cast<float>(srcSR)) * static_cast<float>(dstSR));
+	const auto dstFrames = static_cast<f_cnt_t>((frames() / static_cast<float>(srcSR)) * static_cast<float>(dstSR));
 	auto dstSB = new SampleBuffer{dstFrames};
-	auto dstBuf = dstSB->m_data;
 
 	// yeah, libsamplerate, let's rock with sinc-interpolation!
 	auto srcData = SRC_DATA{};
 	srcData.end_of_input = 1;
-	srcData.data_in = m_data->data();
-	srcData.data_out = dstBuf->data();
-	srcData.input_frames = m_frames;
+	srcData.data_in = &m_data[0][0];
+	srcData.data_out = &dstSB->m_data[0][0];
+	srcData.input_frames = frames();
 	srcData.output_frames = dstFrames;
 	srcData.src_ratio = static_cast<double>(dstSR) / srcSR;
 
@@ -989,9 +961,7 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 
 	auto bail = [&]()
 	{
-		m_data = MM_ALLOC<sampleFrame>(1);
-		m_frames = 1;
-		std::fill_n(m_data, 1, sampleFrame{});
+		m_data = std::vector<sampleFrame>(1);
 		setAllPointFrames(0, 1, 0, 1);
 	};
 
@@ -1015,15 +985,15 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 
 		if (QFileInfo{file}.suffix() == "ds")
 		{
-			m_frames = decodeSampleDS(file, buf, channels, samplerate);
+			decodeSampleDS(file, buf, channels, samplerate);
 		}
 		else
 		{
-			m_frames = decodeSampleSF(file, fbuf, channels, samplerate);
+			decodeSampleSF(file, fbuf, channels, samplerate);
 		}
 	}
 
-	if (m_frames == 0 || audioFileTooLarge)  // if still no frames, bail
+	if (frames() == 0 || audioFileTooLarge)  // if still no frames, bail
 	{
 		// sample couldn't be decoded, create buffer containing
 		// one sample-frame
@@ -1048,14 +1018,7 @@ void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
 	const auto sampleFrameData = reinterpret_cast<const sampleFrame*>(base64Data.constData());
 	const auto numFrames = base64Data.size() / sizeof(sampleFrame);
 
-	if (m_data != nullptr)
-	{
-		MM_FREE(m_data);
-	}
-
-	m_data = MM_ALLOC<sampleFrame>(numFrames);
-	m_frames = numFrames;
-	std::copy_n(sampleFrameData, numFrames, m_data);
+	m_data = std::vector<sampleFrame>(sampleFrameData, sampleFrameData + numFrames);
 
 	if (!keepSettings)
 	{
@@ -1099,7 +1062,7 @@ void SampleBuffer::setReversed(bool on)
 	Engine::audioEngine()->requestChangeInModel();
 	const auto lockGuard = std::unique_lock{m_mutex};
 
-	if (m_reversed != on) { std::reverse(m_data, m_data + m_frames); }
+	if (m_reversed != on) { std::reverse(m_data.begin(), m_data.end()); }
 	m_reversed = on;
 
 	Engine::audioEngine()->doneChangeInModel();
