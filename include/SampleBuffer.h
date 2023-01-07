@@ -121,11 +121,11 @@ public slots:
 
 private:
 	void update();
-	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true);
-	sample_rate_t audioEngineSampleRate();
+	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true) const;
+	sample_rate_t audioEngineSampleRate() const;
 
-	std::pair<std::vector<sampleFrame>, sample_rate_t> decodeSampleSF(const QString& fileName);
-	std::vector<sampleFrame> decodeSampleDS(const QString& fileName);
+	std::pair<std::vector<sampleFrame>, sample_rate_t> decodeSampleSF(const QString& fileName) const;
+	std::vector<sampleFrame> decodeSampleDS(const QString& fileName) const;
 
 	std::vector<sampleFrame> getSampleFragment(
 		f_cnt_t index,

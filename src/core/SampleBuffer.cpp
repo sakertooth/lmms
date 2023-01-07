@@ -137,7 +137,7 @@ void SampleBuffer::sampleRateChanged()
 	update();
 }
 
-sample_rate_t SampleBuffer::audioEngineSampleRate()
+sample_rate_t SampleBuffer::audioEngineSampleRate() const
 {
 	return Engine::audioEngine()->processingSampleRate();
 }
@@ -152,7 +152,7 @@ void SampleBuffer::update()
 	emit sampleUpdated();
 }
 
-bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
+bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui) const
 {
 	constexpr auto maxFileSize = 300; // In MBs
 	constexpr auto maxFileLength = 90; // In minutes
@@ -245,7 +245,7 @@ sample_t SampleBuffer::userWaveSample(const float sample) const
 	return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
 }
 
-std::pair<std::vector<sampleFrame>, sample_rate_t> SampleBuffer::decodeSampleSF(const QString& fileName)
+std::pair<std::vector<sampleFrame>, sample_rate_t> SampleBuffer::decodeSampleSF(const QString& fileName) const
 {
 	SNDFILE* sndFile = nullptr;
 	auto sfInfo = SF_INFO{};
@@ -300,7 +300,7 @@ std::pair<std::vector<sampleFrame>, sample_rate_t> SampleBuffer::decodeSampleSF(
 	return {result, sfInfo.samplerate};
 }
 
-std::vector<sampleFrame> SampleBuffer::decodeSampleDS(const QString& fileName)
+std::vector<sampleFrame> SampleBuffer::decodeSampleDS(const QString& fileName) const
 {
 	auto data = std::unique_ptr<int_sample_t>{};
 	int_sample_t* dataPtr = nullptr;
