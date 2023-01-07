@@ -496,32 +496,14 @@ std::vector<sampleFrame> SampleBuffer::getSampleFragment(
 ) const
 {
 	auto out = std::vector<sampleFrame>(frames);
-	if (loopMode == LoopMode::LoopOff)
+	if ((loopMode == LoopMode::LoopOff && index + frames <= end) ||
+		(loopMode == LoopMode::LoopOn && index + frames <= loopEnd) ||
+		(loopMode == LoopMode::LoopPingPong && !*backwards && index + frames < loopEnd))
 	{
-		if (index + frames <= end)
-		{
-			std::copy_n(m_data.begin() + index, frames, out.begin());
-			return out;
-		}
+		std::copy_n(m_data.begin() + index, frames, out.begin());
+		return out;
 	}
-	else if (loopMode == LoopMode::LoopOn)
-	{
-		if (index + frames <= loopEnd)
-		{
-			std::copy_n(m_data.begin() + index, frames, out.begin());
-			return out;
-		}
-	}
-	else
-	{
-		if (!*backwards && index + frames < loopEnd)
-		{
-			std::copy_n(m_data.begin() + index, frames, out.begin());
-			return out;
-		}
-	}
-
-
+	
 	if (loopMode == LoopMode::LoopOff)
 	{
 		const auto available = end - index;
