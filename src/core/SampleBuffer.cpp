@@ -172,8 +172,6 @@ void SampleBuffer::update()
 
 bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
 {
-	if (audioFile.isEmpty()) { return true; }
-
 	constexpr auto maxFileSize = 300; // In MBs
 	constexpr auto maxFileLength = 90; // In minutes
 	auto exceedsLimits = QFileInfo{audioFile}.size() > maxFileSize * 1024 * 1024;
@@ -186,8 +184,7 @@ bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
 
 		if (!file.open(QIODevice::ReadOnly))
 		{
-			throw std::runtime_error{"SampleBuffer::fileExceedsLimit: Could not open file handle: " +
-				file.errorString().toStdString()};
+			throw std::runtime_error{"Could not open file handle: " + file.errorString().toStdString()};
 		}
 		else
 		{
@@ -198,8 +195,7 @@ bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
 			}
 			else
 			{
-				throw std::runtime_error{"SampleBuffer::fileExceedsLimit: Could not open sndfile handle: " +
-					std::string{sf_strerror(sndFile)}};
+				throw std::runtime_error{"Could not open sndfile handle: " + std::string{sf_strerror(sndFile)}};
 			}
 		}
 	}
@@ -275,15 +271,14 @@ std::pair<std::vector<sampleFrame>, sample_rate_t> SampleBuffer::decodeSampleSF(
 	auto file = QFile{fileName};
 	if (!file.open(QIODevice::ReadOnly))
 	{
-		throw std::runtime_error{"SampleBuffer::decodeSampleSF: Failed to open sample " 
-			+ fileName.toStdString() + ": " + file.errorString().toStdString()}; 
+		throw std::runtime_error{"Failed to open sample "
+			+ fileName.toStdString() + ": " + file.errorString().toStdString()};
 	}
 
 	sndFile = sf_open_fd(file.handle(), SFM_READ, &sfInfo, false);
 	if (sf_error(sndFile) != 0)
 	{
-		throw std::runtime_error{"SampleBuffer::decodeSampleSF: Failed to open sndfile handle: " 
-			+ std::string{sf_strerror(sndFile)}};
+		throw std::runtime_error{"Failed to open sndfile handle: " + std::string{sf_strerror(sndFile)}};
 	}
 
 	auto buf = std::vector<sample_t>(sfInfo.channels * sfInfo.frames);
@@ -291,8 +286,7 @@ std::pair<std::vector<sampleFrame>, sample_rate_t> SampleBuffer::decodeSampleSF(
 
 	if (sfFramesRead < sfInfo.channels * sfInfo.frames)
 	{
-		throw std::runtime_error{"SampleBuffer::decodeSampleSF: Failed to read sample " 
-			+ fileName.toStdString() + ": " + sf_strerror(sndFile)};
+		throw std::runtime_error{"Failed to read sample " + fileName.toStdString() + ": " + sf_strerror(sndFile)};
 	}
 
 	sf_close(sndFile);
@@ -905,49 +899,30 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 	Engine::audioEngine()->requestChangeInModel();
 	const auto lockGuard = std::unique_lock{m_mutex};
 
-	m_audioFile = PathUtil::toShortestRelative(audioFile);
-	const auto file = PathUtil::toAbsolute(m_audioFile);
-
-	auto bail = [&]()
-	{
-		m_data = std::vector<sampleFrame>(1);
-		setAllPointFrames(0, 1, 0, 1);
-	};
-
-	auto audioFileTooLarge = false;
 	try
 	{
-		audioFileTooLarge = fileExceedsLimits(file);
-	}
-	catch (const std::runtime_error& error)
-	{
-		std::cout << error.what() << '\n';
-		bail();
-	}
-
-	if (!audioFileTooLarge)
-	{
+		const auto file = PathUtil::toAbsolute(PathUtil::toShortestRelative(audioFile));
 		if (QFileInfo{file}.suffix() == "ds")
 		{
+			// Note: DrumSynth files aren't checked for file limits since we are using sndfile to detect them.
+			// In the future, checking for limits may become unnecessary anyways, so this seems fine for now.
 			m_data = decodeSampleDS(file);
+			m_audioFile = file;
+			setAllPointFrames(0, frames(), 0, frames());
+			update();
 		}
-		else
+		else if (!fileExceedsLimits(file))
 		{
 			auto [data, sampleRate] = decodeSampleSF(file);
 			m_data = std::move(data);
+			m_audioFile = file;
 			normalizeSampleRate(sampleRate, keepSettings);
+			update();
 		}
 	}
-
-	if (frames() == 0 || audioFileTooLarge)  // if still no frames, bail
+	catch (std::runtime_error& error)
 	{
-		// sample couldn't be decoded, create buffer containing
-		// one sample-frame
-		bail();
-	}
-	else
-	{
-		update();
+		std::cerr << "Could not load audio file: " << error.what() << '\n';
 	}
 
 	Engine::audioEngine()->doneChangeInModel();
