@@ -137,11 +137,6 @@ OscillatorObject::OscillatorObject( Model * _parent, int _idx ) :
 
 
 
-OscillatorObject::~OscillatorObject()
-{
-	sharedObject::unref( m_sampleBuffer );
-}
-
 
 
 

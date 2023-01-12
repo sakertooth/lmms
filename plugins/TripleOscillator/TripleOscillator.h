@@ -57,8 +57,6 @@ class OscillatorObject : public Model
 	Q_OBJECT
 public:
 	OscillatorObject( Model * _parent, int _idx );
-	~OscillatorObject() override;
-
 
 private:
 	FloatModel m_volumeModel;
