@@ -27,6 +27,8 @@
 
 #include "Clip.h"
 
+#include <memory>
+
 namespace lmms
 {
 
@@ -61,7 +63,7 @@ public:
 		return "sampleclip";
 	}
 
-	SampleBuffer* sampleBuffer()
+	std::shared_ptr<SampleBuffer> sampleBuffer()
 	{
 		return m_sampleBuffer;
 	}
@@ -85,7 +87,7 @@ public slots:
 
 
 private:
-	SampleBuffer* m_sampleBuffer;
+	std::shared_ptr<SampleBuffer> m_sampleBuffer;
 	BoolModel m_recordModel;
 	bool m_isPlaying;
 

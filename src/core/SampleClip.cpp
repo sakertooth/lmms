@@ -107,9 +107,6 @@ SampleClip::~SampleClip()
 	{
 		sampletrack->updateClips();
 	}
-	Engine::audioEngine()->requestChangeInModel();
-	sharedObject::unref( m_sampleBuffer );
-	Engine::audioEngine()->doneChangeInModel();
 }
 
 
@@ -132,10 +129,7 @@ const QString & SampleClip::sampleFile() const
 
 void SampleClip::setSampleBuffer( SampleBuffer* sb )
 {
-	Engine::audioEngine()->requestChangeInModel();
-	sharedObject::unref( m_sampleBuffer );
-	Engine::audioEngine()->doneChangeInModel();
-	m_sampleBuffer = sb;
+	m_sampleBuffer.reset(sb);
 	updateLength();
 
 	emit sampleChanged();

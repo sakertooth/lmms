@@ -172,7 +172,6 @@ void PatmanInstrument::playNote( NotePlayHandle * _n,
 void PatmanInstrument::deleteNotePluginData( NotePlayHandle * _n )
 {
 	auto hdata = (handle_data*)_n->m_pluginData;
-	sharedObject::unref( hdata->sample );
 	delete hdata->state;
 	delete hdata;
 }
@@ -358,7 +357,7 @@ PatmanInstrument::LoadErrors PatmanInstrument::loadPatch(
 			}
 		}
 
-		auto psample = new SampleBuffer(data, frames);
+		auto psample = std::make_shared<SampleBuffer>(data, frames);
 		psample->setFrequency( root_freq / 1000.0f );
 		psample->setSampleRate( sample_rate );
 
@@ -368,7 +367,7 @@ PatmanInstrument::LoadErrors PatmanInstrument::loadPatch(
 			psample->setLoopEndFrame( loop_end );
 		}
 
-		m_patchSamples.push_back( psample );
+		m_patchSamples.push_back(std::move(psample));
 
 		delete[] wave_samples;
 		delete[] data;
@@ -384,7 +383,6 @@ void PatmanInstrument::unloadCurrentPatch()
 {
 	while( !m_patchSamples.empty() )
 	{
-		sharedObject::unref( m_patchSamples.back() );
 		m_patchSamples.pop_back();
 	}
 }
@@ -397,7 +395,7 @@ void PatmanInstrument::selectSample( NotePlayHandle * _n )
 	const float freq = _n->frequency();
 
 	float min_dist = HUGE_VALF;
-	SampleBuffer* sample = nullptr;
+	std::shared_ptr<SampleBuffer> sample = nullptr;
 
 	for (const auto& patchSample : m_patchSamples)
 	{
@@ -416,11 +414,11 @@ void PatmanInstrument::selectSample( NotePlayHandle * _n )
 	hdata->tuned = m_tunedModel.value();
 	if( sample )
 	{
-		hdata->sample = sharedObject::ref( sample );
+		hdata->sample = sample;
 	}
 	else
 	{
-		hdata->sample = new SampleBuffer( nullptr, 0 );
+		hdata->sample = std::make_shared<SampleBuffer>(nullptr, 0);
 	}
 	hdata->state = new Sample(_n->hasDetuningInfo());
 

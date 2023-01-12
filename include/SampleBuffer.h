@@ -47,7 +47,7 @@ class QRect;
 
 namespace lmms
 {
-class LMMS_EXPORT SampleBuffer : public QObject, public sharedObject
+class LMMS_EXPORT SampleBuffer : public QObject
 {
 	Q_OBJECT
 public:
