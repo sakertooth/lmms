@@ -485,71 +485,48 @@ std::vector<sampleFrame> SampleBuffer::getSampleFragment(
 		const auto available = end - index;
 		std::copy_n(m_data.begin() + index, available, out.begin());
 		std::fill_n(out.begin() + available, frames - available, sampleFrame{});
+		return out;
 	}
-	else if (loopMode == LoopMode::LoopOn)
+
+	auto numFramesCopied = *backwards ?
+		std::min(frames, index - loopStart) :
+		std::min(frames, loopEnd - index);
+
+	auto updateBackwards = [&]()
 	{
-		f_cnt_t copied = std::min(frames, loopEnd - index);
-		std::copy_n(m_data.begin() + index, copied, out.begin());
-		f_cnt_t loopFrames = loopEnd - loopStart;
-		while (copied < frames)
+		if (!*backwards && index + numFramesCopied >= loopEnd)
 		{
-			f_cnt_t todo = std::min(frames - copied, loopFrames);
-			std::copy_n(m_data.begin() + loopStart, todo, out.begin() + copied);
-			copied += todo;
+			*backwards = true;
 		}
+		else if (*backwards && index - numFramesCopied == loopStart)
+		{
+			*backwards = false;
+		}
+	};
+
+	if (loopMode == LoopMode::LoopPingPong)
+	{
+		updateBackwards();
 	}
-	else
+
+	*backwards ?
+		std::copy_n(m_data.rbegin() + loopEnd - index, numFramesCopied, out.begin()) :
+		std::copy_n(m_data.begin() + index, numFramesCopied, out.begin());
+
+	const auto loopFrames = loopEnd - loopStart;
+	while (numFramesCopied < frames)
 	{
-		f_cnt_t pos = index;
-		bool currentBackwards = pos < loopStart
-			? false
-			: *backwards;
-		f_cnt_t copied = 0;
-
-
-		if (currentBackwards)
+		if (loopMode == LoopMode::LoopPingPong)
 		{
-			copied = std::min(frames, pos - loopStart);
-			for (int i = 0; i < copied; i++)
-			{
-				out[i][0] = m_data[pos - i][0];
-				out[i][1] = m_data[pos - i][1];
-			}
-			pos -= copied;
-			if (pos == loopStart) { currentBackwards = false; }
-		}
-		else
-		{
-			copied = std::min(frames, loopEnd - pos);
-			std::copy_n(m_data.begin() + pos, copied, out.begin());
-			pos += copied;
-			if (pos == loopEnd) { currentBackwards = true; }
+			updateBackwards();
 		}
 
-		while (copied < frames)
-		{
-			if (currentBackwards)
-			{
-				f_cnt_t todo = std::min(frames - copied, pos - loopStart);
-				for (int i = 0; i < todo; i++)
-				{
-					out[copied + i][0] = m_data[pos - i][0];
-					out[copied + i][1] = m_data[pos - i][1];
-				}
-				pos -= todo;
-				copied += todo;
-				if (pos <= loopStart) { currentBackwards = false; }
-			}
-			else
-			{
-				f_cnt_t todo = std::min(frames - copied, loopEnd - pos);
-				std::copy_n(m_data.begin() + pos, todo, out.begin() + copied);
-				pos += todo;
-				copied += todo;
-				if (pos >= loopEnd) { currentBackwards = true; }
-			}
-		}
-		*backwards = currentBackwards;
+		auto framesToCopy = std::min(frames - numFramesCopied, loopFrames);
+		*backwards ?
+			std::copy_n(m_data.rbegin() + loopEnd - index, framesToCopy, out.begin() + numFramesCopied) :
+			std::copy_n(m_data.begin() + loopStart, framesToCopy, out.begin() + numFramesCopied);
+
+		numFramesCopied += framesToCopy;
 	}
 
 	return out;
@@ -854,8 +831,8 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 	{
 		if (gui::getGUI() != nullptr)
 		{
-			QMessageBox::information(nullptr, 
-				tr("File load error"), 
+			QMessageBox::information(nullptr,
+				tr("File load error"),
 				tr("An error occurred while loading %1").arg(audioFile), QMessageBox::Ok);
 		}
 
