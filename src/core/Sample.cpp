@@ -42,29 +42,4 @@ namespace lmms
     {
         src_delete(m_resamplingData);
     }
-
-    f_cnt_t Sample::frameIndex() const
-    {
-        return m_frameIndex;
-    }
-
-    void Sample::setFrameIndex(f_cnt_t index)
-    {
-        m_frameIndex = index;
-    }
-
-    bool Sample::isBackwards() const
-    {
-        return m_isBackwards;
-    }
-
-    void Sample::setBackwards(bool backwards)
-    {
-        m_isBackwards = backwards;
-    }
-
-    int Sample::interpolationMode() const
-    {
-        return m_interpolationMode;
-    }
 } // namespace lmms
