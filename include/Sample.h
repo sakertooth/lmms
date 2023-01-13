@@ -35,14 +35,15 @@ namespace lmms
     {
     public:
         Sample(bool varyingPitch = false, int interpolationMode = SRC_LINEAR);
-        virtual ~Sample();
+        ~Sample();
 
-        f_cnt_t frameIndex() const;
-		void setFrameIndex(f_cnt_t index);
-		bool isBackwards() const;
-		void setBackwards(bool backwards);
-		int interpolationMode() const;
+        inline f_cnt_t frameIndex() const { return m_frameIndex; }
+		inline bool isBackwards() const { return m_isBackwards; }
+		inline int interpolationMode() const { return m_interpolationMode; }
 
+		inline void setFrameIndex(f_cnt_t index) { m_frameIndex = index; }
+		inline void setBackwards(bool backwards) { m_isBackwards = backwards; }
+        inline void setInterpolationMode(int mode) { m_interpolationMode = mode; }
     private:
         f_cnt_t m_frameIndex = 0;
 		const bool m_varyingPitch = false;
