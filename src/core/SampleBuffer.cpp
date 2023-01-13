@@ -441,9 +441,7 @@ f_cnt_t SampleBuffer::advance(f_cnt_t playFrame, f_cnt_t frames,  LoopMode loopM
 		case LoopMode::LoopOff:
 			return playFrame + frames;
 		case LoopMode::LoopOn:
-			playFrame += frames;
-			playFrame = getLoopedIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
-			return playFrame;
+			return frames + getLoopedIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
 		case LoopMode::LoopPingPong:
 		{
 			f_cnt_t left = frames;
@@ -452,14 +450,16 @@ f_cnt_t SampleBuffer::advance(f_cnt_t playFrame, f_cnt_t frames,  LoopMode loopM
 				playFrame -= frames;
 				if (playFrame < m_playMarkers.loopStartFrame)
 				{
-					left -= (m_playMarkers.loopStartFrame - playFrame);
+					left -= m_playMarkers.loopStartFrame - playFrame;
 					playFrame = m_playMarkers.loopStartFrame;
 				}
-				else left = 0;
+				else
+				{
+					left = 0;
+				}
 			}
-			playFrame += left;
-			playFrame = getPingPongIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
-			return playFrame;
+			
+			return left + getPingPongIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
 		}
 	}
 }
