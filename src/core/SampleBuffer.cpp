@@ -855,6 +855,13 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 	}
 	catch (std::runtime_error& error)
 	{
+		if (gui::getGUI() != nullptr)
+		{
+			QMessageBox::information(nullptr, 
+				tr("File load error"), 
+				tr("An error occurred while loading %1").arg(audioFile), QMessageBox::Ok);
+		}
+
 		std::cerr << "Could not load audio file: " << error.what() << '\n';
 	}
 
