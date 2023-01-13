@@ -405,8 +405,7 @@ bool SampleBuffer::play(
 			std::cerr << "SampleBuffer: not enough frames: " << srcData.output_frames_gen << " / " << frames << '\n';
 		}
 
-		// Advance
-		playFrame = advance(playFrame, frames, loopMode, state);
+		playFrame = advance(playFrame, srcData.input_frames_used, loopMode, state);
 	}
 	else
 	{
@@ -417,8 +416,6 @@ bool SampleBuffer::play(
 		const auto sampleFragment = getSampleFragment(playFrame, frames, loopMode, &isBackwards,
 				loopStartFrame, loopEndFrame, endFrame);
 		std::copy_n(sampleFragment.begin(), frames, ab);
-
-		// Advance
 		playFrame = advance(playFrame, frames, loopMode, state);
 	}
 
@@ -458,7 +455,7 @@ f_cnt_t SampleBuffer::advance(f_cnt_t playFrame, f_cnt_t frames,  LoopMode loopM
 					left = 0;
 				}
 			}
-			
+
 			return left + getPingPongIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
 		}
 	}
