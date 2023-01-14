@@ -660,99 +660,9 @@ void SampleBuffer::visualize(
 	}
 }
 
-const QString& SampleBuffer::audioFile() const
-{
-	return m_audioFile;
-}
-
-f_cnt_t SampleBuffer::startFrame() const
-{
-	return m_playMarkers.startFrame;
-}
-
-f_cnt_t SampleBuffer::endFrame() const
-{
-	return m_playMarkers.endFrame;
-}
-
-f_cnt_t SampleBuffer::loopStartFrame() const
-{
-	return m_playMarkers.loopStartFrame;
-}
-
-f_cnt_t SampleBuffer::loopEndFrame() const
-{
-	return m_playMarkers.loopEndFrame;
-}
-
-void SampleBuffer::setLoopStartFrame(f_cnt_t start)
-{
-	m_playMarkers.loopStartFrame = start;
-}
-
-void SampleBuffer::setLoopEndFrame(f_cnt_t end)
-{
-	m_playMarkers.loopEndFrame = end;
-}
-
-void SampleBuffer::setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopStart, f_cnt_t loopEnd)
-{
-	m_playMarkers = {start, end, loopStart, loopEnd};
-}
-
-std::shared_mutex& SampleBuffer::mutex() const
-{
-	return m_mutex;
-}
-
-f_cnt_t SampleBuffer::frames() const
-{
-	return static_cast<f_cnt_t>(m_data.size());
-}
-
-float SampleBuffer::amplification() const
-{
-	return m_amplification;
-}
-
-bool SampleBuffer::reversed() const
-{
-	return m_reversed;
-}
-
-float SampleBuffer::frequency() const
-{
-	return m_frequency;
-}
-
-sample_rate_t SampleBuffer::sampleRate() const
-{
-	return m_sampleRate;
-}
-
-const std::unique_ptr<OscillatorConstants::waveform_t>& SampleBuffer::userAntiAliasWaveTable() const
-{
-	return m_userAntiAliasWaveTable;
-}
-
 int SampleBuffer::sampleLength() const
 {
 	return static_cast<double>(m_playMarkers.endFrame - m_playMarkers.startFrame) / m_sampleRate * 1000;
-}
-
-void SampleBuffer::setFrequency(float freq)
-{
-	m_frequency = freq;
-}
-
-void SampleBuffer::setSampleRate(sample_rate_t rate)
-{
-	m_sampleRate = rate;
-}
-
-const sampleFrame* SampleBuffer::data() const
-{
-	return m_data.data();
 }
 
 QString SampleBuffer::toBase64() const
@@ -855,16 +765,6 @@ void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
 
 	Engine::audioEngine()->doneChangeInModel();
 	update();
-}
-
-void SampleBuffer::setStartFrame(const f_cnt_t s)
-{
-	m_playMarkers.startFrame = s;
-}
-
-void SampleBuffer::setEndFrame(const f_cnt_t e)
-{
-	m_playMarkers.endFrame = e;
 }
 
 void SampleBuffer::setAmplification(float a)
