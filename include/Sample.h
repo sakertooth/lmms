@@ -49,7 +49,7 @@ namespace lmms
 		const bool m_varyingPitch = false;
 		bool m_isBackwards = false;
 		SRC_STATE* m_resamplingData = nullptr;
-		int m_interpolationMode = 0;
+		int m_interpolationMode = SRC_LINEAR;
 
 		friend class SampleBuffer;
     };
