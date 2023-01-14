@@ -30,6 +30,8 @@
 #include "InstrumentView.h"
 #include "AutomatableModel.h"
 
+#include <memory>
+
 namespace lmms
 {
 
