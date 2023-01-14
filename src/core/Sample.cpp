@@ -34,7 +34,7 @@ namespace lmms
         int error = 0;
         if ((m_resamplingData = src_new(interpolationMode, DEFAULT_CHANNELS, &error)) == nullptr)
         {
-            std::cerr << "Error: src_new() failed in sample_buffer.cpp!\n";
+            std::cerr << "Error when creating resample state: " << src_strerror(error) << '\n';
         }
     }
 
