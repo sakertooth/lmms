@@ -85,20 +85,20 @@ public:
 
 	static const std::array<f_cnt_t, 5>& interpolationMargins();
 
-	const QString& audioFile() const;
-	const sampleFrame* data() const;
-	std::shared_mutex& mutex() const;
-	float amplification() const;
-	bool reversed() const;
-	float frequency() const;
-	sample_rate_t sampleRate() const;
-	const std::unique_ptr<OscillatorConstants::waveform_t>& userAntiAliasWaveTable() const;
+	const QString& audioFile() const { return m_audioFile; }
+	const sampleFrame* data() const { return m_data.data(); }
+	std::shared_mutex& mutex() const { return m_mutex; }
+	float amplification() const { return m_amplification; }
+	bool reversed() const { return m_reversed; }
+	float frequency() const { return m_frequency; }
+	sample_rate_t sampleRate() const { return m_sampleRate; }
+	const std::unique_ptr<OscillatorConstants::waveform_t>& userAntiAliasWaveTable() const { return m_userAntiAliasWaveTable; }
 
-	f_cnt_t frames() const;
-	f_cnt_t startFrame() const;
-	f_cnt_t endFrame() const;
-	f_cnt_t loopStartFrame() const;
-	f_cnt_t loopEndFrame() const;
+	f_cnt_t frames() const { return static_cast<f_cnt_t>(m_data.size()); }
+	f_cnt_t startFrame() const { return m_playMarkers.startFrame; }
+	f_cnt_t endFrame() const { return m_playMarkers.endFrame; }
+	f_cnt_t loopStartFrame() const { return m_playMarkers.loopStartFrame; }
+	f_cnt_t loopEndFrame() const { return m_playMarkers.loopEndFrame; }
 
 signals:
 	void sampleUpdated();
@@ -107,18 +107,19 @@ public slots:
 	void loadFromAudioFile(const QString& audioFile, bool keepSettings = false);
 	void loadFromBase64(const QString& data, bool keepSettings = false);
 
-	void setStartFrame(f_cnt_t startFrame);
-	void setEndFrame(f_cnt_t endFrame);
-	void setLoopStartFrame(f_cnt_t loopStart);
-	void setLoopEndFrame(f_cnt_t loopEnd);
-	void setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopStart, f_cnt_t loopEnd);
+	void setStartFrame(f_cnt_t startFrame) { m_playMarkers.startFrame = startFrame; }
+	void setEndFrame(f_cnt_t endFrame) { m_playMarkers.endFrame = endFrame; }
+	void setLoopStartFrame(f_cnt_t loopStart) { m_playMarkers.loopStartFrame = loopStart; }
+	void setLoopEndFrame(f_cnt_t loopEnd) { m_playMarkers.loopEndFrame = loopEnd; }
+	void setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopStart, f_cnt_t loopEnd) 
+		{ m_playMarkers = {start, end, loopStart, loopEnd}; }
 
 	void setAmplification(float amplification);
 	void setReversed(bool on);
-	void setFrequency(float frequency);
-	void setSampleRate(sample_rate_t sampleRate);
-	void sampleRateChanged();
+	void setFrequency(float frequency) { m_frequency = frequency; }
+	void setSampleRate(sample_rate_t sampleRate) { m_sampleRate = sampleRate; }
 
+	void sampleRateChanged();
 private:
 	SampleBuffer();
 	SampleBuffer(const QString& audioFile, bool isBase64Data = false);
