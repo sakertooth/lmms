@@ -28,6 +28,8 @@
 #include <QList>
 #include <QPair>
 
+#include <memory>
+
 #include "PlayHandle.h"
 #include "TimePos.h"
 
@@ -53,7 +55,7 @@ public:
 	bool isFromTrack( const Track * _track ) const override;
 
 	f_cnt_t framesRecorded() const;
-	void createSampleBuffer( SampleBuffer * * _sample_buf );
+	std::shared_ptr<SampleBuffer> createSampleBuffer();
 
 
 private:

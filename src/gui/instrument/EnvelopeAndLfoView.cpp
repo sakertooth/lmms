@@ -322,7 +322,7 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	QString value = StringPairDrag::decodeValue( _de );
 	if( type == "samplefile" )
 	{
-		m_params->m_userWave.loadFromAudioFile(StringPairDrag::decodeValue(_de));
+		m_params->m_userWave->loadFromAudioFile(StringPairDrag::decodeValue(_de));
 		m_userLfoBtn->model()->setValue( true );
 		m_params->m_lfoWaveModel.setValue(EnvelopeAndLfoParameters::UserDefinedWave);
 		_de->accept();
@@ -331,7 +331,7 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	else if( type == QString( "clip_%1" ).arg( Track::SampleTrack ) )
 	{
 		DataFile dataFile( value.toUtf8() );
-		m_params->m_userWave.loadFromAudioFile(dataFile.content().
+		m_params->m_userWave->loadFromAudioFile(dataFile.content().
 					firstChildElement().firstChildElement().
 					firstChildElement().attribute("src"));
 		m_userLfoBtn->model()->setValue( true );
@@ -446,7 +446,7 @@ void EnvelopeAndLfoView::paintEvent( QPaintEvent * )
 	}
 
 	// userWaveSample() may be used, called out of loop for efficiency
-	const auto lockGuard = std::lock_guard{m_params->m_userWave.mutex()};
+	const auto lockGuard = std::lock_guard{m_params->m_userWave->mutex()};
 	float old_y = 0;
 	for( int x = 0; x <= LFO_GRAPH_W; ++x )
 	{
@@ -481,7 +481,7 @@ void EnvelopeAndLfoView::paintEvent( QPaintEvent * )
 					val = m_randomGraph;
 					break;
 				case EnvelopeAndLfoParameters::UserDefinedWave:
-					val = m_params->m_userWave.
+					val = m_params->m_userWave->
 							userWaveSample( phase );
 					break;
 			}
@@ -517,7 +517,7 @@ void EnvelopeAndLfoView::lfoUserWaveChanged()
 	if( m_params->m_lfoWaveModel.value() ==
 				EnvelopeAndLfoParameters::UserDefinedWave )
 	{
-		if( m_params->m_userWave.frames() <= 1 )
+		if( m_params->m_userWave->frames() <= 1 )
 		{
 			TextFloat::displayMessage( tr( "Hint" ),
 				tr( "Drag and drop a sample into this window." ),

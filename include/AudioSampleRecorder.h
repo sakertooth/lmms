@@ -26,6 +26,8 @@
 #ifndef LMMS_AUDIO_SAMPLE_RECORDER_H
 #define LMMS_AUDIO_SAMPLE_RECORDER_H
 
+#include <memory>
+
 #include <QList>
 #include <QPair>
 
@@ -44,7 +46,7 @@ public:
 	~AudioSampleRecorder() override;
 
 	f_cnt_t framesRecorded() const;
-	void createSampleBuffer( SampleBuffer** sampleBuffer );
+	std::shared_ptr<SampleBuffer> createSampleBuffer();
 
 
 private:

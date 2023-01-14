@@ -56,7 +56,7 @@ SamplePlayHandle::SamplePlayHandle(std::shared_ptr<SampleBuffer> sampleBuffer, b
 
 
 SamplePlayHandle::SamplePlayHandle( const QString& sampleFile ) :
-	SamplePlayHandle(std::make_shared<SampleBuffer>(sampleFile) , true)
+	SamplePlayHandle(SampleBuffer::create(sampleFile), true)
 {}
 
 

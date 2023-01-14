@@ -38,7 +38,7 @@ namespace lmms
 
 SampleClip::SampleClip( Track * _track ) :
 	Clip( _track ),
-	m_sampleBuffer( new SampleBuffer ),
+	m_sampleBuffer(SampleBuffer::create()),
 	m_isPlaying( false )
 {
 	saveJournallingState( false );
@@ -93,7 +93,7 @@ SampleClip::SampleClip(const SampleClip& orig) :
 	// TODO: This creates a new SampleBuffer for the new Clip, eating up memory
 	// & eventually causing performance issues. Letting tracks share buffers
 	// when they're identical would fix this, but isn't possible right now.
-	*m_sampleBuffer = *orig.m_sampleBuffer;
+	m_sampleBuffer = SampleBuffer::create(orig.m_sampleBuffer->data(), orig.m_sampleBuffer->frames());
 	m_isPlaying = orig.m_isPlaying;
 }
 
@@ -127,9 +127,9 @@ const QString & SampleClip::sampleFile() const
 
 
 
-void SampleClip::setSampleBuffer( SampleBuffer* sb )
+void SampleClip::setSampleBuffer(std::shared_ptr<SampleBuffer> sb)
 {
-	m_sampleBuffer.reset(sb);
+	m_sampleBuffer = sb;
 	updateLength();
 
 	emit sampleChanged();

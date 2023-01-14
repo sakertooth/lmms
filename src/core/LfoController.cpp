@@ -48,7 +48,7 @@ LfoController::LfoController( Model * _parent ) :
 	m_phaseOffset( 0 ),
 	m_currentPhase( 0 ),
 	m_sampleFunction( &Oscillator::sinSample ),
-	m_userDefSampleBuffer( new SampleBuffer )
+	m_userDefSampleBuffer(SampleBuffer::create())
 {
 	setSampleExact( true );
 	connect( &m_waveModel, SIGNAL(dataChanged()),

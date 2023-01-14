@@ -95,7 +95,7 @@ public:
 		m_useWaveTable = n;
 	}
 
-	inline void setUserWave( const SampleBuffer * _wave )
+	inline void setUserWave(std::shared_ptr<SampleBuffer> _wave)
 	{
 		m_userWave = _wave;
 	}
@@ -244,7 +244,7 @@ private:
 	Oscillator * m_subOsc;
 	float m_phaseOffset;
 	float m_phase;
-	const SampleBuffer * m_userWave;
+	std::shared_ptr<const SampleBuffer> m_userWave;
 	bool m_useWaveTable;
 	// There are many update*() variants; the modulator flag is stored as a member variable to avoid
 	// adding more explicit parameters to all of them. Can be converted to a parameter if needed.
