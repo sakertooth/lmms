@@ -566,7 +566,6 @@ f_cnt_t SampleBuffer::getPingPongIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t en
 void SampleBuffer::visualize(
 	QPainter & p,
 	const QRect & dr,
-	const QRect & clip,
 	f_cnt_t fromFrame,
 	f_cnt_t toFrame
 )
@@ -575,8 +574,6 @@ void SampleBuffer::visualize(
 	if (numFrames == 0) { return; }
 
 	const bool focusOnRange = toFrame <= numFrames && 0 <= fromFrame && fromFrame < toFrame;
-	//TODO: If the clip QRect is not being used we should remove it
-	//p.setClipRect(clip);
 	const int w = dr.width();
 	const int h = dr.height();
 
@@ -661,11 +658,6 @@ void SampleBuffer::visualize(
 	{
 		p.drawLine(fRmsMax[i], fRmsMin[i]);
 	}
-}
-
-void SampleBuffer::visualize(QPainter & p, const QRect & dr, f_cnt_t fromFrame, f_cnt_t toFrame)
-{
-	visualize(p, dr, dr, fromFrame, toFrame);
 }
 
 const QString& SampleBuffer::audioFile() const
