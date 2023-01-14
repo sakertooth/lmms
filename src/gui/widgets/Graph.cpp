@@ -589,7 +589,7 @@ void graphModel::setWaveToNoise()
 
 QString graphModel::setWaveToUser()
 {
-	auto sampleBuffer = std::make_shared<SampleBuffer>();
+	auto sampleBuffer = SampleBuffer::create();
 	const auto fileName = gui::SampleFileDialog::openWaveformFile(sampleBuffer->audioFile());
 	if (fileName.isEmpty() == false)
 	{

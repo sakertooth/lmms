@@ -93,7 +93,7 @@ OscillatorObject::OscillatorObject( Model * _parent, int _idx ) :
 				tr( "Modulation type %1" ).arg( _idx+1 ) ),
 	m_useWaveTableModel(true),
 
-	m_sampleBuffer( new SampleBuffer ),
+	m_sampleBuffer(SampleBuffer::create()),
 	m_volumeLeft( 0.0f ),
 	m_volumeRight( 0.0f ),
 	m_detuningLeft( 0.0f ),
@@ -353,8 +353,8 @@ void TripleOscillator::playNote( NotePlayHandle * _n,
 				oscs_r[i]->setUseWaveTable(m_osc[i]->m_useWaveTable);
 			}
 
-			oscs_l[i]->setUserWave( m_osc[i]->m_sampleBuffer );
-			oscs_r[i]->setUserWave( m_osc[i]->m_sampleBuffer );
+			oscs_l[i]->setUserWave(m_osc[i]->m_sampleBuffer);
+			oscs_r[i]->setUserWave(m_osc[i]->m_sampleBuffer);
 
 		}
 

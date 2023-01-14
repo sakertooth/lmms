@@ -64,11 +64,12 @@ public:
 		f_cnt_t loopEndFrame;
 	};
 
-	SampleBuffer();
-	SampleBuffer(const QString& audioFile, bool isBase64Data = false);
-	SampleBuffer(const sampleFrame* data, f_cnt_t frames);
-	explicit SampleBuffer(f_cnt_t frames);
-	SampleBuffer(const SampleBuffer& orig);
+	template<typename... Args>
+	static std::shared_ptr<SampleBuffer> create(Args... args)
+	{
+		auto deleter = [](SampleBuffer* obj) { obj->deleteLater(); };
+		return std::shared_ptr<SampleBuffer>(new SampleBuffer(std::forward<Args>(args)...), deleter);
+	}
 
 	friend void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
 	SampleBuffer& operator=(const SampleBuffer that);
@@ -120,6 +121,13 @@ public slots:
 	void sampleRateChanged();
 
 private:
+	SampleBuffer();
+	SampleBuffer(const QString& audioFile, bool isBase64Data = false);
+	SampleBuffer(const sampleFrame* data, f_cnt_t frames);
+	explicit SampleBuffer(f_cnt_t frames);
+	SampleBuffer(const SampleBuffer& orig);
+
+private:
 	void update();
 	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true) const;
 	sample_rate_t audioEngineSampleRate() const;
@@ -139,6 +147,7 @@ private:
 	f_cnt_t advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sample* state);
 	f_cnt_t getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const;
 	f_cnt_t getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const;
+
 private:
 	QString m_audioFile = "";
 	std::vector<sampleFrame> m_data;

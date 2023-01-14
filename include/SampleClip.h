@@ -78,7 +78,7 @@ public:
 	void setIsPlaying(bool isPlaying);
 
 public slots:
-	void setSampleBuffer( lmms::SampleBuffer* sb );
+	void setSampleBuffer(std::shared_ptr<lmms::SampleBuffer> sb);
 	void setSampleFile( const QString & _sf );
 	void updateLength();
 	void toggleRecord();

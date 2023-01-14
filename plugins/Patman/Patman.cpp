@@ -357,7 +357,7 @@ PatmanInstrument::LoadErrors PatmanInstrument::loadPatch(
 			}
 		}
 
-		auto psample = std::make_shared<SampleBuffer>(data, frames);
+		auto psample = SampleBuffer::create(data, frames);
 		psample->setFrequency( root_freq / 1000.0f );
 		psample->setSampleRate( sample_rate );
 
@@ -418,7 +418,7 @@ void PatmanInstrument::selectSample( NotePlayHandle * _n )
 	}
 	else
 	{
-		hdata->sample = std::make_shared<SampleBuffer>(nullptr, 0);
+		hdata->sample = SampleBuffer::create();
 	}
 	hdata->state = new Sample(_n->hasDetuningInfo());
 

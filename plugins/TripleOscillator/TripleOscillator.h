@@ -69,7 +69,7 @@ private:
 	IntModel m_waveShapeModel;
 	IntModel m_modulationAlgoModel;
 	BoolModel m_useWaveTableModel;
-	SampleBuffer* m_sampleBuffer;
+	std::shared_ptr<SampleBuffer> m_sampleBuffer;
 
 	float m_volumeLeft;
 	float m_volumeRight;

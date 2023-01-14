@@ -98,7 +98,7 @@ signals:
 
 
 private:
-	SampleBuffer m_sampleBuffer;
+	std::shared_ptr<SampleBuffer> m_sampleBuffer;
 
 	FloatModel m_ampModel;
 	FloatModel m_startPointModel;
@@ -247,7 +247,7 @@ private:
 		sample_loop
 	} ;
 
-	SampleBuffer& m_sampleBuffer;
+	std::shared_ptr<SampleBuffer> m_sampleBuffer;
 	QPixmap m_graph;
 	f_cnt_t m_from;
 	f_cnt_t m_to;
@@ -268,7 +268,7 @@ private:
 	bool m_animation;
 
 public:
-	AudioFileProcessorWaveView( QWidget * _parent, int _w, int _h, SampleBuffer& buf );
+	AudioFileProcessorWaveView(QWidget * _parent, int _w, int _h, std::shared_ptr<SampleBuffer> buf);
 	void setKnobs(knob *_start, knob *_end, knob *_loop );
 
 

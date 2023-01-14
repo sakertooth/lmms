@@ -53,9 +53,7 @@ SampleRecordHandle::~SampleRecordHandle()
 {
 	if( !m_buffers.empty() )
 	{
-		SampleBuffer* sb;
-		createSampleBuffer( &sb );
-		m_clip->setSampleBuffer( sb );
+		m_clip->setSampleBuffer(createSampleBuffer());
 	}
 	
 	while( !m_buffers.empty() )
@@ -111,7 +109,7 @@ f_cnt_t SampleRecordHandle::framesRecorded() const
 
 
 
-void SampleRecordHandle::createSampleBuffer( SampleBuffer** sampleBuf )
+std::shared_ptr<SampleBuffer> SampleRecordHandle::createSampleBuffer()
 {
 	const f_cnt_t frames = framesRecorded();
 	// create buffer to store all recorded buffers in
@@ -130,9 +128,11 @@ void SampleRecordHandle::createSampleBuffer( SampleBuffer** sampleBuf )
 		data_ptr += ( *it ).second;
 	}
 	// create according sample-buffer out of big buffer
-	*sampleBuf = new SampleBuffer( data, frames );
-	( *sampleBuf)->setSampleRate( Engine::audioEngine()->inputSampleRate() );
+	auto sampleBuf = SampleBuffer::create(data, frames);
+	sampleBuf->setSampleRate( Engine::audioEngine()->inputSampleRate() );
 	delete[] data;
+
+	return sampleBuf;
 }
 
 
