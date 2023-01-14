@@ -75,7 +75,6 @@ public:
 	SampleBuffer& operator=(const SampleBuffer that);
 
 	bool play(sampleFrame* dst, Sample* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff);
-	void visualize(QPainter& p, const QRect& dr, const QRect& clip, f_cnt_t fromFrame = 0, f_cnt_t toFrame = 0);
 	void visualize(QPainter& p, const QRect& dr, f_cnt_t fromFrame = 0, f_cnt_t toFrame = 0);
 
 	std::vector<sampleFrame> resample(sample_rate_t srcSR, sample_rate_t dstSR);

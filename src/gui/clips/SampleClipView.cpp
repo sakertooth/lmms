@@ -263,7 +263,7 @@ void SampleClipView::paintEvent( QPaintEvent * pe )
 	float offset =  m_clip->startTimeOffset() / ticksPerBar * pixelsPerBar();
 	QRect r = QRect( offset, spacing,
 			qMax( static_cast<int>( m_clip->sampleLength() * ppb / ticksPerBar ), 1 ), rect().bottom() - 2 * spacing );
-	m_clip->m_sampleBuffer->visualize( p, r, pe->rect() );
+	m_clip->m_sampleBuffer->visualize(p, r);
 
 	QString name = PathUtil::cleanName(m_clip->m_sampleBuffer->audioFile());
 	paintTextLabel(name, p);
