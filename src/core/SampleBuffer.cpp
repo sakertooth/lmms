@@ -458,6 +458,8 @@ f_cnt_t SampleBuffer::advance(f_cnt_t playFrame, f_cnt_t frames,  LoopMode loopM
 
 			return left + getPingPongIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
 		}
+		default:
+			return playFrame;
 	}
 }
 
