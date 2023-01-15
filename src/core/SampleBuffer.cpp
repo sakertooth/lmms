@@ -113,8 +113,7 @@ void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 	using std::swap;
 
 	if (&first == &second) { return; }
-	const auto firstLockGuard = std::unique_lock{first.m_mutex};
-	const auto secondLockGuard = std::unique_lock{second.m_mutex};
+	const auto lockGuard = std::scoped_lock{first.m_mutex, second.m_mutex};
 
 	first.m_audioFile.swap(second.m_audioFile);
 	swap(first.m_data, second.m_data);
