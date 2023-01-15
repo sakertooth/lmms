@@ -65,7 +65,7 @@ public:
 	};
 
 	template<typename... Args>
-	static std::shared_ptr<SampleBuffer> create(Args... args)
+	static std::shared_ptr<SampleBuffer> create(Args&&... args)
 	{
 		auto deleter = [](SampleBuffer* obj) { obj->deleteLater(); };
 		return std::shared_ptr<SampleBuffer>(new SampleBuffer(std::forward<Args>(args)...), deleter);
