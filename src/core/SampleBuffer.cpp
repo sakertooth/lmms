@@ -463,73 +463,87 @@ f_cnt_t SampleBuffer::advance(f_cnt_t playFrame, f_cnt_t frames,  LoopMode loopM
 }
 
 std::vector<sampleFrame> SampleBuffer::getSampleFragment(
-	f_cnt_t index,
-	f_cnt_t frames,
+	f_cnt_t currentFrame,
+	f_cnt_t numFramesRequested,
 	LoopMode loopMode,
 	bool * backwards,
 	f_cnt_t loopStart,
 	f_cnt_t loopEnd,
-	f_cnt_t end
+	f_cnt_t endFrame
 ) const
 {
-	auto out = std::vector<sampleFrame>(frames);
-	if ((loopMode == LoopMode::LoopOff && index + frames <= end) ||
-		(loopMode == LoopMode::LoopOn && index + frames <= loopEnd) ||
-		(loopMode == LoopMode::LoopPingPong && !*backwards && index + frames < loopEnd))
-	{
-		std::copy_n(m_data.begin() + index, frames, out.begin());
-		return out;
-	}
-
+	auto out = std::vector<sampleFrame>(numFramesRequested);
 	if (loopMode == LoopMode::LoopOff)
 	{
-		const auto available = end - index;
-		std::copy_n(m_data.begin() + index, available, out.begin());
-		std::fill_n(out.begin() + available, frames - available, sampleFrame{});
-		return out;
+		// Specify the number of frames to copy, starting at index
+		// If there are not enough frames to copy, copy the remaining frames
+		// (endFrame - currentFrame)
+		const auto numFramesToCopy = std::min(numFramesRequested, endFrame - currentFrame);
+		assert(numFramesToCopy >= 0);
+		std::copy_n(m_data.begin() + currentFrame, numFramesToCopy, out.begin());
 	}
-
-	auto numFramesCopied = *backwards ?
-		std::min(frames, index - loopStart) :
-		std::min(frames, loopEnd - index);
-
-	auto updateBackwards = [&]()
+	else if (loopMode == LoopMode::LoopOn || loopMode == LoopMode::LoopPingPong)
 	{
-		if (!*backwards && index + numFramesCopied >= loopEnd)
-		{
-			*backwards = true;
-		}
-		else if (*backwards && index - numFramesCopied == loopStart)
-		{
-			*backwards = false;
-		}
-	};
+		// Will be used to track the current play position
+		// and how many frames we copied while looping
+		auto playPosition = currentFrame;
+		auto numFramesCopied = 0;
 
-	if (loopMode == LoopMode::LoopPingPong)
-	{
-		updateBackwards();
+		// Move playPosition to loopStart if playPosition has past or is currently at loopEnd
+		if (playPosition >= loopEnd) { playPosition = loopStart; }
+
+		while (numFramesCopied != numFramesRequested)
+		{
+			// If we do not have enough frames to copy, then one of these conditions must be true:
+			// 1. playPosition + numFramesRequested > loopEnd for LoopOn mode and LoopPingPong mode (non-backwards),
+			// 2. playPosition - numFramesRequested < loopStart for LoopPingPong mode (backwards),
+
+			// If any of the previous conditions are true, then we should only copy the remaining frames
+			// we have in the following ranges:
+			// 1. loopEnd - playPosition for LoopOn mode and LoopPingPongMode (non-backwards)
+			// 2. playPosition - loopStart for LoopPingPong mode (backwards).
+
+			// Otherwise, we want to copy numFramesRequested frames minus how many frames we already copied
+
+			const auto remainingFrames = (*backwards && loopMode == LoopMode::LoopPingPong) ?
+				playPosition - loopStart : loopEnd - playPosition;
+			const auto numFramesToCopy = std::min(numFramesRequested - numFramesCopied, remainingFrames);
+			assert(numFramesToCopy >= 0);
+
+			if (loopMode == LoopMode::LoopOn || (!*backwards && loopMode == LoopMode::LoopPingPong))
+			{
+				std::copy_n(m_data.begin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
+			}
+			else if (*backwards && loopMode == LoopMode::LoopPingPong)
+			{
+				auto distanceFromPlayPosition = std::distance(m_data.begin() + playPosition, m_data.end());
+				std::copy_n(m_data.rbegin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
+			}
+
+			playPosition += (*backwards && loopMode == LoopMode::LoopPingPong ? -numFramesToCopy : numFramesToCopy);
+			numFramesCopied += numFramesToCopy;
+
+			// Ensure that playPosition is in the valid range [0, loopEnd]
+			assert(playPosition >= 0 && playPosition <= loopEnd);
+
+			// numFramesCopied can only be less than or equal to numFramesRequested
+			assert(numFramesCopied <= numFramesRequested);
+
+			if (playPosition == loopEnd && loopMode == LoopMode::LoopOn)
+			{
+				playPosition = loopStart;
+			}
+			else if (playPosition == loopEnd && loopMode == LoopMode::LoopPingPong)
+			{
+				*backwards = true;
+			}
+			else if (playPosition == loopStart && *backwards && loopMode == LoopMode::LoopPingPong)
+			{
+				*backwards = false;
+			}
+		}
 	}
-
-	*backwards ?
-		std::copy_n(m_data.rbegin() + loopEnd - index, numFramesCopied, out.begin()) :
-		std::copy_n(m_data.begin() + index, numFramesCopied, out.begin());
-
-	const auto loopFrames = loopEnd - loopStart;
-	while (numFramesCopied < frames)
-	{
-		if (loopMode == LoopMode::LoopPingPong)
-		{
-			updateBackwards();
-		}
-
-		auto framesToCopy = std::min(frames - numFramesCopied, loopFrames);
-		*backwards ?
-			std::copy_n(m_data.rbegin() + loopEnd - index, framesToCopy, out.begin() + numFramesCopied) :
-			std::copy_n(m_data.begin() + loopStart, framesToCopy, out.begin() + numFramesCopied);
-
-		numFramesCopied += framesToCopy;
-	}
-
+	
 	return out;
 }
 
