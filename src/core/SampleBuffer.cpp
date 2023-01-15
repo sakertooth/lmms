@@ -671,7 +671,7 @@ QString SampleBuffer::toBase64() const
 {
 	// TODO: Replace with non-Qt equivalent
 	auto data = reinterpret_cast<const char*>(m_data.data());
-	auto byteArray = QByteArray{data, frames()};
+	auto byteArray = QByteArray{data, static_cast<int>(m_data.size() * sizeof(sampleFrame))};
 	return QString::fromUtf8(byteArray.toBase64());
 }
 
