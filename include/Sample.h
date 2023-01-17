@@ -31,6 +31,9 @@
 #include "lmms_basics.h"
 #include "lmms_export.h"
 
+#include <QPainter>
+#include <QRect>
+
 namespace lmms
 {
     class SampleBuffer;
@@ -76,6 +79,9 @@ namespace lmms
 
         //! TODO: Instead of passing in buffer, store it as a shared pointer in Sample
         auto play(SampleBuffer* buffer, sampleFrame* dst, PlaybackState* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff) -> bool;
+
+        //! TODO: Should be moved to its own QWidget
+        auto visualize(SampleBuffer* buffer, QPainter & p, const QRect & dr, f_cnt_t fromFrame, f_cnt_t toFrame) -> void;
 
         auto startFrame() const -> f_cnt_t;
         auto endFrame() const -> f_cnt_t;
