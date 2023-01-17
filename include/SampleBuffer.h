@@ -74,7 +74,7 @@ public:
 	friend void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
 	SampleBuffer& operator=(const SampleBuffer that);
 
-	bool play(sampleFrame* dst, Sample* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff);
+	bool play(sampleFrame* dst, Sample::PlaybackState* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff);
 	void visualize(QPainter& p, const QRect& dr, f_cnt_t fromFrame = 0, f_cnt_t toFrame = 0);
 
 	std::vector<sampleFrame> resample(sample_rate_t srcSR, sample_rate_t dstSR);
@@ -144,7 +144,7 @@ private:
 		f_cnt_t loopEnd,
 		f_cnt_t end) const;
 
-	f_cnt_t advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sample* state);
+	f_cnt_t advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sample::PlaybackState* state);
 	f_cnt_t getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const;
 	f_cnt_t getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const;
 

@@ -85,7 +85,7 @@ private:
 	bool m_doneMayReturnTrue;
 
 	f_cnt_t m_frame;
-	Sample m_state;
+	Sample::PlaybackState m_state;
 
 	const bool m_ownAudioPort;
 

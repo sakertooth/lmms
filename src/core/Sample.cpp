@@ -27,22 +27,6 @@
 
 namespace lmms
 {
-    Sample::Sample(bool varyingPitch, int mode) :
-        m_varyingPitch(varyingPitch),
-        m_interpolationMode(mode)
-    {
-        int error = 0;
-        if ((m_resamplingData = src_new(mode, DEFAULT_CHANNELS, &error)) == nullptr)
-        {
-            std::cerr << "Error when creating resample state: " << src_strerror(error) << '\n';
-        }
-    }
-
-    Sample::~Sample() noexcept
-    {
-        src_delete(m_resamplingData);
-    }
-
     auto Sample::startFrame() const -> f_cnt_t
     {
         return m_playMarkers.startFrame;
@@ -63,25 +47,6 @@ namespace lmms
         return m_playMarkers.loopEndFrame;
     }
 
-    auto Sample::frameIndex() const -> f_cnt_t
-    {
-        return m_frameIndex;
-    }
-
-    auto Sample::varyingPitch() const -> bool
-    {
-        return m_varyingPitch;
-    }
-
-    auto Sample::isBackwards() const -> bool
-    {
-        return m_isBackwards;
-    }
-
-    auto Sample::interpolationMode() const -> int
-    {
-        return m_interpolationMode;
-    }
 
     auto Sample::setStartFrame(f_cnt_t frame) -> void
     {
@@ -108,19 +73,55 @@ namespace lmms
         m_playMarkers = playMarkers;
     }
 
-    auto Sample::setFrameIndex(f_cnt_t index) -> void
+    Sample::PlaybackState::PlaybackState(bool varyingPitch, int mode) :
+        m_varyingPitch(varyingPitch),
+        m_interpolationMode(mode)
+    {
+        int error = 0;
+        if ((m_resamplingData = src_new(mode, DEFAULT_CHANNELS, &error)) == nullptr)
+        {
+            std::cerr << "Error when creating resample state: " << src_strerror(error) << '\n';
+        }
+    }
+
+    Sample::PlaybackState::~PlaybackState() noexcept
+    {
+        src_delete(m_resamplingData);
+    }
+
+    auto Sample::PlaybackState::frameIndex() const -> f_cnt_t
+    {
+        return m_frameIndex;
+    }
+
+    auto Sample::PlaybackState::varyingPitch() const -> bool
+    {
+        return m_varyingPitch;
+    }
+
+    auto Sample::PlaybackState::isBackwards() const -> bool
+    {
+        return m_backwards;
+    }
+
+    auto Sample::PlaybackState::interpolationMode() const -> int
+    {
+        return m_interpolationMode;
+    }
+
+    auto Sample::PlaybackState::setFrameIndex(f_cnt_t index) -> void
     {
         m_frameIndex = index;
     }
 
-    auto Sample::setVaryingPitch(bool varyingPitch) -> void
+    auto Sample::PlaybackState::setVaryingPitch(bool varyingPitch) -> void
     {
         m_varyingPitch = varyingPitch;
     }
 
-    auto Sample::setBackwards(bool backwards) -> void
+    auto Sample::PlaybackState::setBackwards(bool backwards) -> void
     {
-        m_isBackwards = backwards;
+        m_backwards = backwards;
     }
 
 } // namespace lmms

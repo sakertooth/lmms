@@ -87,7 +87,7 @@ private:
 	struct handle_data
 	{
 		MM_OPERATORS
-		Sample* state;
+		Sample::PlaybackState* state;
 		bool tuned;
 		std::shared_ptr<SampleBuffer> sample;
 	};
