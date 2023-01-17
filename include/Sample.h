@@ -45,7 +45,7 @@ namespace lmms
             LoopOff, LoopOn, LoopPingPong
         };
 
-        class PlaybackState
+        class LMMS_EXPORT PlaybackState
         {
         public:
             PlaybackState(bool varyingPitch = false, int mode = SRC_LINEAR);
