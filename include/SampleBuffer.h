@@ -86,7 +86,7 @@ public:
 	static const std::array<f_cnt_t, 5>& interpolationMargins();
 
 	const QString& audioFile() const { return m_audioFile; }
-	const sampleFrame* data() const { return m_data.data(); }
+	const std::vector<sampleFrame>& data() const { return m_data; }
 	std::shared_mutex& mutex() const { return m_mutex; }
 	float amplification() const { return m_sample.m_amplification; }
 	bool reversed() const { return m_reversed; }
@@ -134,20 +134,6 @@ private:
 
 	std::pair<std::vector<sampleFrame>, sample_rate_t> decodeSampleSF(const QString& fileName) const;
 	std::vector<sampleFrame> decodeSampleDS(const QString& fileName) const;
-
-	std::vector<sampleFrame> getSampleFragment(
-		f_cnt_t index,
-		f_cnt_t frames,
-		LoopMode loopMode,
-		bool* backwards,
-		f_cnt_t loopStart,
-		f_cnt_t loopEnd,
-		f_cnt_t end) const;
-
-	f_cnt_t advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sample::PlaybackState* state);
-	f_cnt_t getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const;
-	f_cnt_t getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const;
-
 private:
 	QString m_audioFile = "";
 	std::vector<sampleFrame> m_data;

@@ -33,9 +33,15 @@
 
 namespace lmms
 {
+    class SampleBuffer;
     class LMMS_EXPORT Sample
     {
     public:
+        enum class LoopMode
+        {
+            LoopOff, LoopOn, LoopPingPong
+        };
+
         class PlaybackState
         {
         public:
@@ -57,7 +63,7 @@ namespace lmms
             bool m_backwards = false;
             SRC_STATE* m_resamplingData = nullptr;
             int m_interpolationMode = SRC_LINEAR;
-            friend class SampleBuffer;
+            friend class Sample;
         };
 
         struct PlayMarkers
@@ -67,6 +73,9 @@ namespace lmms
             f_cnt_t loopStartFrame;
             f_cnt_t loopEndFrame;
         };
+
+        //! TODO: Instead of passing in buffer, store it as a shared pointer in Sample
+        auto play(SampleBuffer* buffer, sampleFrame* dst, PlaybackState* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff) -> bool;
 
         auto startFrame() const -> f_cnt_t;
         auto endFrame() const -> f_cnt_t;
@@ -82,6 +91,19 @@ namespace lmms
         auto setAllPointFrames(PlayMarkers playMarkers) -> void;
         auto setAmplification(float amplification) -> void;
         auto setFrequency(float frequency) -> void;
+    private:
+        auto getSampleFragment(SampleBuffer* buffer,
+            f_cnt_t index,
+            f_cnt_t frames,
+            LoopMode loopMode,
+            bool* backwards,
+            f_cnt_t loopStart,
+            f_cnt_t loopEnd,
+            f_cnt_t end) const -> std::vector<sampleFrame>;
+
+        auto advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sample::PlaybackState* state) -> f_cnt_t;
+        auto getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
+        auto getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
     private:
         PlayMarkers m_playMarkers = {0, 0, 0, 0};
         float m_amplification = 1.0f;

@@ -92,8 +92,10 @@ SampleClip::SampleClip(const SampleClip& orig) :
 {
 	// TODO: This creates a new SampleBuffer for the new Clip, eating up memory
 	// & eventually causing performance issues. Letting tracks share buffers
-	// when they're identical would fix this, but isn't possible right now.
-	m_sampleBuffer = SampleBuffer::create(orig.m_sampleBuffer->data(), orig.m_sampleBuffer->frames());
+	// when they're identical would fix this, but isn't possible right now
+	auto data = orig.m_sampleBuffer->data().data();
+	auto size = orig.m_sampleBuffer->data().size();
+	m_sampleBuffer = SampleBuffer::create(data, size);
 	m_isPlaying = orig.m_isPlaying;
 }
 
