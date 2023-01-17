@@ -83,8 +83,6 @@ public:
 	int sampleLength() const;
 	QString toBase64() const;
 
-	static const std::array<f_cnt_t, 5>& interpolationMargins();
-
 	const QString& audioFile() const { return m_audioFile; }
 	const std::vector<sampleFrame>& data() const { return m_data; }
 	std::shared_mutex& mutex() const { return m_mutex; }
@@ -111,7 +109,7 @@ public slots:
 	void setEndFrame(f_cnt_t endFrame) { m_sample.m_playMarkers.endFrame = endFrame; }
 	void setLoopStartFrame(f_cnt_t loopStart) { m_sample.m_playMarkers.loopStartFrame = loopStart; }
 	void setLoopEndFrame(f_cnt_t loopEnd) { m_sample.m_playMarkers.loopEndFrame = loopEnd; }
-	void setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopStart, f_cnt_t loopEnd) 
+	void setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopStart, f_cnt_t loopEnd)
 		{ m_sample.m_playMarkers = {start, end, loopStart, loopEnd}; }
 
 	void setAmplification(float amplification);
@@ -141,7 +139,7 @@ private:
 	bool m_reversed = false;
 	sample_rate_t m_sampleRate = audioEngineSampleRate();
 	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
-	
+
 	// TODO: Slowly moving play information into the Sample class
 	// WIll remove once the move is complete.
 	Sample m_sample;

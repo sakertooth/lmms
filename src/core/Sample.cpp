@@ -380,6 +380,11 @@ namespace lmms
         return startf + (index - startf) % (endf - startf);
     }
 
+    auto Sample::interpolationMargins() -> std::array<f_cnt_t, 5>&
+    {
+        return s_interpolationMargins;
+    }
+
     auto Sample::startFrame() const -> f_cnt_t
     {
         return m_playMarkers.startFrame;
