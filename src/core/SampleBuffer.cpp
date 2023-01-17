@@ -101,7 +101,7 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 	const auto lockGuard = std::shared_lock{orig.m_mutex};
 	m_audioFile = orig.m_audioFile;
 	m_data = orig.m_data;
-	m_playMarkers = orig.m_playMarkers;
+	m_sample.m_playMarkers = orig.m_sample.m_playMarkers;
 	m_amplification = orig.m_amplification;
 	m_reversed = orig.m_reversed;
 	m_frequency = orig.m_frequency;
@@ -117,11 +117,13 @@ void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 
 	first.m_audioFile.swap(second.m_audioFile);
 	swap(first.m_data, second.m_data);
-	swap(first.m_playMarkers, second.m_playMarkers);
 	swap(first.m_amplification, second.m_amplification);
 	swap(first.m_frequency, second.m_frequency);
 	swap(first.m_reversed, second.m_reversed);
 	swap(first.m_sampleRate, second.m_sampleRate);
+
+	// TODO: Currently inaccessible due to the move within Sample
+	// swap(first.m_sample.m_playMarkers, second.m_sample.m_playMarkers);
 }
 
 SampleBuffer& SampleBuffer::operator=(SampleBuffer that)
@@ -219,7 +221,7 @@ void SampleBuffer::normalizeSampleRate(const sample_rate_t srcSR, bool keepSetti
 	{
 		auto oldRateToNewRateRatio = static_cast<float>(audioEngineSampleRate()) / oldRate;
 		const auto numFrames = frames();
-		auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_playMarkers;
+		auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_sample.m_playMarkers;
 
 		startFrame = std::clamp(static_cast<f_cnt_t>(startFrame * oldRateToNewRateRatio), 0, numFrames);
 		endFrame = std::clamp(static_cast<f_cnt_t>(endFrame * oldRateToNewRateRatio), startFrame, numFrames);
@@ -333,7 +335,7 @@ bool SampleBuffer::play(
 	const LoopMode loopMode
 )
 {
-	const auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_playMarkers;
+	const auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_sample.m_playMarkers;
 
 	if (endFrame == 0 || frames == 0)
 	{
@@ -437,17 +439,17 @@ f_cnt_t SampleBuffer::advance(f_cnt_t playFrame, f_cnt_t frames,  LoopMode loopM
 		case LoopMode::LoopOff:
 			return playFrame + frames;
 		case LoopMode::LoopOn:
-			return frames + getLoopedIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
+			return frames + getLoopedIndex(playFrame, m_sample.m_playMarkers.loopStartFrame, m_sample.m_playMarkers.loopEndFrame);
 		case LoopMode::LoopPingPong:
 		{
 			f_cnt_t left = frames;
 			if (state->isBackwards())
 			{
 				playFrame -= frames;
-				if (playFrame < m_playMarkers.loopStartFrame)
+				if (playFrame < m_sample.m_playMarkers.loopStartFrame)
 				{
-					left -= m_playMarkers.loopStartFrame - playFrame;
-					playFrame = m_playMarkers.loopStartFrame;
+					left -= m_sample.m_playMarkers.loopStartFrame - playFrame;
+					playFrame = m_sample.m_playMarkers.loopStartFrame;
 				}
 				else
 				{
@@ -455,7 +457,7 @@ f_cnt_t SampleBuffer::advance(f_cnt_t playFrame, f_cnt_t frames,  LoopMode loopM
 				}
 			}
 
-			return left + getPingPongIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
+			return left + getPingPongIndex(playFrame, m_sample.m_playMarkers.loopStartFrame, m_sample.m_playMarkers.loopEndFrame);
 		}
 		default:
 			return playFrame;
@@ -677,7 +679,7 @@ void SampleBuffer::visualize(
 
 int SampleBuffer::sampleLength() const
 {
-	return static_cast<double>(m_playMarkers.endFrame - m_playMarkers.startFrame) / m_sampleRate * 1000;
+	return static_cast<double>(m_sample.m_playMarkers.endFrame - m_sample.m_playMarkers.startFrame) / m_sampleRate * 1000;
 }
 
 QString SampleBuffer::toBase64() const

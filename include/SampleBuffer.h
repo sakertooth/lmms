@@ -95,10 +95,10 @@ public:
 	const std::unique_ptr<OscillatorConstants::waveform_t>& userAntiAliasWaveTable() const { return m_userAntiAliasWaveTable; }
 
 	f_cnt_t frames() const { return static_cast<f_cnt_t>(m_data.size()); }
-	f_cnt_t startFrame() const { return m_playMarkers.startFrame; }
-	f_cnt_t endFrame() const { return m_playMarkers.endFrame; }
-	f_cnt_t loopStartFrame() const { return m_playMarkers.loopStartFrame; }
-	f_cnt_t loopEndFrame() const { return m_playMarkers.loopEndFrame; }
+	f_cnt_t startFrame() const { return m_sample.m_playMarkers.startFrame; }
+	f_cnt_t endFrame() const { return m_sample.m_playMarkers.endFrame; }
+	f_cnt_t loopStartFrame() const { return m_sample.m_playMarkers.loopStartFrame; }
+	f_cnt_t loopEndFrame() const { return m_sample.m_playMarkers.loopEndFrame; }
 
 signals:
 	void sampleUpdated();
@@ -107,12 +107,12 @@ public slots:
 	void loadFromAudioFile(const QString& audioFile, bool keepSettings = false);
 	void loadFromBase64(const QString& data, bool keepSettings = false);
 
-	void setStartFrame(f_cnt_t startFrame) { m_playMarkers.startFrame = startFrame; }
-	void setEndFrame(f_cnt_t endFrame) { m_playMarkers.endFrame = endFrame; }
-	void setLoopStartFrame(f_cnt_t loopStart) { m_playMarkers.loopStartFrame = loopStart; }
-	void setLoopEndFrame(f_cnt_t loopEnd) { m_playMarkers.loopEndFrame = loopEnd; }
+	void setStartFrame(f_cnt_t startFrame) { m_sample.m_playMarkers.startFrame = startFrame; }
+	void setEndFrame(f_cnt_t endFrame) { m_sample.m_playMarkers.endFrame = endFrame; }
+	void setLoopStartFrame(f_cnt_t loopStart) { m_sample.m_playMarkers.loopStartFrame = loopStart; }
+	void setLoopEndFrame(f_cnt_t loopEnd) { m_sample.m_playMarkers.loopEndFrame = loopEnd; }
 	void setAllPointFrames(f_cnt_t start, f_cnt_t end, f_cnt_t loopStart, f_cnt_t loopEnd) 
-		{ m_playMarkers = {start, end, loopStart, loopEnd}; }
+		{ m_sample.m_playMarkers = {start, end, loopStart, loopEnd}; }
 
 	void setAmplification(float amplification);
 	void setReversed(bool on);
@@ -152,12 +152,15 @@ private:
 	QString m_audioFile = "";
 	std::vector<sampleFrame> m_data;
 	mutable std::shared_mutex m_mutex;
-	PlayMarkers m_playMarkers;
 	float m_amplification = 1.0f;
 	bool m_reversed = false;
 	float m_frequency = DefaultBaseFreq;
 	sample_rate_t m_sampleRate = audioEngineSampleRate();
 	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
+	
+	// TODO: Slowly moving play information into the Sample class
+	// WIll remove once the move is complete.
+	Sample m_sample;
 };
 
 } // namespace lmms
