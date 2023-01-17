@@ -246,7 +246,7 @@ sample_t SampleBuffer::userWaveSample(const float sample) const
 	return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
 }
 
-std::pair<std::vector<sampleFrame>, sample_rate_t> SampleBuffer::decodeSampleSF(const QString& fileName) const
+void SampleBuffer::decodeSampleSF(const QString& fileName)
 {
 	SNDFILE* sndFile = nullptr;
 	auto sfInfo = SF_INFO{};
@@ -298,10 +298,12 @@ std::pair<std::vector<sampleFrame>, sample_rate_t> SampleBuffer::decodeSampleSF(
 		std::reverse(result.begin(), result.end());
 	}
 
-	return {result, sfInfo.samplerate};
+	m_data = result;
+	m_audioFile = fileName;
+	m_sampleRate = sfInfo.samplerate;
 }
 
-std::vector<sampleFrame> SampleBuffer::decodeSampleDS(const QString& fileName) const
+void SampleBuffer::decodeSampleDS(const QString& fileName)
 {
 	auto data = std::unique_ptr<int_sample_t>{};
 	int_sample_t* dataPtr = nullptr;
@@ -324,7 +326,9 @@ std::vector<sampleFrame> SampleBuffer::decodeSampleDS(const QString& fileName) c
 		throw std::runtime_error{"SampleBuffer::decodeSampleDS: Failed to decode DrumSynth file."};
 	}
 
-	return result;
+	m_data = result;
+	m_audioFile = fileName;
+	m_sampleRate = audioEngineSampleRate();
 }
 
 bool SampleBuffer::play(
@@ -399,17 +403,14 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 		{
 			// Note: DrumSynth files aren't checked for file limits since we are using sndfile to detect them.
 			// In the future, checking for limits may become unnecessary anyways, so this seems fine for now.
-			m_data = decodeSampleDS(file);
-			m_audioFile = file;
+			decodeSampleDS(file);
 			setAllPointFrames(0, frames(), 0, frames());
 			update();
 		}
 		else if (!fileExceedsLimits(file))
 		{
-			auto [data, sampleRate] = decodeSampleSF(file);
-			m_data = std::move(data);
-			m_audioFile = file;
-			normalizeSampleRate(sampleRate, keepSettings);
+			decodeSampleSF(file);
+			normalizeSampleRate(m_sampleRate, keepSettings);
 			update();
 		}
 	}
