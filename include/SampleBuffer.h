@@ -88,9 +88,9 @@ public:
 	const QString& audioFile() const { return m_audioFile; }
 	const sampleFrame* data() const { return m_data.data(); }
 	std::shared_mutex& mutex() const { return m_mutex; }
-	float amplification() const { return m_amplification; }
+	float amplification() const { return m_sample.m_amplification; }
 	bool reversed() const { return m_reversed; }
-	float frequency() const { return m_frequency; }
+	float frequency() const { return m_sample.m_frequency; }
 	sample_rate_t sampleRate() const { return m_sampleRate; }
 	const std::unique_ptr<OscillatorConstants::waveform_t>& userAntiAliasWaveTable() const { return m_userAntiAliasWaveTable; }
 
@@ -116,7 +116,7 @@ public slots:
 
 	void setAmplification(float amplification);
 	void setReversed(bool on);
-	void setFrequency(float frequency) { m_frequency = frequency; }
+	void setFrequency(float frequency) { m_sample.m_frequency = frequency; }
 	void setSampleRate(sample_rate_t sampleRate) { m_sampleRate = sampleRate; }
 
 	void sampleRateChanged();
@@ -152,9 +152,7 @@ private:
 	QString m_audioFile = "";
 	std::vector<sampleFrame> m_data;
 	mutable std::shared_mutex m_mutex;
-	float m_amplification = 1.0f;
 	bool m_reversed = false;
-	float m_frequency = DefaultBaseFreq;
 	sample_rate_t m_sampleRate = audioEngineSampleRate();
 	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
 	

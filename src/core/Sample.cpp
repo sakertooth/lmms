@@ -47,6 +47,15 @@ namespace lmms
         return m_playMarkers.loopEndFrame;
     }
 
+    auto Sample::amplification() const -> float
+    {
+        return m_amplification;
+    }
+    
+    auto Sample::frequency() const -> float
+    {
+        return m_frequency;
+    }
 
     auto Sample::setStartFrame(f_cnt_t frame) -> void
     {
@@ -71,6 +80,16 @@ namespace lmms
     auto Sample::setAllPointFrames(PlayMarkers playMarkers) -> void
     {
         m_playMarkers = playMarkers;
+    }
+
+    auto Sample::setAmplification(float amplification) -> void
+    {
+        m_amplification = amplification;
+    }
+
+    auto Sample::setFrequency(float frequency) -> void
+    {
+        m_frequency = frequency;
     }
 
     Sample::PlaybackState::PlaybackState(bool varyingPitch, int mode) :
