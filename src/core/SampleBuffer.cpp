@@ -362,11 +362,6 @@ QString SampleBuffer::toBase64() const
 	return QString::fromUtf8(byteArray.toBase64());
 }
 
-const std::array<f_cnt_t, 5>& SampleBuffer::interpolationMargins()
-{
-	return s_interpolationMargins;
-}
-
 std::vector<sampleFrame> SampleBuffer::resample(const sample_rate_t srcSR, const sample_rate_t dstSR)
 {
 	const auto dstFrames = static_cast<f_cnt_t>((frames() / static_cast<float>(srcSR)) * static_cast<float>(dstSR));

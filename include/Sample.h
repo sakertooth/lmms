@@ -83,6 +83,8 @@ namespace lmms
         //! TODO: Should be moved to its own QWidget
         auto visualize(SampleBuffer* buffer, QPainter & p, const QRect & dr, f_cnt_t fromFrame, f_cnt_t toFrame) -> void;
 
+        static auto interpolationMargins() -> std::array<f_cnt_t, 5>&;
+
         auto startFrame() const -> f_cnt_t;
         auto endFrame() const -> f_cnt_t;
         auto loopStartFrame() const -> f_cnt_t;
