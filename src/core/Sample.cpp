@@ -27,19 +27,100 @@
 
 namespace lmms
 {
-    Sample::Sample(bool varyingPitch, int interpolationMode) :
+    Sample::Sample(bool varyingPitch, int mode) :
         m_varyingPitch(varyingPitch),
-        m_interpolationMode(interpolationMode)
+        m_interpolationMode(mode)
     {
         int error = 0;
-        if ((m_resamplingData = src_new(interpolationMode, DEFAULT_CHANNELS, &error)) == nullptr)
+        if ((m_resamplingData = src_new(mode, DEFAULT_CHANNELS, &error)) == nullptr)
         {
             std::cerr << "Error when creating resample state: " << src_strerror(error) << '\n';
         }
     }
 
-    Sample::~Sample()
+    Sample::~Sample() noexcept
     {
         src_delete(m_resamplingData);
     }
+
+    auto Sample::startFrame() const -> f_cnt_t
+    {
+        return m_playMarkers.startFrame;
+    }
+
+    auto Sample::endFrame() const -> f_cnt_t
+    {
+        return m_playMarkers.endFrame;
+    }
+
+    auto Sample::loopStartFrame() const -> f_cnt_t
+    {
+        return m_playMarkers.loopStartFrame;
+    }
+
+    auto Sample::loopEndFrame() const -> f_cnt_t
+    {
+        return m_playMarkers.loopEndFrame;
+    }
+
+    auto Sample::frameIndex() const -> f_cnt_t
+    {
+        return m_frameIndex;
+    }
+
+    auto Sample::varyingPitch() const -> bool
+    {
+        return m_varyingPitch;
+    }
+
+    auto Sample::isBackwards() const -> bool
+    {
+        return m_isBackwards;
+    }
+
+    auto Sample::interpolationMode() const -> int
+    {
+        return m_interpolationMode;
+    }
+
+    auto Sample::setStartFrame(f_cnt_t frame) -> void
+    {
+        m_playMarkers.startFrame = frame;
+    }
+
+    auto Sample::setEndFrame(f_cnt_t frame) -> void
+    {
+        m_playMarkers.endFrame = frame;
+    }
+
+    auto Sample::setLoopStartFrame(f_cnt_t frame) -> void
+    {
+        m_playMarkers.loopStartFrame = frame;
+    }
+
+    auto Sample::setLoopEndFrame(f_cnt_t frame) -> void
+    {
+        m_playMarkers.loopEndFrame = frame;
+    }
+
+    auto Sample::setAllPointFrames(PlayMarkers playMarkers) -> void
+    {
+        m_playMarkers = playMarkers;
+    }
+
+    auto Sample::setFrameIndex(f_cnt_t index) -> void
+    {
+        m_frameIndex = index;
+    }
+
+    auto Sample::setVaryingPitch(bool varyingPitch) -> void
+    {
+        m_varyingPitch = varyingPitch;
+    }
+
+    auto Sample::setBackwards(bool backwards) -> void
+    {
+        m_isBackwards = backwards;
+    }
+
 } // namespace lmms
