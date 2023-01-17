@@ -29,6 +29,7 @@
 #include "SampleBuffer.h"
 
 #include <iostream>
+#include <cassert>
 
 namespace lmms
 {
