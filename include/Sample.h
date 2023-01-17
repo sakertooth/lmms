@@ -34,6 +34,30 @@ namespace lmms
     class LMMS_EXPORT Sample
     {
     public:
+        class PlaybackState
+        {
+        public:
+            PlaybackState(bool varyingPitch = false, int mode = SRC_LINEAR);
+            ~PlaybackState() noexcept;
+            
+            auto frameIndex() const -> f_cnt_t;
+            auto varyingPitch() const -> bool;
+            auto isBackwards() const -> bool;
+            auto interpolationMode() const -> int;
+
+            auto setFrameIndex(f_cnt_t index) -> void;
+            auto setVaryingPitch(bool varyingPitch) -> void;
+            auto setBackwards(bool backwards) -> void;
+
+        private:
+            f_cnt_t m_frameIndex = 0;
+            bool m_varyingPitch = false;
+            bool m_backwards = false;
+            SRC_STATE* m_resamplingData = nullptr;
+            int m_interpolationMode = SRC_LINEAR;
+            friend class SampleBuffer;
+        };
+
         struct PlayMarkers
         {
             f_cnt_t startFrame;
@@ -42,33 +66,18 @@ namespace lmms
             f_cnt_t loopEndFrame;
         };
 
-        Sample(bool varyingPitch = false, int mode = SRC_LINEAR);
-        ~Sample() noexcept;
-
         auto startFrame() const -> f_cnt_t;
         auto endFrame() const -> f_cnt_t;
         auto loopStartFrame() const -> f_cnt_t;
         auto loopEndFrame() const -> f_cnt_t;
-        auto frameIndex() const -> f_cnt_t;
-        auto varyingPitch() const -> bool;
-        auto isBackwards() const -> bool;
-        auto interpolationMode() const -> int;
 
         auto setStartFrame(f_cnt_t frame) -> void;
         auto setEndFrame(f_cnt_t frame) -> void;
         auto setLoopStartFrame(f_cnt_t frame) -> void;
         auto setLoopEndFrame(f_cnt_t frame) -> void;
         auto setAllPointFrames(PlayMarkers playMarkers) -> void;
-        auto setFrameIndex(f_cnt_t index) -> void;
-        auto setVaryingPitch(bool varyingPitch) -> void;
-        auto setBackwards(bool backwards) -> void;
     private:
         PlayMarkers m_playMarkers = {0, 0, 0, 0};
-        f_cnt_t m_frameIndex = 0;
-        bool m_varyingPitch = false;
-        bool m_isBackwards = false;
-        SRC_STATE* m_resamplingData = nullptr;
-        int m_interpolationMode = SRC_LINEAR;
         friend class SampleBuffer;
     };
 } // namespace lmms

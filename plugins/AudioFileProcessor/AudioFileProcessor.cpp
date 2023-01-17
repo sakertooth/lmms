@@ -154,9 +154,9 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 				srcmode = SRC_SINC_MEDIUM_QUALITY;
 				break;
 		}
-		_n->m_pluginData = new Sample(_n->hasDetuningInfo(), srcmode);
-		static_cast<Sample*>(_n->m_pluginData)->setFrameIndex(m_nextPlayStartPoint);
-		static_cast<Sample*>(_n->m_pluginData)->setBackwards(m_nextPlayBackwards);
+		_n->m_pluginData = new Sample::PlaybackState(_n->hasDetuningInfo(), srcmode);
+		static_cast<Sample::PlaybackState*>(_n->m_pluginData)->setFrameIndex(m_nextPlayStartPoint);
+		static_cast<Sample::PlaybackState*>(_n->m_pluginData)->setBackwards(m_nextPlayBackwards);
 
 // debug code
 /*		qDebug( "frames %d", m_sampleBuffer->frames() );
@@ -167,7 +167,7 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 	if( ! _n->isFinished() )
 	{
 		if (m_sampleBuffer->play(_working_buffer + offset,
-						static_cast<Sample*>(_n->m_pluginData),
+						static_cast<Sample::PlaybackState*>(_n->m_pluginData),
 						frames, _n->frequency(),
 						static_cast<SampleBuffer::LoopMode>(m_loopModel.value())))
 		{
@@ -175,7 +175,7 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 			instrumentTrack()->processAudioBuffer( _working_buffer,
 									frames + offset, _n );
 
-			emit isPlaying(static_cast<Sample*>(_n->m_pluginData)->frameIndex());
+			emit isPlaying(static_cast<Sample::PlaybackState*>(_n->m_pluginData)->frameIndex());
 		}
 		else
 		{
@@ -189,8 +189,8 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 	}
 	if( m_stutterModel.value() == true )
 	{
-		m_nextPlayStartPoint = static_cast<Sample*>(_n->m_pluginData)->frameIndex();
-		m_nextPlayBackwards = static_cast<Sample*>(_n->m_pluginData)->isBackwards();
+		m_nextPlayStartPoint = static_cast<Sample::PlaybackState*>(_n->m_pluginData)->frameIndex();
+		m_nextPlayBackwards = static_cast<Sample::PlaybackState*>(_n->m_pluginData)->isBackwards();
 	}
 }
 

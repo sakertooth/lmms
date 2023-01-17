@@ -329,7 +329,7 @@ std::vector<sampleFrame> SampleBuffer::decodeSampleDS(const QString& fileName) c
 
 bool SampleBuffer::play(
 	sampleFrame * ab,
-	Sample * state,
+	Sample::PlaybackState * state,
 	const fpp_t frames,
 	const float freq,
 	const LoopMode loopMode
@@ -432,7 +432,7 @@ bool SampleBuffer::play(
 	return true;
 }
 
-f_cnt_t SampleBuffer::advance(f_cnt_t playFrame, f_cnt_t frames,  LoopMode loopMode, Sample* state)
+f_cnt_t SampleBuffer::advance(f_cnt_t playFrame, f_cnt_t frames,  LoopMode loopMode, Sample::PlaybackState* state)
 {
 	switch (loopMode)
 	{
