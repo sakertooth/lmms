@@ -102,9 +102,9 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 	m_audioFile = orig.m_audioFile;
 	m_data = orig.m_data;
 	m_sample.m_playMarkers = orig.m_sample.m_playMarkers;
-	m_amplification = orig.m_amplification;
+	m_sample.m_amplification = orig.m_sample.m_amplification;
 	m_reversed = orig.m_reversed;
-	m_frequency = orig.m_frequency;
+	m_sample.m_frequency = orig.m_sample.m_frequency;
 	m_sampleRate = orig.m_sampleRate;
 }
 
@@ -117,13 +117,13 @@ void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 
 	first.m_audioFile.swap(second.m_audioFile);
 	swap(first.m_data, second.m_data);
-	swap(first.m_amplification, second.m_amplification);
-	swap(first.m_frequency, second.m_frequency);
 	swap(first.m_reversed, second.m_reversed);
 	swap(first.m_sampleRate, second.m_sampleRate);
 
 	// TODO: Currently inaccessible due to the move within Sample
 	// swap(first.m_sample.m_playMarkers, second.m_sample.m_playMarkers);
+	// swap(first.m_sample.m_amplification, second.m_sample.m_amplification);
+	// swap(first.m_sample.m_frequency, second.m_sample.m_frequency);
 }
 
 SampleBuffer& SampleBuffer::operator=(SampleBuffer that)
@@ -348,7 +348,7 @@ bool SampleBuffer::play(
 	// The SampleBuffer can play a given sample with increased or decreased pitch. However, only
 	// samples that contain a tone that matches the default base note frequency of 440 Hz will
 	// produce the exact requested pitch in [Hz].
-	const double freqFactor = (double) freq / (double) m_frequency *
+	const double freqFactor = (double) freq / (double) m_sample.m_frequency *
 		m_sampleRate / Engine::audioEngine()->processingSampleRate();
 
 	// calculate how many frames we have in requested pitch
@@ -425,8 +425,8 @@ bool SampleBuffer::play(
 
 	for (fpp_t i = 0; i < frames; ++i)
 	{
-		ab[i][0] *= m_amplification;
-		ab[i][1] *= m_amplification;
+		ab[i][0] *= m_sample.m_amplification;
+		ab[i][1] *= m_sample.m_amplification;
 	}
 
 	return true;
@@ -656,7 +656,7 @@ void SampleBuffer::visualize(
 			? xb + curPixel
 			: xb + ((static_cast<double>(curPixel) / nbFrames) * w);
 		// Partial Y calculation
-		auto py = ySpace * m_amplification;
+		auto py = ySpace * m_sample.m_amplification;
 		fEdgeMax[curPixel] = QPointF(x, (yb - (maxData * py)));
 		fEdgeMin[curPixel] = QPointF(x, (yb - (minData * py)));
 		fRmsMax[curPixel] = QPointF(x, (yb - (maxRmsData * py)));
@@ -786,7 +786,7 @@ void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
 
 void SampleBuffer::setAmplification(float a)
 {
-	m_amplification = a;
+	m_sample.m_amplification = a;
 	emit sampleUpdated();
 }
 

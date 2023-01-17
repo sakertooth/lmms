@@ -25,6 +25,8 @@
 #ifndef SAMPLE_H
 #define SAMPLE_H
 
+#include "Note.h"
+
 #include <samplerate.h>
 #include "lmms_basics.h"
 #include "lmms_export.h"
@@ -70,14 +72,20 @@ namespace lmms
         auto endFrame() const -> f_cnt_t;
         auto loopStartFrame() const -> f_cnt_t;
         auto loopEndFrame() const -> f_cnt_t;
+        auto amplification() const -> float;
+        auto frequency() const -> float;
 
         auto setStartFrame(f_cnt_t frame) -> void;
         auto setEndFrame(f_cnt_t frame) -> void;
         auto setLoopStartFrame(f_cnt_t frame) -> void;
         auto setLoopEndFrame(f_cnt_t frame) -> void;
         auto setAllPointFrames(PlayMarkers playMarkers) -> void;
+        auto setAmplification(float amplification) -> void;
+        auto setFrequency(float frequency) -> void;
     private:
         PlayMarkers m_playMarkers = {0, 0, 0, 0};
+        float m_amplification = 1.0f;
+        float m_frequency = DefaultBaseFreq;
         friend class SampleBuffer;
     };
 } // namespace lmms
