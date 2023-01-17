@@ -259,6 +259,104 @@ namespace lmms
         return out;
     }
 
+    void Sample::visualize(
+        SampleBuffer* buffer,
+        QPainter & p,
+        const QRect & dr,
+        f_cnt_t fromFrame,
+        f_cnt_t toFrame
+    )
+    {
+        const auto numFrames = buffer->frames();
+        if (numFrames == 0) { return; }
+
+        const bool focusOnRange = toFrame <= numFrames && 0 <= fromFrame && fromFrame < toFrame;
+        const int w = dr.width();
+        const int h = dr.height();
+
+        const int yb = h / 2 + dr.y();
+        const float ySpace = h * 0.5f;
+        const int nbFrames = focusOnRange ? toFrame - fromFrame : numFrames;
+
+        const double fpp = std::max(1., static_cast<double>(nbFrames) / w);
+        // There are 2 possibilities: Either nbFrames is bigger than
+        // the width, so we will have width points, or nbFrames is
+        // smaller than the width (fpp = 1) and we will have nbFrames
+        // points
+        const int totalPoints = nbFrames > w
+            ? w
+            : nbFrames;
+        std::vector<QPointF> fEdgeMax(totalPoints);
+        std::vector<QPointF> fEdgeMin(totalPoints);
+        std::vector<QPointF> fRmsMax(totalPoints);
+        std::vector<QPointF> fRmsMin(totalPoints);
+        int curPixel = 0;
+        const int xb = dr.x();
+        const int first = focusOnRange ? fromFrame : 0;
+        const int last = focusOnRange ? toFrame - 1 : numFrames - 1;
+        // When the number of frames isn't perfectly divisible by the
+        // width, the remaining frames don't fit the last pixel and are
+        // past the visible area. lastVisibleFrame is the index number of
+        // the last visible frame.
+        const int visibleFrames = (fpp * w);
+        const int lastVisibleFrame = focusOnRange
+            ? fromFrame + visibleFrames - 1
+            : visibleFrames - 1;
+
+        for (double frame = first; frame <= last && frame <= lastVisibleFrame; frame += fpp)
+        {
+            float maxData = -1;
+            float minData = 1;
+
+            auto rmsData = std::array<float, 2>{};
+
+            // Find maximum and minimum samples within range
+            for (int i = 0; i < fpp && frame + i <= last; ++i)
+            {
+                for (int j = 0; j < 2; ++j)
+                {
+                    auto curData = buffer->data()[static_cast<int>(frame) + i][j];
+
+                    if (curData > maxData) { maxData = curData; }
+                    if (curData < minData) { minData = curData; }
+
+                    rmsData[j] += curData * curData;
+                }
+            }
+
+            const float trueRmsData = (rmsData[0] + rmsData[1]) / 2 / fpp;
+            const float sqrtRmsData = sqrt(trueRmsData);
+            const float maxRmsData = std::clamp(sqrtRmsData, minData, maxData);
+            const float minRmsData = std::clamp(-sqrtRmsData, minData, maxData);
+
+            // If nbFrames >= w, we can use curPixel to calculate X
+            // but if nbFrames < w, we need to calculate it proportionally
+            // to the total number of points
+            auto x = nbFrames >= w
+                ? xb + curPixel
+                : xb + ((static_cast<double>(curPixel) / nbFrames) * w);
+            // Partial Y calculation
+            auto py = ySpace * m_amplification;
+            fEdgeMax[curPixel] = QPointF(x, (yb - (maxData * py)));
+            fEdgeMin[curPixel] = QPointF(x, (yb - (minData * py)));
+            fRmsMax[curPixel] = QPointF(x, (yb - (maxRmsData * py)));
+            fRmsMin[curPixel] = QPointF(x, (yb - (minRmsData * py)));
+            ++curPixel;
+        }
+
+        for (int i = 0; i < totalPoints; ++i)
+        {
+            p.drawLine(fEdgeMax[i], fEdgeMin[i]);
+        }
+
+        p.setPen(p.pen().color().lighter(123));
+
+        for (int i = 0; i < totalPoints; ++i)
+        {
+            p.drawLine(fRmsMax[i], fRmsMin[i]);
+        }
+    }
+
     f_cnt_t Sample::getPingPongIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) const
     {
         if (index < endf)
