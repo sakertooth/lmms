@@ -208,8 +208,7 @@ void SampleBuffer::normalizeSampleRate(const sample_rate_t srcSR, bool keepSetti
 	// do samplerate-conversion to our default-samplerate
 	if (srcSR != audioEngineSampleRate())
 	{
-		m_sampleRate = audioEngineSampleRate();
-		m_data = resample(srcSR, audioEngineSampleRate());
+		resample(audioEngineSampleRate());
 	}
 
 	if (keepSettings == false)
@@ -366,9 +365,9 @@ QString SampleBuffer::toBase64() const
 	return QString::fromUtf8(byteArray.toBase64());
 }
 
-std::vector<sampleFrame> SampleBuffer::resample(const sample_rate_t srcSR, const sample_rate_t dstSR)
+void SampleBuffer::resample(sample_rate_t newSampleRate)
 {
-	const auto dstFrames = static_cast<f_cnt_t>((frames() / static_cast<float>(srcSR)) * static_cast<float>(dstSR));
+	const auto dstFrames = static_cast<f_cnt_t>((frames() / static_cast<float>(m_sampleRate)) * static_cast<float>(newSampleRate));
 	auto dst = std::vector<sampleFrame>(dstFrames);
 
 	// yeah, libsamplerate, let's rock with sinc-interpolation!
@@ -378,7 +377,7 @@ std::vector<sampleFrame> SampleBuffer::resample(const sample_rate_t srcSR, const
 	srcData.data_out = &dst[0][0];
 	srcData.input_frames = frames();
 	srcData.output_frames = dstFrames;
-	srcData.src_ratio = static_cast<double>(dstSR) / srcSR;
+	srcData.src_ratio = static_cast<double>(newSampleRate) / m_sampleRate;
 
 	auto error = src_simple(&srcData, SRC_SINC_MEDIUM_QUALITY, DEFAULT_CHANNELS);
 	if (error != 0)
@@ -386,7 +385,8 @@ std::vector<sampleFrame> SampleBuffer::resample(const sample_rate_t srcSR, const
 		std::cout << "SampleBuffer: error while resampling:" << src_strerror(error) << '\n';
 	}
 
-	return dst;
+	m_data = std::move(dst);
+	m_sampleRate = newSampleRate;
 }
 
 void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings)

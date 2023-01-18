@@ -77,7 +77,7 @@ public:
 	bool play(sampleFrame* dst, Sample::PlaybackState* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff);
 	void visualize(QPainter& p, const QRect& dr, f_cnt_t fromFrame = 0, f_cnt_t toFrame = 0);
 
-	std::vector<sampleFrame> resample(sample_rate_t srcSR, sample_rate_t dstSR);
+	void resample(sample_rate_t newSampleRate);
 	void normalizeSampleRate(sample_rate_t srcSR, bool keepSettings = false);
 	sample_t userWaveSample(float sample) const;
 	int sampleLength() const;
