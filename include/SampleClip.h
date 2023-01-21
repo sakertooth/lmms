@@ -26,6 +26,7 @@
 #define LMMS_SAMPLE_CLIP_H
 
 #include "Clip.h"
+#include "Sample.h"
 
 #include <memory>
 
@@ -63,9 +64,9 @@ public:
 		return "sampleclip";
 	}
 
-	std::shared_ptr<SampleBuffer> sampleBuffer()
+	std::shared_ptr<Sample> sample()
 	{
-		return m_sampleBuffer;
+		return m_sample;
 	}
 
 	TimePos sampleLength() const;
@@ -87,7 +88,7 @@ public slots:
 
 
 private:
-	std::shared_ptr<SampleBuffer> m_sampleBuffer;
+	std::shared_ptr<Sample> m_sample;
 	BoolModel m_recordModel;
 	bool m_isPlaying;
 

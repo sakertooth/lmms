@@ -287,7 +287,7 @@ void TripleOscillator::loadSettings( const QDomElement & _this )
 					"modalgo" + QString::number( i+1 ) );
 		m_osc[i]->m_useWaveTableModel.loadSettings( _this,
 							"useWaveTable" + QString::number (i+1 ) );
-		m_osc[i]->m_sampleBuffer->loadFromAudioFile(_this.attribute("userwavefile" + is));
+		m_osc[i]->m_sampleBuffer = SampleBuffer::create(_this.attribute("userwavefile" + is));
 	}
 }
 

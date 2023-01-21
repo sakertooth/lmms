@@ -32,7 +32,7 @@
 #include "ComboBoxModel.h"
 #include "Instrument.h"
 #include "InstrumentView.h"
-#include "SampleBuffer.h"
+#include "Sample.h"
 #include "Knob.h"
 
 
@@ -98,7 +98,7 @@ signals:
 
 
 private:
-	std::shared_ptr<SampleBuffer> m_sampleBuffer;
+	std::shared_ptr<Sample> m_sample;
 
 	FloatModel m_ampModel;
 	FloatModel m_startPointModel;
@@ -247,7 +247,7 @@ private:
 		sample_loop
 	} ;
 
-	std::shared_ptr<SampleBuffer> m_sampleBuffer;
+	Sample* m_sample;
 	QPixmap m_graph;
 	f_cnt_t m_from;
 	f_cnt_t m_to;
@@ -268,7 +268,7 @@ private:
 	bool m_animation;
 
 public:
-	AudioFileProcessorWaveView(QWidget * _parent, int _w, int _h, std::shared_ptr<SampleBuffer> buf);
+	AudioFileProcessorWaveView(QWidget * _parent, int _w, int _h, Sample* sample);
 	void setKnobs(knob *_start, knob *_end, knob *_loop );
 
 

@@ -46,7 +46,7 @@
 #include "Knob.h"
 #include "NotePlayHandle.h"
 #include "PathUtil.h"
-#include "SampleBuffer.h"
+#include "Sample.h"
 #include "Song.h"
 
 #include "PatchesDialog.h"

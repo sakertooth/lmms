@@ -387,7 +387,7 @@ void EnvelopeAndLfoParameters::loadSettings( const QDomElement & _this )
 		m_sustainModel.setValue( 1.0 - m_sustainModel.value() );
 	}
 
-	m_userWave->loadFromAudioFile(_this.attribute("userwavefile"));
+	m_userWave = SampleBuffer::create(_this.attribute("userwavefile"));
 
 	updateSampleVars();
 }

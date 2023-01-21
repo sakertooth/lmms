@@ -39,8 +39,24 @@ namespace lmms
     // may need to be higher - conversely, to optimize, some may work with lower values
     static auto s_interpolationMargins = std::array<f_cnt_t, 5>{64, 64, 64, 4, 4};
 
+    Sample::Sample(std::shared_ptr<SampleBuffer> buffer) :
+        m_buffer(buffer),
+        m_markerSampleRate(m_buffer->sampleRate()) {}
+
+    auto Sample::createFromAudioFile(const QString& audioFile) -> std::shared_ptr<Sample>
+    {
+        auto buffer = SampleBuffer::create(audioFile);
+        return std::make_shared<Sample>(buffer);
+    }
+
+    auto Sample::createFromBase64(const QString& base64, sample_rate_t sampleRate) -> std::shared_ptr<Sample>
+    {
+        auto buffer = SampleBuffer::create(base64, true, sampleRate);
+        return std::make_shared<Sample>(buffer);
+    }
+
     auto Sample::play(
-        SampleBuffer* buffer, sampleFrame* dst, PlaybackState* state, 
+        sampleFrame* dst, PlaybackState* state, 
         fpp_t frames, float freq,
         LoopMode loopMode
     ) -> bool
@@ -59,7 +75,7 @@ namespace lmms
         // samples that contain a tone that matches the default base note frequency of 440 Hz will
         // produce the exact requested pitch in [Hz].
         const double freqFactor = (double) freq / (double) m_frequency *
-            buffer->sampleRate() / Engine::audioEngine()->processingSampleRate();
+            m_buffer->sampleRate() / Engine::audioEngine()->processingSampleRate();
 
         // calculate how many frames we have in requested pitch
         const auto totalFramesForCurrentPitch = static_cast<f_cnt_t>((endFrame - startFrame) / freqFactor);
@@ -97,7 +113,7 @@ namespace lmms
         {
             SRC_DATA srcData;
             // Generate output
-            const auto sampleFragment = getSampleFragment(buffer, playFrame, fragmentSize, loopMode, &isBackwards,
+            const auto sampleFragment = getSampleFragment(playFrame, fragmentSize, loopMode, &isBackwards,
                 loopStartFrame, loopEndFrame, endFrame);
             srcData.data_in = &sampleFragment[0][0];
             srcData.data_out = dst->data();
@@ -124,7 +140,7 @@ namespace lmms
             // as is into pitched-copy-buffer
 
             // Generate output
-            const auto sampleFragment = getSampleFragment(buffer, playFrame, frames, loopMode, &isBackwards,
+            const auto sampleFragment = getSampleFragment(playFrame, frames, loopMode, &isBackwards,
                     loopStartFrame, loopEndFrame, endFrame);
             std::copy_n(sampleFragment.begin(), frames, dst);
             playFrame = advance(playFrame, frames, loopMode, state);
@@ -140,6 +156,23 @@ namespace lmms
         }
 
         return true;
+    }
+
+    auto Sample::scaleMarkersBySampleRate() -> void
+    {
+        const auto engineRate = Engine::audioEngine()->processingSampleRate();
+        if (m_markerSampleRate != engineRate)
+        {
+            auto oldRateToNewRateRatio = static_cast<float>(engineRate) / m_markerSampleRate;
+            const auto numFrames = m_buffer->frames();
+            auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_playMarkers;
+
+            startFrame = std::clamp(static_cast<f_cnt_t>(startFrame * oldRateToNewRateRatio), 0, numFrames);
+            endFrame = std::clamp(static_cast<f_cnt_t>(endFrame * oldRateToNewRateRatio), startFrame, numFrames);
+            loopStartFrame = std::clamp(static_cast<f_cnt_t>(loopStartFrame * oldRateToNewRateRatio), 0, numFrames);
+            loopEndFrame = std::clamp(static_cast<f_cnt_t>(loopEndFrame * oldRateToNewRateRatio), loopStartFrame, numFrames);
+            m_markerSampleRate = engineRate;
+        }
     }
 
     auto Sample::advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, PlaybackState* state) -> f_cnt_t
@@ -175,7 +208,6 @@ namespace lmms
     }
 
     std::vector<sampleFrame> Sample::getSampleFragment(
-        SampleBuffer* buffer,
         f_cnt_t currentFrame,
         f_cnt_t numFramesRequested,
         LoopMode loopMode,
@@ -193,7 +225,7 @@ namespace lmms
             // (endFrame - currentFrame)
             const auto numFramesToCopy = std::min(numFramesRequested, endFrame - currentFrame);
             assert(numFramesToCopy >= 0);
-            std::copy_n(buffer->data().begin() + currentFrame, numFramesToCopy, out.begin());
+            std::copy_n(m_buffer->data().begin() + currentFrame, numFramesToCopy, out.begin());
         }
         else if (loopMode == LoopMode::LoopOn || loopMode == LoopMode::LoopPingPong)
         {
@@ -225,12 +257,12 @@ namespace lmms
 
                 if (loopMode == LoopMode::LoopOn || (!*backwards && loopMode == LoopMode::LoopPingPong))
                 {
-                    std::copy_n(buffer->data().begin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
+                    std::copy_n(m_buffer->data().begin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
                 }
                 else if (*backwards && loopMode == LoopMode::LoopPingPong)
                 {
-                    auto distanceFromPlayPosition = std::distance(buffer->data().begin() + playPosition, buffer->data().end());
-                    std::copy_n(buffer->data().rbegin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
+                    auto distanceFromPlayPosition = std::distance(m_buffer->data().begin() + playPosition, m_buffer->data().end());
+                    std::copy_n(m_buffer->data().rbegin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
                 }
 
                 playPosition += (*backwards && loopMode == LoopMode::LoopPingPong ? -numFramesToCopy : numFramesToCopy);
@@ -261,14 +293,13 @@ namespace lmms
     }
 
     void Sample::visualize(
-        SampleBuffer* buffer,
         QPainter & p,
         const QRect & dr,
         f_cnt_t fromFrame,
         f_cnt_t toFrame
     )
     {
-        const auto numFrames = buffer->frames();
+        const auto numFrames = m_buffer->frames();
         if (numFrames == 0) { return; }
 
         const bool focusOnRange = toFrame <= numFrames && 0 <= fromFrame && fromFrame < toFrame;
@@ -316,7 +347,7 @@ namespace lmms
             {
                 for (int j = 0; j < 2; ++j)
                 {
-                    auto curData = buffer->data()[static_cast<int>(frame) + i][j];
+                    auto curData = m_buffer->data()[static_cast<int>(frame) + i][j];
 
                     if (curData > maxData) { maxData = curData; }
                     if (curData < minData) { minData = curData; }
@@ -358,6 +389,11 @@ namespace lmms
         }
     }
 
+    auto Sample::calculateSampleLength() const -> int
+	{
+		return static_cast<double>(m_playMarkers.endFrame - m_playMarkers.startFrame) / m_buffer->sampleRate() * 1000;
+	}
+
     f_cnt_t Sample::getPingPongIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) const
     {
         if (index < endf)
@@ -384,6 +420,11 @@ namespace lmms
     auto Sample::interpolationMargins() -> std::array<f_cnt_t, 5>&
     {
         return s_interpolationMargins;
+    }
+
+    auto Sample::buffer() const -> std::shared_ptr<const SampleBuffer>
+    {
+        return m_buffer;
     }
 
     auto Sample::startFrame() const -> f_cnt_t
@@ -416,6 +457,16 @@ namespace lmms
         return m_frequency;
     }
 
+    auto Sample::reversed() const -> bool
+    {
+        return m_reversed;
+    }
+
+    auto Sample::setSampleBuffer(std::shared_ptr<SampleBuffer> buffer) -> void
+    {
+        m_buffer = buffer;
+    }
+
     auto Sample::setStartFrame(f_cnt_t frame) -> void
     {
         m_playMarkers.startFrame = frame;
@@ -444,11 +495,18 @@ namespace lmms
     auto Sample::setAmplification(float amplification) -> void
     {
         m_amplification = amplification;
+        emit sampleUpdated();
     }
 
     auto Sample::setFrequency(float frequency) -> void
     {
         m_frequency = frequency;
+    }
+
+    auto Sample::setReversed(bool reversed) -> void
+    {
+        m_reversed = reversed;
+        emit sampleUpdated();
     }
 
     Sample::PlaybackState::PlaybackState(bool varyingPitch, int mode) :
