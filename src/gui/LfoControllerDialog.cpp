@@ -213,8 +213,11 @@ void LfoControllerDialog::askUserDefWave()
 {
 	auto sampleBuffer = dynamic_cast<LfoController*>(this->model())->m_userDefSampleBuffer;
 	const auto fileName = gui::SampleFileDialog::openWaveformFile(sampleBuffer->audioFile());
-	if (fileName.isEmpty() == false)
+
+	if (!fileName.isEmpty())
 	{
+		sampleBuffer = SampleBuffer::create(fileName);
+
 		// TODO:
 		m_userWaveBtn->setToolTip(sampleBuffer->audioFile());
 	}

@@ -42,7 +42,7 @@ namespace lmms::gui
             if (QFileInfo{file}.isRelative())
             {
                 file = ConfigManager::inst()->userSamplesDir() + file;
-                if (QFileInfo{file}.exists() == false)
+                if (!QFileInfo{file}.exists())
                 {
                     file = ConfigManager::inst()->factorySamplesDir() + previousFile;
                 }

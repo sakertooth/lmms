@@ -589,11 +589,10 @@ void graphModel::setWaveToNoise()
 
 QString graphModel::setWaveToUser()
 {
-	auto sampleBuffer = SampleBuffer::create();
-	const auto fileName = gui::SampleFileDialog::openWaveformFile(sampleBuffer->audioFile());
-	if (fileName.isEmpty() == false)
+	const auto fileName = gui::SampleFileDialog::openWaveformFile();
+	if (!fileName.isEmpty())
 	{
-		const auto lockGuard = std::shared_lock{sampleBuffer->mutex()};
+		auto sampleBuffer = SampleBuffer::create(fileName);
 		for( int i = 0; i < length(); i++ )
 		{
 			m_samples[i] = sampleBuffer->userWaveSample(

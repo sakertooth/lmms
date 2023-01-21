@@ -145,6 +145,8 @@ void OscillatorObject::oscUserDefWaveDblClick()
 	const auto audioFile = gui::SampleFileDialog::openWaveformFile(m_sampleBuffer->audioFile());
 	if (audioFile != "")
 	{
+		m_sampleBuffer = SampleBuffer::create(audioFile);
+
 		// TODO:
 		//m_usrWaveBtn->setToolTip(m_sampleBuffer->audioFile());
 	}
