@@ -73,6 +73,7 @@ std::shared_ptr<SampleBuffer> SampleBuffer::createFromAudioFile(const QString& a
 {
 	auto buffer = std::make_shared<SampleBuffer>();
 	buffer->loadFromAudioFile(audioFile);
+	std::cout << '\n';
 	return buffer;
 }
 
@@ -321,6 +322,8 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile)
 		{
 			resample(audioEngineSampleRate());
 		}
+
+		update();
 	}
 	catch (std::runtime_error& error)
 	{
@@ -357,6 +360,7 @@ void SampleBuffer::loadFromBase64(const QString& data, sample_rate_t sampleRate)
 		resample(audioEngineSampleRate());
 	}
 
+	update();
 	Engine::audioEngine()->doneChangeInModel();
 }
 
