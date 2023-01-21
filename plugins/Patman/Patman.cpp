@@ -357,7 +357,7 @@ PatmanInstrument::LoadErrors PatmanInstrument::loadPatch(
 			}
 		}
 
-		auto buffer = SampleBuffer::create(data, frames);
+		auto buffer = std::make_shared<SampleBuffer>(data, frames);
 		buffer->setSampleRate(sample_rate);
 		buffer->resample(Engine::audioEngine()->processingSampleRate());
 		

@@ -49,19 +49,20 @@ class QRect;
 
 namespace lmms
 {
-class LMMS_EXPORT SampleBuffer : public QObject
+class LMMS_EXPORT SampleBuffer
 {
-	Q_OBJECT
 public:
-	template<typename... Args>
-	static std::shared_ptr<SampleBuffer> create(Args&&... args)
-	{
-		auto deleter = [](SampleBuffer* obj) { obj->deleteLater(); };
-		return std::shared_ptr<SampleBuffer>(new SampleBuffer(std::forward<Args>(args)...), deleter);
-	}
+	SampleBuffer();
+	SampleBuffer(const sampleFrame* data, f_cnt_t frames);
+	explicit SampleBuffer(f_cnt_t frames);
+	SampleBuffer(const SampleBuffer& other) = delete;
+	SampleBuffer(SampleBuffer&& other);
 
-	friend void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
-	SampleBuffer& operator=(const SampleBuffer that);
+	SampleBuffer& operator=(const SampleBuffer& other) = delete;
+	SampleBuffer& operator=(SampleBuffer&& other);
+
+	static std::shared_ptr<SampleBuffer> createFromAudioFile(const QString& audioFile);
+	static std::shared_ptr<SampleBuffer> createFromBase64(const QString& base64, sample_rate_t sampleRate = audioEngineSampleRate());
 
 	void resample(sample_rate_t newSampleRate);
 	void normalizeSampleRate(sample_rate_t srcSR, bool keepSettings = false);
@@ -79,19 +80,12 @@ public:
 public slots:
 	void setSampleRate(sample_rate_t sampleRate) { m_sampleRate = sampleRate; }
 private:
-	SampleBuffer();
-	SampleBuffer(const QString& audioFile, bool isBase64Data = false, sample_rate_t base64SampleRate = Engine::audioEngine()->processingSampleRate());
-	SampleBuffer(const sampleFrame* data, f_cnt_t frames);
-	explicit SampleBuffer(f_cnt_t frames);
-	SampleBuffer(const SampleBuffer& orig);
-
-private:
 	void update();
 	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true) const;
-	sample_rate_t audioEngineSampleRate() const;
+	static sample_rate_t audioEngineSampleRate();
 	
 	void loadFromAudioFile(const QString& audioFile);
-	void loadFromBase64(const QString& data);
+	void loadFromBase64(const QString& data, sample_rate_t sampleRate = audioEngineSampleRate());
 
 	void decodeSampleSF(const QString& fileName);
 	void decodeSampleDS(const QString& fileName);

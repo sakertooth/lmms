@@ -129,7 +129,7 @@ namespace lmms
         auto getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
         auto getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
     private:
-        std::shared_ptr<const SampleBuffer> m_buffer = SampleBuffer::create();
+        std::shared_ptr<const SampleBuffer> m_buffer = std::make_shared<SampleBuffer>();
         PlayMarkers m_playMarkers = {0, 0, 0, 0};
         float m_amplification = 1.0f;
         float m_frequency = DefaultBaseFreq;

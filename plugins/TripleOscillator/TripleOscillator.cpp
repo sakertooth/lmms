@@ -93,7 +93,7 @@ OscillatorObject::OscillatorObject( Model * _parent, int _idx ) :
 				tr( "Modulation type %1" ).arg( _idx+1 ) ),
 	m_useWaveTableModel(true),
 
-	m_sampleBuffer(SampleBuffer::create()),
+	m_sampleBuffer(std::make_shared<SampleBuffer>()),
 	m_volumeLeft( 0.0f ),
 	m_volumeRight( 0.0f ),
 	m_detuningLeft( 0.0f ),
@@ -145,7 +145,7 @@ void OscillatorObject::oscUserDefWaveDblClick()
 	const auto audioFile = gui::SampleFileDialog::openWaveformFile(m_sampleBuffer->audioFile());
 	if (audioFile != "")
 	{
-		m_sampleBuffer = SampleBuffer::create(audioFile);
+		m_sampleBuffer = SampleBuffer::createFromAudioFile(audioFile);
 
 		// TODO:
 		//m_usrWaveBtn->setToolTip(m_sampleBuffer->audioFile());
@@ -287,7 +287,7 @@ void TripleOscillator::loadSettings( const QDomElement & _this )
 					"modalgo" + QString::number( i+1 ) );
 		m_osc[i]->m_useWaveTableModel.loadSettings( _this,
 							"useWaveTable" + QString::number (i+1 ) );
-		m_osc[i]->m_sampleBuffer = SampleBuffer::create(_this.attribute("userwavefile" + is));
+		m_osc[i]->m_sampleBuffer = SampleBuffer::createFromAudioFile(_this.attribute("userwavefile" + is));
 	}
 }
 

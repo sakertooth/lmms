@@ -592,7 +592,7 @@ QString graphModel::setWaveToUser()
 	const auto fileName = gui::SampleFileDialog::openWaveformFile();
 	if (!fileName.isEmpty())
 	{
-		auto sampleBuffer = SampleBuffer::create(fileName);
+		auto sampleBuffer = SampleBuffer::createFromAudioFile(fileName);
 		for( int i = 0; i < length(); i++ )
 		{
 			m_samples[i] = sampleBuffer->userWaveSample(
