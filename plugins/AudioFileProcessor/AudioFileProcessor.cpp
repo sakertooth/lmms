@@ -199,7 +199,7 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 
 void AudioFileProcessor::deleteNotePluginData( NotePlayHandle * _n )
 {
-	delete static_cast<Sample*>(_n->m_pluginData);
+	delete static_cast<Sample::PlaybackState*>(_n->m_pluginData);
 }
 
 
