@@ -49,9 +49,9 @@ namespace lmms
         return std::make_shared<Sample>(buffer);
     }
 
-    auto Sample::createFromBase64(const QString& base64, sample_rate_t sampleRate) -> std::shared_ptr<Sample>
+    auto Sample::createFromBase64(const QString& base64) -> std::shared_ptr<Sample>
     {
-        auto buffer = SampleBuffer::createFromBase64(base64, sampleRate);
+        auto buffer = SampleBuffer::createFromBase64(base64);
         return std::make_shared<Sample>(buffer);
     }
 

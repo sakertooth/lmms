@@ -84,7 +84,7 @@ namespace lmms
         Sample(std::shared_ptr<SampleBuffer> buffer);
 
         static auto createFromAudioFile(const QString& audioFile) -> std::shared_ptr<Sample>;
-        static auto createFromBase64(const QString& base64, sample_rate_t sampleRate = Engine::audioEngine()->processingSampleRate()) -> std::shared_ptr<Sample>;
+        static auto createFromBase64(const QString& base64) -> std::shared_ptr<Sample>;
 
         auto play(sampleFrame* dst, PlaybackState* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff) -> bool;
 
