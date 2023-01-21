@@ -216,7 +216,7 @@ void LfoControllerDialog::askUserDefWave()
 
 	if (!fileName.isEmpty())
 	{
-		sampleBuffer = SampleBuffer::create(fileName);
+		sampleBuffer = SampleBuffer::createFromAudioFile(fileName);
 
 		// TODO:
 		m_userWaveBtn->setToolTip(sampleBuffer->audioFile());

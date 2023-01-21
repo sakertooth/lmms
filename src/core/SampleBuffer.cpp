@@ -51,31 +51,36 @@ namespace lmms
 {
 SampleBuffer::SampleBuffer()
 {
-	connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); });
+	QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); });
 }
 
-SampleBuffer::SampleBuffer(const QString& audioFile, bool isBase64Data, sample_rate_t base64SampleRate)
-	: SampleBuffer()
-{
-	if (isBase64Data)
-	{
-		loadFromBase64(audioFile);
-		if (base64SampleRate != audioEngineSampleRate())
-		{
-			m_sampleRate = base64SampleRate;
-			resample(audioEngineSampleRate());
-		}
-	}
-	else
-	{
-		loadFromAudioFile(audioFile);
-		if (m_sampleRate != audioEngineSampleRate())
-		{
-			resample(audioEngineSampleRate());
-		}
-	}
+SampleBuffer::SampleBuffer(SampleBuffer&& other) :
+	m_audioFile(std::exchange(other.m_audioFile, "")),
+	m_data(std::move(other.m_data)),
+	m_sampleRate(std::exchange(other.m_sampleRate, audioEngineSampleRate())),
+	m_userAntiAliasWaveTable(std::move(other.m_userAntiAliasWaveTable)) {}
 
-	update();
+SampleBuffer& SampleBuffer::operator=(SampleBuffer&& other)
+{
+	m_audioFile = std::exchange(other.m_audioFile, "");
+	m_data = std::move(other.m_data);
+	m_sampleRate = std::exchange(other.m_sampleRate, audioEngineSampleRate());
+	m_userAntiAliasWaveTable = std::move(other.m_userAntiAliasWaveTable);
+	return *this;
+}
+
+std::shared_ptr<SampleBuffer> SampleBuffer::createFromAudioFile(const QString& audioFile)
+{
+	auto buffer = std::make_shared<SampleBuffer>();
+	buffer->loadFromAudioFile(audioFile);
+	return buffer;
+}
+
+std::shared_ptr<SampleBuffer> SampleBuffer::createFromBase64(const QString& base64, sample_rate_t sampleRate)
+{
+	auto buffer = std::make_shared<SampleBuffer>();
+	buffer->loadFromBase64(base64, sampleRate);
+	return buffer;
 }
 
 SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames)
@@ -98,32 +103,6 @@ SampleBuffer::SampleBuffer(const f_cnt_t frames)
 	}
 }
 
-SampleBuffer::SampleBuffer(const SampleBuffer& orig)
-{
-	const auto lockGuard = std::shared_lock{orig.m_mutex};
-	m_audioFile = orig.m_audioFile;
-	m_data = orig.m_data;
-	m_sampleRate = orig.m_sampleRate;
-}
-
-void swap(SampleBuffer& first, SampleBuffer& second) noexcept
-{
-	using std::swap;
-
-	if (&first == &second) { return; }
-	const auto lockGuard = std::scoped_lock{first.m_mutex, second.m_mutex};
-
-	first.m_audioFile.swap(second.m_audioFile);
-	swap(first.m_data, second.m_data);
-	swap(first.m_sampleRate, second.m_sampleRate);
-}
-
-SampleBuffer& SampleBuffer::operator=(SampleBuffer that)
-{
-	swap(*this, that);
-	return *this;
-}
-
 void SampleBuffer::sampleRateChanged()
 {
 	// TODO: Resample original data instead of resampling the same data multiple times
@@ -132,7 +111,7 @@ void SampleBuffer::sampleRateChanged()
 	update();
 }
 
-sample_rate_t SampleBuffer::audioEngineSampleRate() const
+sample_rate_t SampleBuffer::audioEngineSampleRate()
 {
 	return Engine::audioEngine()->processingSampleRate();
 }
@@ -177,8 +156,8 @@ bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
 
 	if (exceedsLimits && reportToGui)
 	{
-		const auto title = tr("Fail to open file");
-		const auto message = tr("Audio files are limited to %1 MB "
+		const auto title = QObject::tr("Fail to open file");
+		const auto message = QObject::tr("Audio files are limited to %1 MB "
 				"in size and %2 minutes of playing time").arg(maxFileSize).arg(maxFileLength);
 
 		if (gui::getGUI() != nullptr)
@@ -337,14 +316,19 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile)
 		{
 			decodeSampleSF(file);
 		}
+
+		if (m_sampleRate != audioEngineSampleRate())
+		{
+			resample(audioEngineSampleRate());
+		}
 	}
 	catch (std::runtime_error& error)
 	{
 		if (gui::getGUI() != nullptr)
 		{
 			QMessageBox::information(nullptr,
-				tr("File load error"),
-				tr("An error occurred while loading %1").arg(audioFile), QMessageBox::Ok);
+				QObject::tr("File load error"),
+				QObject::tr("An error occurred while loading %1").arg(audioFile), QMessageBox::Ok);
 		}
 
 		std::cerr << "Could not load audio file: " << error.what() << '\n';
@@ -353,7 +337,7 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile)
 	Engine::audioEngine()->doneChangeInModel();
 }
 
-void SampleBuffer::loadFromBase64(const QString& data)
+void SampleBuffer::loadFromBase64(const QString& data, sample_rate_t sampleRate)
 {
 	if (data.isEmpty()) { return; }
 
@@ -366,6 +350,13 @@ void SampleBuffer::loadFromBase64(const QString& data)
 	const auto numFrames = base64Data.size() / sizeof(sampleFrame);
 
 	m_data = std::vector<sampleFrame>(sampleFrameData, sampleFrameData + numFrames);
+	m_sampleRate = sampleRate;
+
+	if (sampleRate != audioEngineSampleRate())
+	{
+		resample(audioEngineSampleRate());
+	}
+
 	Engine::audioEngine()->doneChangeInModel();
 }
 

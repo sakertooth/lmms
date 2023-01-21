@@ -119,7 +119,7 @@ EnvelopeAndLfoParameters::EnvelopeAndLfoParameters(
 	m_lfoFrame( 0 ),
 	m_lfoAmountIsZero( false ),
 	m_lfoShapeData( nullptr ),
-	m_userWave(SampleBuffer::create())
+	m_userWave(std::make_shared<SampleBuffer>())
 {
 	m_amountModel.setCenterValue( 0 );
 	m_lfoAmountModel.setCenterValue( 0 );
@@ -387,7 +387,7 @@ void EnvelopeAndLfoParameters::loadSettings( const QDomElement & _this )
 		m_sustainModel.setValue( 1.0 - m_sustainModel.value() );
 	}
 
-	m_userWave = SampleBuffer::create(_this.attribute("userwavefile"));
+	m_userWave = SampleBuffer::createFromAudioFile(_this.attribute("userwavefile"));
 
 	updateSampleVars();
 }

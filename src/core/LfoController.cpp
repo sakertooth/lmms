@@ -48,7 +48,7 @@ LfoController::LfoController( Model * _parent ) :
 	m_phaseOffset( 0 ),
 	m_currentPhase( 0 ),
 	m_sampleFunction( &Oscillator::sinSample ),
-	m_userDefSampleBuffer(SampleBuffer::create())
+	m_userDefSampleBuffer(std::make_shared<SampleBuffer>())
 {
 	setSampleExact( true );
 	connect( &m_waveModel, SIGNAL(dataChanged()),
@@ -209,7 +209,7 @@ void LfoController::loadSettings( const QDomElement & _this )
 	m_phaseModel.loadSettings( _this, "phase" );
 	m_waveModel.loadSettings( _this, "wave" );
 	m_multiplierModel.loadSettings( _this, "multiplier" );
-	m_userDefSampleBuffer = SampleBuffer::create(_this.attribute("userwavefile"));
+	m_userDefSampleBuffer = SampleBuffer::createFromAudioFile(_this.attribute("userwavefile"));
 
 	updateSampleFunction();
 }
