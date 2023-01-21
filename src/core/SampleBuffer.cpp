@@ -77,10 +77,10 @@ std::shared_ptr<SampleBuffer> SampleBuffer::createFromAudioFile(const QString& a
 	return buffer;
 }
 
-std::shared_ptr<SampleBuffer> SampleBuffer::createFromBase64(const QString& base64, sample_rate_t sampleRate)
+std::shared_ptr<SampleBuffer> SampleBuffer::createFromBase64(const QString& base64)
 {
 	auto buffer = std::make_shared<SampleBuffer>();
-	buffer->loadFromBase64(base64, sampleRate);
+	buffer->loadFromBase64(base64);
 	return buffer;
 }
 
@@ -268,8 +268,8 @@ void SampleBuffer::decodeSampleDS(const QString& fileName)
 QString SampleBuffer::toBase64() const
 {
 	// TODO: Replace with non-Qt equivalent
-	auto data = reinterpret_cast<const char*>(m_data.data());
-	auto byteArray = QByteArray{data, static_cast<int>(m_data.size() * sizeof(sampleFrame))};
+	auto data = reinterpret_cast<const char*>(this);
+	auto byteArray = QByteArray{data, sizeof(*this)};
 	return QString::fromUtf8(byteArray.toBase64());
 }
 
@@ -340,7 +340,7 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile)
 	Engine::audioEngine()->doneChangeInModel();
 }
 
-void SampleBuffer::loadFromBase64(const QString& data, sample_rate_t sampleRate)
+void SampleBuffer::loadFromBase64(const QString& data)
 {
 	if (data.isEmpty()) { return; }
 
@@ -348,14 +348,12 @@ void SampleBuffer::loadFromBase64(const QString& data, sample_rate_t sampleRate)
 	const auto lockGuard = std::unique_lock{m_mutex};
 
 	// TODO: Replace with non-Qt equivalent
-	const auto base64Data = data.toUtf8().toBase64();
-	const auto sampleFrameData = reinterpret_cast<const sampleFrame*>(base64Data.constData());
-	const auto numFrames = base64Data.size() / sizeof(sampleFrame);
+	auto base64Data = data.toUtf8().toBase64();
+	auto sampleBufferData = reinterpret_cast<SampleBuffer*>(base64Data.data());
 
-	m_data = std::vector<sampleFrame>(sampleFrameData, sampleFrameData + numFrames);
-	m_sampleRate = sampleRate;
+	*this = std::move(*sampleBufferData);
 
-	if (sampleRate != audioEngineSampleRate())
+	if (m_sampleRate != audioEngineSampleRate())
 	{
 		resample(audioEngineSampleRate());
 	}

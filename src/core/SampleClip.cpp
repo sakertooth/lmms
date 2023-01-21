@@ -281,7 +281,7 @@ void SampleClip::loadSettings( const QDomElement & _this )
 	setSampleFile( _this.attribute( "src" ) );
 	if( sampleFile().isEmpty() && _this.hasAttribute( "data" ) )
 	{
-		m_sample = Sample::createFromBase64(_this.attribute( "data" ), _this.attribute( "sample_rate" ).toInt());
+		m_sample = Sample::createFromBase64(_this.attribute("data"));
 	}
 	changeLength( _this.attribute( "len" ).toInt() );
 	setMuted( _this.attribute( "muted" ).toInt() );

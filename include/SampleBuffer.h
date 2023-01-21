@@ -62,7 +62,7 @@ public:
 	SampleBuffer& operator=(SampleBuffer&& other);
 
 	static std::shared_ptr<SampleBuffer> createFromAudioFile(const QString& audioFile);
-	static std::shared_ptr<SampleBuffer> createFromBase64(const QString& base64, sample_rate_t sampleRate = audioEngineSampleRate());
+	static std::shared_ptr<SampleBuffer> createFromBase64(const QString& base64);
 
 	void resample(sample_rate_t newSampleRate);
 	void normalizeSampleRate(sample_rate_t srcSR, bool keepSettings = false);
@@ -85,7 +85,7 @@ private:
 	static sample_rate_t audioEngineSampleRate();
 	
 	void loadFromAudioFile(const QString& audioFile);
-	void loadFromBase64(const QString& data, sample_rate_t sampleRate = audioEngineSampleRate());
+	void loadFromBase64(const QString& data);
 
 	void decodeSampleSF(const QString& fileName);
 	void decodeSampleDS(const QString& fileName);
