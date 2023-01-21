@@ -26,7 +26,7 @@
 #ifndef LMMS_SAMPLE_PLAY_HANDLE_H
 #define LMMS_SAMPLE_PLAY_HANDLE_H
 
-#include "SampleBuffer.h"
+#include "Sample.h"
 #include "AutomatableModel.h"
 #include "PlayHandle.h"
 
@@ -43,7 +43,7 @@ class AudioPort;
 class SamplePlayHandle : public PlayHandle
 {
 public:
-	SamplePlayHandle(std::shared_ptr<SampleBuffer> sampleBuffer , bool ownAudioPort = true);
+	SamplePlayHandle(std::shared_ptr<Sample> sample, bool ownAudioPort = true);
 	SamplePlayHandle( const QString& sampleFile );
 	SamplePlayHandle( SampleClip* clip );
 	~SamplePlayHandle() override;
@@ -81,7 +81,7 @@ public:
 
 
 private:
-	std::shared_ptr<SampleBuffer> m_sampleBuffer;
+	std::weak_ptr<Sample> m_sample;
 	bool m_doneMayReturnTrue;
 
 	f_cnt_t m_frame;

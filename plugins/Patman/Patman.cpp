@@ -154,7 +154,7 @@ void PatmanInstrument::playNote( NotePlayHandle * _n,
 						hdata->sample->frequency();
 
 	if (hdata->sample->play(_working_buffer + offset, hdata->state, frames,
-					play_freq, m_loopedModel.value() ? SampleBuffer::LoopMode::LoopOn : SampleBuffer::LoopMode::LoopOff))
+					play_freq, m_loopedModel.value() ? Sample::LoopMode::LoopOn : Sample::LoopMode::LoopOff))
 	{
 		applyRelease( _working_buffer, _n );
 		instrumentTrack()->processAudioBuffer( _working_buffer,
@@ -357,9 +357,12 @@ PatmanInstrument::LoadErrors PatmanInstrument::loadPatch(
 			}
 		}
 
-		auto psample = SampleBuffer::create(data, frames);
-		psample->setFrequency( root_freq / 1000.0f );
-		psample->setSampleRate( sample_rate );
+		auto buffer = SampleBuffer::create(data, frames);
+		buffer->setSampleRate(sample_rate);
+		buffer->resample(Engine::audioEngine()->processingSampleRate());
+		
+		auto psample = std::make_shared<Sample>(buffer);
+		psample->setFrequency(root_freq / 1000.0f);
 
 		if( modes & MODES_LOOPING )
 		{
@@ -395,7 +398,7 @@ void PatmanInstrument::selectSample( NotePlayHandle * _n )
 	const float freq = _n->frequency();
 
 	float min_dist = HUGE_VALF;
-	std::shared_ptr<SampleBuffer> sample = nullptr;
+	std::shared_ptr<Sample> sample = nullptr;
 
 	for (const auto& patchSample : m_patchSamples)
 	{
@@ -418,7 +421,7 @@ void PatmanInstrument::selectSample( NotePlayHandle * _n )
 	}
 	else
 	{
-		hdata->sample = SampleBuffer::create();
+		hdata->sample = std::make_shared<Sample>();
 	}
 	hdata->state = new Sample::PlaybackState(_n->hasDetuningInfo());
 

@@ -49,29 +49,33 @@
 
 namespace lmms
 {
-
-// values for buffer margins, used for various libsamplerate interpolation modes
-// the array positions correspond to the converter_type parameter values in libsamplerate
-// if there appears problems with playback on some interpolation mode, then the value for that mode
-// may need to be higher - conversely, to optimize, some may work with lower values
-static auto s_interpolationMargins = std::array<f_cnt_t, 5>{64, 64, 64, 4, 4};
-
 SampleBuffer::SampleBuffer()
 {
-	connect(Engine::audioEngine(), SIGNAL(sampleRateChanged()), this, SLOT(sampleRateChanged()));
+	connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); });
 }
 
-SampleBuffer::SampleBuffer(const QString& audioFile, bool isBase64Data)
+SampleBuffer::SampleBuffer(const QString& audioFile, bool isBase64Data, sample_rate_t base64SampleRate)
 	: SampleBuffer()
 {
 	if (isBase64Data)
 	{
 		loadFromBase64(audioFile);
+		if (base64SampleRate != audioEngineSampleRate())
+		{
+			m_sampleRate = base64SampleRate;
+			resample(audioEngineSampleRate());
+		}
 	}
 	else
 	{
 		loadFromAudioFile(audioFile);
+		if (m_sampleRate != audioEngineSampleRate())
+		{
+			resample(audioEngineSampleRate());
+		}
 	}
+
+	update();
 }
 
 SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames)
@@ -80,7 +84,6 @@ SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames)
 	if (frames > 0)
 	{
 		m_data = std::vector<sampleFrame>(data, data + frames);
-		setAllPointFrames(0, frames, 0, frames);
 		update();
 	}
 }
@@ -91,7 +94,6 @@ SampleBuffer::SampleBuffer(const f_cnt_t frames)
 	if (frames > 0)
 	{
 		m_data = std::vector<sampleFrame>(frames);
-		setAllPointFrames(0, frames, 0, frames);
 		update();
 	}
 }
@@ -101,10 +103,6 @@ SampleBuffer::SampleBuffer(const SampleBuffer& orig)
 	const auto lockGuard = std::shared_lock{orig.m_mutex};
 	m_audioFile = orig.m_audioFile;
 	m_data = orig.m_data;
-	m_sample.m_playMarkers = orig.m_sample.m_playMarkers;
-	m_sample.m_amplification = orig.m_sample.m_amplification;
-	m_reversed = orig.m_reversed;
-	m_sample.m_frequency = orig.m_sample.m_frequency;
 	m_sampleRate = orig.m_sampleRate;
 }
 
@@ -117,13 +115,7 @@ void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 
 	first.m_audioFile.swap(second.m_audioFile);
 	swap(first.m_data, second.m_data);
-	swap(first.m_reversed, second.m_reversed);
 	swap(first.m_sampleRate, second.m_sampleRate);
-
-	// TODO: Currently inaccessible due to the move within Sample
-	// swap(first.m_sample.m_playMarkers, second.m_sample.m_playMarkers);
-	// swap(first.m_sample.m_amplification, second.m_sample.m_amplification);
-	// swap(first.m_sample.m_frequency, second.m_sample.m_frequency);
 }
 
 SampleBuffer& SampleBuffer::operator=(SampleBuffer that)
@@ -134,7 +126,9 @@ SampleBuffer& SampleBuffer::operator=(SampleBuffer that)
 
 void SampleBuffer::sampleRateChanged()
 {
-	normalizeSampleRate(m_sampleRate, true);
+	// TODO: Resample original data instead of resampling the same data multiple times
+	//		 in order to maintain audio quality.
+	resample(Engine::audioEngine()->processingSampleRate());
 	update();
 }
 
@@ -149,8 +143,6 @@ void SampleBuffer::update()
 	{
 		Oscillator::generateAntiAliasUserWaveTable(this);
 	}
-
-	emit sampleUpdated();
 }
 
 bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui) const
@@ -200,34 +192,6 @@ bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
 	}
 
 	return exceedsLimits;
-}
-
-void SampleBuffer::normalizeSampleRate(const sample_rate_t srcSR, bool keepSettings)
-{
-	const sample_rate_t oldRate = m_sampleRate;
-	// do samplerate-conversion to our default-samplerate
-	if (srcSR != audioEngineSampleRate())
-	{
-		resample(audioEngineSampleRate());
-	}
-
-	if (keepSettings == false)
-	{
-		// update frame-variables
-		setAllPointFrames(0, frames(), 0, frames());
-	}
-	else if (oldRate != audioEngineSampleRate())
-	{
-		auto oldRateToNewRateRatio = static_cast<float>(audioEngineSampleRate()) / oldRate;
-		const auto numFrames = frames();
-		auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_sample.m_playMarkers;
-
-		startFrame = std::clamp(static_cast<f_cnt_t>(startFrame * oldRateToNewRateRatio), 0, numFrames);
-		endFrame = std::clamp(static_cast<f_cnt_t>(endFrame * oldRateToNewRateRatio), startFrame, numFrames);
-		loopStartFrame = std::clamp(static_cast<f_cnt_t>(loopStartFrame * oldRateToNewRateRatio), 0, numFrames);
-		loopEndFrame = std::clamp(static_cast<f_cnt_t>(loopEndFrame * oldRateToNewRateRatio), loopStartFrame, numFrames);
-		m_sampleRate = audioEngineSampleRate();
-	}
 }
 
 sample_t SampleBuffer::userWaveSample(const float sample) const
@@ -292,11 +256,6 @@ void SampleBuffer::decodeSampleSF(const QString& fileName)
 		std::copy_n(buf.begin(), buf.size(), &result[0][0]);
 	}
 
-	if (m_reversed)
-	{
-		std::reverse(result.begin(), result.end());
-	}
-
 	m_data = result;
 	m_audioFile = fileName;
 	m_sampleRate = sfInfo.samplerate;
@@ -315,10 +274,6 @@ void SampleBuffer::decodeSampleDS(const QString& fileName)
 	if (frames > 0 && data != nullptr)
 	{
 		src_short_to_float_array(data.get(), &result[0][0], frames * DEFAULT_CHANNELS);
-		if (m_reversed)
-		{
-			std::reverse(result.begin(), result.end());
-		}
 	}
 	else
 	{
@@ -328,33 +283,6 @@ void SampleBuffer::decodeSampleDS(const QString& fileName)
 	m_data = result;
 	m_audioFile = fileName;
 	m_sampleRate = audioEngineSampleRate();
-}
-
-bool SampleBuffer::play(
-	sampleFrame * ab,
-	Sample::PlaybackState * state,
-	const fpp_t frames,
-	const float freq,
-	const LoopMode loopMode
-)
-{
-	return m_sample.play(this, ab, state, frames, freq,
-		static_cast<Sample::LoopMode>(static_cast<int>(loopMode)));
-}
-
-void SampleBuffer::visualize(
-	QPainter & p,
-	const QRect & dr,
-	f_cnt_t fromFrame,
-	f_cnt_t toFrame
-)
-{
-	m_sample.visualize(this, p, dr, fromFrame, toFrame);
-}
-
-int SampleBuffer::sampleLength() const
-{
-	return static_cast<double>(m_sample.m_playMarkers.endFrame - m_sample.m_playMarkers.startFrame) / m_sampleRate * 1000;
 }
 
 QString SampleBuffer::toBase64() const
@@ -389,7 +317,7 @@ void SampleBuffer::resample(sample_rate_t newSampleRate)
 	m_sampleRate = newSampleRate;
 }
 
-void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings)
+void SampleBuffer::loadFromAudioFile(const QString& audioFile)
 {
 	if (audioFile.isEmpty()) { return; }
 
@@ -404,14 +332,10 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 			// Note: DrumSynth files aren't checked for file limits since we are using sndfile to detect them.
 			// In the future, checking for limits may become unnecessary anyways, so this seems fine for now.
 			decodeSampleDS(file);
-			setAllPointFrames(0, frames(), 0, frames());
-			update();
 		}
 		else if (!fileExceedsLimits(file))
 		{
 			decodeSampleSF(file);
-			normalizeSampleRate(m_sampleRate, keepSettings);
-			update();
 		}
 	}
 	catch (std::runtime_error& error)
@@ -429,7 +353,7 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile, bool keepSettings
 	Engine::audioEngine()->doneChangeInModel();
 }
 
-void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
+void SampleBuffer::loadFromBase64(const QString& data)
 {
 	if (data.isEmpty()) { return; }
 
@@ -442,34 +366,7 @@ void SampleBuffer::loadFromBase64(const QString& data, bool keepSettings)
 	const auto numFrames = base64Data.size() / sizeof(sampleFrame);
 
 	m_data = std::vector<sampleFrame>(sampleFrameData, sampleFrameData + numFrames);
-
-	if (!keepSettings)
-	{
-		setAllPointFrames(0, numFrames, 0, numFrames);
-	}
-
 	Engine::audioEngine()->doneChangeInModel();
-	update();
-}
-
-void SampleBuffer::setAmplification(float a)
-{
-	m_sample.m_amplification = a;
-	emit sampleUpdated();
-}
-
-void SampleBuffer::setReversed(bool on)
-{
-	// TODO: Locking while reversing creates noticeable pauses.
-	// Change later so that this operation happens in real-time.
-	Engine::audioEngine()->requestChangeInModel();
-	const auto lockGuard = std::unique_lock{m_mutex};
-
-	if (m_reversed != on) { std::reverse(m_data.begin(), m_data.end()); }
-	m_reversed = on;
-
-	Engine::audioEngine()->doneChangeInModel();
-	emit sampleUpdated();
 }
 
 } // namespace lmms
