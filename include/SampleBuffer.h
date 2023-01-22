@@ -52,11 +52,18 @@ namespace lmms
 class LMMS_EXPORT SampleBuffer
 {
 public:
+	enum class Type
+	{
+		AudioFile,
+		Base64
+	};
+
 	SampleBuffer();
 	SampleBuffer(const sampleFrame* data, f_cnt_t frames);
 	explicit SampleBuffer(f_cnt_t frames);
 	SampleBuffer(const SampleBuffer& other) = delete;
 	SampleBuffer(SampleBuffer&& other);
+	~SampleBuffer() noexcept;
 
 	SampleBuffer& operator=(const SampleBuffer& other) = delete;
 	SampleBuffer& operator=(SampleBuffer&& other);
@@ -97,6 +104,7 @@ private:
 	mutable std::shared_mutex m_mutex;
 	sample_rate_t m_sampleRate = audioEngineSampleRate();
 	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
+	QMetaObject::Connection m_sampleRateChangeConnection;
 };
 
 } // namespace lmms
