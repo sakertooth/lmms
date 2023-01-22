@@ -49,16 +49,26 @@
 
 namespace lmms
 {
-SampleBuffer::SampleBuffer()
+SampleBuffer::SampleBuffer() :
+	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), 
+		&AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); }))
 {
-	QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); });
 }
 
 SampleBuffer::SampleBuffer(SampleBuffer&& other) :
 	m_audioFile(std::exchange(other.m_audioFile, "")),
 	m_data(std::move(other.m_data)),
 	m_sampleRate(std::exchange(other.m_sampleRate, audioEngineSampleRate())),
-	m_userAntiAliasWaveTable(std::move(other.m_userAntiAliasWaveTable)) {}
+	m_userAntiAliasWaveTable(std::move(other.m_userAntiAliasWaveTable)),
+	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), 
+		&AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); }))
+{
+}
+
+SampleBuffer::~SampleBuffer() noexcept
+{
+	QObject::disconnect(m_sampleRateChangeConnection);
+}
 
 SampleBuffer& SampleBuffer::operator=(SampleBuffer&& other)
 {
@@ -66,6 +76,7 @@ SampleBuffer& SampleBuffer::operator=(SampleBuffer&& other)
 	m_data = std::move(other.m_data);
 	m_sampleRate = std::exchange(other.m_sampleRate, audioEngineSampleRate());
 	m_userAntiAliasWaveTable = std::move(other.m_userAntiAliasWaveTable);
+	m_sampleRateChangeConnection = std::move(other.m_sampleRateChangeConnection);
 	return *this;
 }
 
@@ -84,12 +95,15 @@ std::shared_ptr<SampleBuffer> SampleBuffer::createFromBase64(const QString& base
 	return buffer;
 }
 
-SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames)
-	: SampleBuffer()
+SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames) :
+	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), 
+		&AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); }))
 {
 	if (frames > 0)
 	{
-		m_data = std::vector<sampleFrame>(data, data + frames);
+		m_data = data != nullptr ? 
+			std::vector<sampleFrame>(data, data + frames) :
+			std::vector<sampleFrame>(frames);
 		update();
 	}
 }
