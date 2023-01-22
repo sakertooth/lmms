@@ -71,7 +71,7 @@ public:
 	static std::shared_ptr<SampleBuffer> createFromAudioFile(const QString& audioFile);
 	static std::shared_ptr<SampleBuffer> createFromBase64(const QString& base64);
 
-	void resample(sample_rate_t newSampleRate);
+	void resample(sample_rate_t newSampleRate, bool fromOriginal = true);
 	void normalizeSampleRate(sample_rate_t srcSR, bool keepSettings = false);
 	sample_t userWaveSample(float sample) const;
 	int sampleLength() const;
@@ -105,6 +105,10 @@ private:
 	sample_rate_t m_sampleRate = audioEngineSampleRate();
 	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
 	QMetaObject::Connection m_sampleRateChangeConnection;
+
+	// TODO: Move out of SampleBuffer class when sample caching is added
+	std::vector<sampleFrame> m_originalData;
+	sample_rate_t m_originalSampleRate = audioEngineSampleRate();
 };
 
 } // namespace lmms

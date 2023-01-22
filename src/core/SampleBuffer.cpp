@@ -61,8 +61,11 @@ SampleBuffer::SampleBuffer(SampleBuffer&& other) :
 	m_sampleRate(std::exchange(other.m_sampleRate, audioEngineSampleRate())),
 	m_userAntiAliasWaveTable(std::move(other.m_userAntiAliasWaveTable)),
 	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), 
-		&AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); }))
+		&AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); })),
+	m_originalData(std::move(other.m_originalData)),
+	m_originalSampleRate(std::exchange(other.m_originalSampleRate, audioEngineSampleRate()))
 {
+	update();
 }
 
 SampleBuffer::~SampleBuffer() noexcept
@@ -120,8 +123,6 @@ SampleBuffer::SampleBuffer(const f_cnt_t frames)
 
 void SampleBuffer::sampleRateChanged()
 {
-	// TODO: Resample original data instead of resampling the same data multiple times
-	//		 in order to maintain audio quality.
 	resample(Engine::audioEngine()->processingSampleRate());
 	update();
 }
@@ -251,8 +252,10 @@ void SampleBuffer::decodeSampleSF(const QString& fileName)
 	}
 
 	m_data = result;
+	m_originalData = result;
 	m_audioFile = fileName;
 	m_sampleRate = sfInfo.samplerate;
+	m_originalSampleRate = sfInfo.samplerate;
 }
 
 void SampleBuffer::decodeSampleDS(const QString& fileName)
@@ -275,8 +278,10 @@ void SampleBuffer::decodeSampleDS(const QString& fileName)
 	}
 
 	m_data = result;
+	m_originalData = result;
 	m_audioFile = fileName;
 	m_sampleRate = audioEngineSampleRate();
+	m_originalSampleRate = audioEngineSampleRate();
 }
 
 QString SampleBuffer::toBase64() const
@@ -287,19 +292,20 @@ QString SampleBuffer::toBase64() const
 	return QString::fromUtf8(byteArray.toBase64());
 }
 
-void SampleBuffer::resample(sample_rate_t newSampleRate)
+void SampleBuffer::resample(sample_rate_t newSampleRate, bool fromOriginal)
 {
-	const auto dstFrames = static_cast<f_cnt_t>((frames() / static_cast<float>(m_sampleRate)) * static_cast<float>(newSampleRate));
+	const auto srcSampleRate = fromOriginal ? m_originalSampleRate : m_sampleRate;
+	const auto dstFrames = static_cast<f_cnt_t>((frames() / static_cast<float>(srcSampleRate)) * static_cast<float>(newSampleRate));
 	auto dst = std::vector<sampleFrame>(dstFrames);
 
 	// yeah, libsamplerate, let's rock with sinc-interpolation!
 	auto srcData = SRC_DATA{};
 	srcData.end_of_input = 1;
-	srcData.data_in = &m_data[0][0];
+	srcData.data_in = fromOriginal ? &m_originalData[0][0] : &m_data[0][0];
 	srcData.data_out = &dst[0][0];
 	srcData.input_frames = frames();
 	srcData.output_frames = dstFrames;
-	srcData.src_ratio = static_cast<double>(newSampleRate) / m_sampleRate;
+	srcData.src_ratio = static_cast<double>(newSampleRate) / srcSampleRate;
 
 	auto error = src_simple(&srcData, SRC_SINC_MEDIUM_QUALITY, DEFAULT_CHANNELS);
 	if (error != 0)
