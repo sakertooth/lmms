@@ -300,10 +300,6 @@ void SampleBuffer::resample(sample_rate_t newSampleRate)
 void SampleBuffer::loadFromAudioFile(const QString& audioFile)
 {
 	if (audioFile.isEmpty()) { return; }
-
-	Engine::audioEngine()->requestChangeInModel();
-	const auto lockGuard = std::unique_lock{m_mutex};
-
 	try
 	{
 		const auto file = PathUtil::toAbsolute(PathUtil::toShortestRelative(audioFile));
@@ -336,16 +332,11 @@ void SampleBuffer::loadFromAudioFile(const QString& audioFile)
 
 		std::cerr << "Could not load audio file: " << error.what() << '\n';
 	}
-
-	Engine::audioEngine()->doneChangeInModel();
 }
 
 void SampleBuffer::loadFromBase64(const QString& data)
 {
 	if (data.isEmpty()) { return; }
-
-	Engine::audioEngine()->requestChangeInModel();
-	const auto lockGuard = std::unique_lock{m_mutex};
 
 	// TODO: Replace with non-Qt equivalent
 	auto base64Data = data.toUtf8().toBase64();
@@ -359,7 +350,6 @@ void SampleBuffer::loadFromBase64(const QString& data)
 	}
 
 	update();
-	Engine::audioEngine()->doneChangeInModel();
 }
 
 } // namespace lmms
