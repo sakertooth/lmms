@@ -41,6 +41,7 @@ namespace lmms
 
     Sample::Sample(std::shared_ptr<SampleBuffer> buffer) :
         m_buffer(buffer),
+        m_playMarkers({0, m_buffer->frames(), 0, m_buffer->frames()}),
         m_markerSampleRate(m_buffer->sampleRate()) {}
 
     auto Sample::createFromAudioFile(const QString& audioFile) -> std::shared_ptr<Sample>
