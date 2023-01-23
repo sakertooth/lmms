@@ -235,20 +235,20 @@ void SampleBuffer::decodeSampleSF(const QString& fileName)
 	file.close();
 
 	auto result = std::vector<sampleFrame>(sfInfo.frames);
-	if (sfInfo.channels == 1)
+	for (int i = 0; i < static_cast<int>(result.size()); ++i)
 	{
-		// Upmix mono to stereo
-		for (int i = 0; i < static_cast<int>(result.size()); ++i)
+		if (sfInfo.channels == 1)
 		{
+			// Upmix from mono to stereo
 			result[i] = {buf[i], buf[i]};
 		}
-	}
-	else if (sfInfo.channels > 1)
-	{
-		// TODO: Add support for higher number of channels (i.e., 5.1 channel systems)
-		// The current behavior assumes stereo in all cases excluding mono.
-		// This may not be the expected behavior, given some audio files with a higher number of channels.
-		std::copy_n(buf.begin(), buf.size(), &result[0][0]);
+		else if (sfInfo.channels > 1)
+		{
+			// TODO: Add support for higher number of channels (i.e., 5.1 channel systems)
+			// The current behavior assumes stereo in all cases excluding mono.
+			// This may not be the expected behavior, given some audio files with a higher number of channels.
+			result[i] = {buf[i * sfInfo.channels], buf[i * sfInfo.channels + 1]};
+		}
 	}
 
 	m_data = result;
