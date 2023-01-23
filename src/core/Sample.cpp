@@ -226,7 +226,15 @@ namespace lmms
             // (endFrame - currentFrame)
             const auto numFramesToCopy = std::min(numFramesRequested, endFrame - currentFrame);
             assert(numFramesToCopy >= 0);
-            std::copy_n(m_buffer->data().begin() + currentFrame, numFramesToCopy, out.begin());
+
+            if (m_reversed)
+            {
+                std::copy_n(m_buffer->data().rbegin() + currentFrame, numFramesToCopy, out.begin());
+            }
+            else 
+            {
+                std::copy_n(m_buffer->data().begin() + currentFrame, numFramesToCopy, out.begin());
+            }
         }
         else if (loopMode == LoopMode::LoopOn || loopMode == LoopMode::LoopPingPong)
         {
@@ -258,12 +266,27 @@ namespace lmms
 
                 if (loopMode == LoopMode::LoopOn || (!*backwards && loopMode == LoopMode::LoopPingPong))
                 {
-                    std::copy_n(m_buffer->data().begin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
+                    if (m_reversed)
+                    {
+                        std::copy_n(m_buffer->data().rbegin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
+                    }
+                    else
+                    {
+                        std::copy_n(m_buffer->data().begin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
+                    }
                 }
                 else if (*backwards && loopMode == LoopMode::LoopPingPong)
                 {
                     auto distanceFromPlayPosition = std::distance(m_buffer->data().begin() + playPosition, m_buffer->data().end());
-                    std::copy_n(m_buffer->data().rbegin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
+
+                    if (m_reversed)
+                    {
+                        std::copy_n(m_buffer->data().begin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);    
+                    }
+                    else
+                    {  
+                        std::copy_n(m_buffer->data().rbegin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
+                    }
                 }
 
                 playPosition += (*backwards && loopMode == LoopMode::LoopPingPong ? -numFramesToCopy : numFramesToCopy);
