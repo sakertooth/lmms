@@ -57,7 +57,7 @@ namespace lmms
     }
 
     auto Sample::play(
-        sampleFrame* dst, PlaybackState* state, 
+        sampleFrame* dst, PlaybackState* state,
         fpp_t frames, float freq,
         LoopMode loopMode
     ) -> bool
@@ -231,7 +231,7 @@ namespace lmms
             {
                 std::copy_n(m_buffer->data().rbegin() + currentFrame, numFramesToCopy, out.begin());
             }
-            else 
+            else
             {
                 std::copy_n(m_buffer->data().begin() + currentFrame, numFramesToCopy, out.begin());
             }
@@ -281,10 +281,10 @@ namespace lmms
 
                     if (m_reversed)
                     {
-                        std::copy_n(m_buffer->data().begin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);    
+                        std::copy_n(m_buffer->data().begin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
                     }
                     else
-                    {  
+                    {
                         std::copy_n(m_buffer->data().rbegin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
                     }
                 }
@@ -312,7 +312,7 @@ namespace lmms
                 }
             }
         }
-        
+
         return out;
     }
 
@@ -391,6 +391,12 @@ namespace lmms
             auto x = nbFrames >= w
                 ? xb + curPixel
                 : xb + ((static_cast<double>(curPixel) / nbFrames) * w);
+
+            if (m_reversed)
+            {
+                x = w - 1 - x;
+            }
+
             // Partial Y calculation
             auto py = ySpace * m_amplification;
             fEdgeMax[curPixel] = QPointF(x, (yb - (maxData * py)));
@@ -475,7 +481,7 @@ namespace lmms
     {
         return m_amplification;
     }
-    
+
     auto Sample::frequency() const -> float
     {
         return m_frequency;
