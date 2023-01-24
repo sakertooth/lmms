@@ -72,7 +72,6 @@ public:
 	static std::shared_ptr<SampleBuffer> createFromBase64(const QString& base64);
 
 	void resample(sample_rate_t newSampleRate, bool fromOriginal = true);
-	void normalizeSampleRate(sample_rate_t srcSR, bool keepSettings = false);
 	int sampleLength() const;
 	QString toBase64() const;
 
