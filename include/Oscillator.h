@@ -161,9 +161,19 @@ public:
 		return 1.0f - fast_rand() * 2.0f / FAST_RAND_MAX;
 	}
 
-	inline sample_t userWaveSample( const float _sample ) const
+	static inline sample_t userWaveSample(const SampleBuffer* buffer, const float sample)
 	{
-		return m_userWave->userWaveSample( _sample );
+		const auto frames = buffer->frames();
+		const auto& data = buffer->data();
+		const auto frame = sample * frames;
+
+		auto f1 = static_cast<f_cnt_t>(frame) % frames;
+		if (f1 < 0)
+		{
+			f1 += frames;
+		}
+
+		return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
 	}
 
 	struct wtSampleControl {
@@ -304,7 +314,7 @@ private:
 							const ch_cnt_t _chnl );
 
 	template<WaveShapes W>
-	inline sample_t getSample( const float _sample );
+	inline sample_t getSample(const float _sample);
 
 	inline void recalcPhase();
 

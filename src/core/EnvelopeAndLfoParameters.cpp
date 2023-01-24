@@ -222,7 +222,7 @@ inline sample_t EnvelopeAndLfoParameters::lfoShapeSample( fpp_t _frame_offset )
 			shape_sample = Oscillator::sawSample( phase );
 			break;
 		case UserDefinedWave:
-			shape_sample = m_userWave->userWaveSample( phase );
+			shape_sample = Oscillator::userWaveSample(m_userWave.get(), phase);
 			break;
 		case RandomWave:
 			if( frame == 0 )
