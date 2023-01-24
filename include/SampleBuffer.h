@@ -73,7 +73,6 @@ public:
 
 	void resample(sample_rate_t newSampleRate, bool fromOriginal = true);
 	void normalizeSampleRate(sample_rate_t srcSR, bool keepSettings = false);
-	sample_t userWaveSample(float sample) const;
 	int sampleLength() const;
 	QString toBase64() const;
 

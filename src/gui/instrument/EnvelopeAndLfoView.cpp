@@ -481,8 +481,7 @@ void EnvelopeAndLfoView::paintEvent( QPaintEvent * )
 					val = m_randomGraph;
 					break;
 				case EnvelopeAndLfoParameters::UserDefinedWave:
-					val = m_params->m_userWave->
-							userWaveSample( phase );
+					val = Oscillator::userWaveSample(m_params->m_userWave.get(), phase);
 					break;
 			}
 			if( static_cast<f_cnt_t>( cur_sample ) <=

@@ -106,7 +106,7 @@ void LfoController::updateValueBuffer()
 	{
 		const float currentSample = m_sampleFunction != nullptr
 			? m_sampleFunction( phase )
-			: m_userDefSampleBuffer->userWaveSample( phase );
+			: Oscillator::userWaveSample(m_userDefSampleBuffer.get(), phase);
 
 		f = qBound( 0.0f, m_baseModel.value() + ( *amountPtr * currentSample / 2.0f ), 1.0f );
 

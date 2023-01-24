@@ -189,21 +189,6 @@ bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
 	return exceedsLimits;
 }
 
-sample_t SampleBuffer::userWaveSample(const float sample) const
-{
-	const auto frames = m_data.size();
-	const auto data = m_data.data();
-	const auto frame = sample * frames;
-
-	auto f1 = static_cast<f_cnt_t>(frame) % frames;
-	if (f1 < 0)
-	{
-		f1 += frames;
-	}
-
-	return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
-}
-
 void SampleBuffer::decodeSampleSF(const QString& fileName)
 {
 	SNDFILE* sndFile = nullptr;
