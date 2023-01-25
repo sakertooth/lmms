@@ -52,12 +52,6 @@ namespace lmms
 class LMMS_EXPORT SampleBuffer
 {
 public:
-	enum class Type
-	{
-		AudioFile,
-		Base64
-	};
-
 	SampleBuffer();
 	SampleBuffer(const sampleFrame* data, f_cnt_t frames);
 	explicit SampleBuffer(f_cnt_t frames);
