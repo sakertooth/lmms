@@ -98,7 +98,7 @@ std::shared_ptr<SampleBuffer> SampleBuffer::createFromBase64(const QString& base
 	return buffer;
 }
 
-SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames) :
+SampleBuffer::SampleBuffer(const sampleFrame * data, f_cnt_t frames, int sampleRate) :
 	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), 
 		&AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); }))
 {
@@ -107,11 +107,17 @@ SampleBuffer::SampleBuffer(const sampleFrame * data, const f_cnt_t frames) :
 		m_data = data != nullptr ? 
 			std::vector<sampleFrame>(data, data + frames) :
 			std::vector<sampleFrame>(frames);
+
+		if (sampleRate != static_cast<int>(audioEngineSampleRate()))
+		{
+			resample(audioEngineSampleRate());
+		}
+
 		update();
 	}
 }
 
-SampleBuffer::SampleBuffer(const f_cnt_t frames)
+SampleBuffer::SampleBuffer(f_cnt_t frames)
 	: SampleBuffer()
 {
 	if (frames > 0)

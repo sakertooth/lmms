@@ -90,8 +90,7 @@ std::shared_ptr<SampleBuffer> AudioSampleRecorder::createSampleBuffer()
 		data_ptr += ( *it ).second;
 	}
 	// create according sample-buffer out of big buffer
-	auto sampleBuf = std::make_shared<SampleBuffer>(data, frames);
-	sampleBuf->setSampleRate(sampleRate());
+	auto sampleBuf = std::make_shared<SampleBuffer>(data, frames, sampleRate());
 	delete[] data;
 
 	return sampleBuf;
