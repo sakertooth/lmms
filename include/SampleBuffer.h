@@ -65,7 +65,6 @@ public:
 	static std::shared_ptr<SampleBuffer> createFromAudioFile(const QString& audioFile);
 	static std::shared_ptr<SampleBuffer> createFromBase64(const QString& base64);
 
-	int sampleLength() const;
 	QString toBase64() const;
 
 	const QString& audioFile() const { return m_audioFile; }
