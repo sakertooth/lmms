@@ -87,7 +87,6 @@ std::shared_ptr<SampleBuffer> SampleBuffer::createFromAudioFile(const QString& a
 {
 	auto buffer = std::make_shared<SampleBuffer>();
 	buffer->loadFromAudioFile(audioFile);
-	std::cout << '\n';
 	return buffer;
 }
 
