@@ -53,7 +53,7 @@ class LMMS_EXPORT SampleBuffer
 {
 public:
 	SampleBuffer();
-	SampleBuffer(const sampleFrame* data, f_cnt_t frames);
+	SampleBuffer(const sampleFrame* data, f_cnt_t frames, int sampleRate = audioEngineSampleRate());
 	explicit SampleBuffer(f_cnt_t frames);
 	SampleBuffer(const SampleBuffer& other) = delete;
 	SampleBuffer(SampleBuffer&& other);
@@ -65,7 +65,6 @@ public:
 	static std::shared_ptr<SampleBuffer> createFromAudioFile(const QString& audioFile);
 	static std::shared_ptr<SampleBuffer> createFromBase64(const QString& base64);
 
-	void resample(sample_rate_t newSampleRate, bool fromOriginal = true);
 	int sampleLength() const;
 	QString toBase64() const;
 
@@ -76,8 +75,6 @@ public:
 	const std::unique_ptr<OscillatorConstants::waveform_t>& userAntiAliasWaveTable() const { return m_userAntiAliasWaveTable; }
 
 	f_cnt_t frames() const { return static_cast<f_cnt_t>(m_data.size()); }
-public slots:
-	void setSampleRate(sample_rate_t sampleRate) { m_sampleRate = sampleRate; }
 private:
 	void update();
 	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true) const;
@@ -90,6 +87,7 @@ private:
 	void decodeSampleDS(const QString& fileName);
 	
 	void sampleRateChanged();
+	void resample(sample_rate_t newSampleRate, bool fromOriginal = true);
 private:
 	QString m_audioFile = "";
 	std::vector<sampleFrame> m_data;
