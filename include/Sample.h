@@ -81,10 +81,15 @@ namespace lmms
         };
 
         Sample() = default;
+        Sample(const QString& audioFile);
         Sample(std::shared_ptr<SampleBuffer> buffer);
 
-        static auto createFromAudioFile(const QString& audioFile) -> std::shared_ptr<Sample>;
-        static auto createFromBase64(const QString& base64) -> std::shared_ptr<Sample>;
+        template<typename... Args>
+        static std::shared_ptr<Sample> create(Args&&... args)
+        {
+            auto deleter = [](Sample* obj) { obj->deleteLater(); };
+            return std::shared_ptr<Sample>(new Sample(std::forward<Args>(args)..., deleter));
+        }
 
         auto play(sampleFrame* dst, PlaybackState* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff) -> bool;
 
@@ -129,7 +134,7 @@ namespace lmms
         auto getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
         auto getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
     private:
-        std::shared_ptr<const SampleBuffer> m_buffer = std::make_shared<SampleBuffer>();
+        std::shared_ptr<const SampleBuffer> m_buffer = std::make_shared<const SampleBuffer>();
         PlayMarkers m_playMarkers = {0, 0, 0, 0};
         float m_amplification = 1.0f;
         float m_frequency = DefaultBaseFreq;

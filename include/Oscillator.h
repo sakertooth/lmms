@@ -88,7 +88,7 @@ public:
 
 	static void waveTableInit();
 	static void destroyFFTPlans();
-	static void generateAntiAliasUserWaveTable(SampleBuffer* sampleBuffer);
+	static std::unique_ptr<OscillatorConstants::waveform_t> generateAntiAliasUserWaveTable(const SampleBuffer* sampleBuffer);
 
 	inline void setUseWaveTable(bool n)
 	{
@@ -98,6 +98,11 @@ public:
 	inline void setUserWave(std::shared_ptr<SampleBuffer> _wave)
 	{
 		m_userWave = _wave;
+	}
+
+	inline void setUserAntiAliasWaveTable(const OscillatorConstants::waveform_t* table)
+	{
+		m_userAntiAliasWaveTable = table;
 	}
 
 	void update(sampleFrame* ab, const fpp_t frames, const ch_cnt_t chnl, bool modulator = false);
@@ -163,8 +168,7 @@ public:
 
 	static inline sample_t userWaveSample(const SampleBuffer* buffer, const float sample)
 	{
-		const auto frames = buffer->frames();
-		const auto& data = buffer->data();
+		const auto frames = buffer->size();
 		const auto frame = sample * frames;
 
 		auto f1 = static_cast<f_cnt_t>(frame) % frames;
@@ -173,7 +177,7 @@ public:
 			f1 += frames;
 		}
 
-		return linearInterpolate(data[f1][0], data[(f1 + 1) % frames][0], fraction(frame));
+		return linearInterpolate(buffer->data()[f1][0], buffer->data()[(f1 + 1) % frames][0], fraction(frame));
 	}
 
 	struct wtSampleControl {
@@ -210,7 +214,7 @@ public:
 				table[control.band][control.f2], fraction(control.frame));
 	}
 
-	inline sample_t wtSample(const std::unique_ptr<OscillatorConstants::waveform_t>& table, const float sample) const
+	inline sample_t wtSample(const OscillatorConstants::waveform_t* table, const float sample) const
 	{
 		assert(table != nullptr);
 		wtSampleControl control = getWtSampleControl(sample);
@@ -255,6 +259,7 @@ private:
 	float m_phaseOffset;
 	float m_phase;
 	std::shared_ptr<const SampleBuffer> m_userWave;
+	const OscillatorConstants::waveform_t* m_userAntiAliasWaveTable{};
 	bool m_useWaveTable;
 	// There are many update*() variants; the modulator flag is stored as a member variable to avoid
 	// adding more explicit parameters to all of them. Can be converted to a parameter if needed.

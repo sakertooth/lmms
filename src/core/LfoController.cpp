@@ -25,6 +25,8 @@
 
 #include <QDomElement>
 
+#include <iostream>
+
 
 #include "LfoController.h"
 #include "AudioEngine.h"
@@ -209,7 +211,19 @@ void LfoController::loadSettings( const QDomElement & _this )
 	m_phaseModel.loadSettings( _this, "phase" );
 	m_waveModel.loadSettings( _this, "wave" );
 	m_multiplierModel.loadSettings( _this, "multiplier" );
-	m_userDefSampleBuffer = SampleBuffer::createFromAudioFile(_this.attribute("userwavefile"));
+	
+	const auto userWaveFile = _this.attribute("userwavefile");
+	if (!userWaveFile.isEmpty())
+	{
+		try
+		{
+			m_userDefSampleBuffer = std::make_shared<SampleBuffer>(_this.attribute("userwavefile"));
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
+	}
 
 	updateSampleFunction();
 }

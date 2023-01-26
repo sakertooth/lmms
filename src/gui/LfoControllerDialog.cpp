@@ -26,6 +26,7 @@
 
 #include "embed.h"
 
+#include <iostream>
 
 #include "LfoController.h"
 #include "Knob.h"
@@ -216,7 +217,14 @@ void LfoControllerDialog::askUserDefWave()
 
 	if (!fileName.isEmpty())
 	{
-		sampleBuffer = SampleBuffer::createFromAudioFile(fileName);
+		try
+		{
+			sampleBuffer = std::make_shared<SampleBuffer>(fileName);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
 
 		// TODO:
 		m_userWaveBtn->setToolTip(sampleBuffer->audioFile());

@@ -29,10 +29,7 @@
 #include <iostream>
 
 #include <QFile>
-#include <QFileInfo>
 #include <QMessageBox>
-#include <QPainter>
-
 
 #include <sndfile.h>
 
@@ -45,104 +42,129 @@
 #include "GuiApplication.h"
 #include "PathUtil.h"
 
-#include "FileDialog.h"
-
 namespace lmms
 {
-SampleBuffer::SampleBuffer() :
-	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), 
-		&AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); }))
+SampleBuffer::SampleBuffer(const SampleBuffer& other) noexcept :
+	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
+		[this]{ sampleRateChanged(); }))
 {
+	const auto lockGuard = std::scoped_lock{m_mutex, other.m_mutex};
+	m_audioFile = other.m_audioFile;
+	m_data = other.m_data;
+	m_sampleRate = other.m_sampleRate;
+	m_originalData = other.m_originalData;
+	m_originalSampleRate = other.m_originalSampleRate;
 }
 
-SampleBuffer::SampleBuffer(SampleBuffer&& other) :
-	m_audioFile(std::exchange(other.m_audioFile, "")),
-	m_data(std::move(other.m_data)),
-	m_sampleRate(std::exchange(other.m_sampleRate, audioEngineSampleRate())),
-	m_userAntiAliasWaveTable(std::move(other.m_userAntiAliasWaveTable)),
-	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), 
-		&AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); })),
-	m_originalData(std::move(other.m_originalData)),
-	m_originalSampleRate(std::exchange(other.m_originalSampleRate, audioEngineSampleRate()))
+SampleBuffer::SampleBuffer(SampleBuffer&& other) noexcept
 {
-	update();
+	const auto lockGuard = std::shared_lock{other.m_mutex};
+	m_audioFile = std::move(other.m_audioFile);
+	m_data = std::move(other.m_data);
+	m_sampleRate = std::exchange(other.m_sampleRate, 0);
+	m_sampleRateChangeConnection = std::move(other.m_sampleRateChangeConnection);
+	m_originalData = std::move(other.m_originalData);
+	m_originalSampleRate = std::exchange(m_originalSampleRate, 0);
 }
+
+SampleBuffer::SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate) :
+	m_data(data, data + numFrames),
+	m_originalData(data, data + numFrames),
+	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
+		[this]{ sampleRateChanged(); })),
+	m_sampleRate(sampleRate),
+	m_originalSampleRate(sampleRate)
+{
+	const auto engineRate = Engine::audioEngine()->processingSampleRate();
+	if (sampleRate != static_cast<int>(engineRate))
+	{
+		resample(engineRate);
+	}
+}
+
+SampleBuffer::SampleBuffer(const QString& audioFile)
+{
+	if (audioFile.isEmpty())
+	{
+		throw std::runtime_error{"Failure loading audio file: Audio file path is empty."};
+	}
+
+	auto resolvedFileName = PathUtil::toAbsolute(PathUtil::toShortestRelative(audioFile));
+	if (QFileInfo{resolvedFileName}.suffix() == "ds")
+	{
+		// Note: DrumSynth files aren't checked for file limits since we are using sndfile to detect them.
+		// In the future, checking for limits may become unnecessary anyways, so this seems fine for now.
+		decodeSampleDS(resolvedFileName);
+	}
+	else if (!fileExceedsLimits(resolvedFileName))
+	{
+		decodeSampleSF(resolvedFileName);
+	}
+
+	// Only connect if we sucessfully loaded the file
+	m_sampleRateChangeConnection = QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
+		[this]{ sampleRateChanged(); });
+}
+
+SampleBuffer::SampleBuffer(const QByteArray& base64)
+{
+	// TODO: Replace with non-Qt equivalent
+	auto base64Data = base64.toBase64();
+	auto sampleBufferData = reinterpret_cast<SampleBuffer*>(base64Data.data());
+
+	m_audioFile = std::move(sampleBufferData->m_audioFile);
+	m_data = std::move(sampleBufferData->m_data);
+	m_sampleRate = sampleBufferData->m_sampleRate;
+	m_originalData = std::move(sampleBufferData->m_originalData);
+	m_originalSampleRate = sampleBufferData->m_originalSampleRate;
+	m_sampleRateChangeConnection = QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
+		[this]{ sampleRateChanged(); });
+}
+
+SampleBuffer::SampleBuffer(int numFrames) : m_data(numFrames) {}
 
 SampleBuffer::~SampleBuffer() noexcept
 {
 	QObject::disconnect(m_sampleRateChangeConnection);
 }
 
-SampleBuffer& SampleBuffer::operator=(SampleBuffer&& other)
+SampleBuffer& SampleBuffer::operator=(SampleBuffer other) noexcept
 {
-	m_audioFile = std::exchange(other.m_audioFile, "");
-	m_data = std::move(other.m_data);
-	m_sampleRate = std::exchange(other.m_sampleRate, audioEngineSampleRate());
-	m_userAntiAliasWaveTable = std::move(other.m_userAntiAliasWaveTable);
-	m_sampleRateChangeConnection = std::move(other.m_sampleRateChangeConnection);
-	return *this;
+	std::swap(*this, other);
+	return *this;	
 }
 
-std::shared_ptr<SampleBuffer> SampleBuffer::createFromAudioFile(const QString& audioFile)
+const sampleFrame& SampleBuffer::operator[](size_t index) const
 {
-	auto buffer = std::make_shared<SampleBuffer>();
-	buffer->loadFromAudioFile(audioFile);
-	return buffer;
+	return m_data[index];
 }
 
-std::shared_ptr<SampleBuffer> SampleBuffer::createFromBase64(const QString& base64)
+void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 {
-	auto buffer = std::make_shared<SampleBuffer>();
-	buffer->loadFromBase64(base64);
-	return buffer;
-}
-
-SampleBuffer::SampleBuffer(const sampleFrame * data, f_cnt_t frames, int sampleRate) :
-	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), 
-		&AudioEngine::sampleRateChanged, [this](){ sampleRateChanged(); }))
-{
-	if (frames > 0)
-	{
-		m_data = data != nullptr ? 
-			std::vector<sampleFrame>(data, data + frames) :
-			std::vector<sampleFrame>(frames);
-
-		if (sampleRate != static_cast<int>(audioEngineSampleRate()))
-		{
-			resample(audioEngineSampleRate());
-		}
-
-		update();
-	}
-}
-
-SampleBuffer::SampleBuffer(f_cnt_t frames)
-	: SampleBuffer()
-{
-	if (frames > 0)
-	{
-		m_data = std::vector<sampleFrame>(frames);
-		update();
-	}
+	using std::swap;
+	swap(first.m_audioFile, second.m_audioFile);
+	swap(first.m_data, second.m_data);
+	swap(first.m_sampleRate, second.m_sampleRate);
+	swap(first.m_sampleRateChangeConnection, second.m_sampleRateChangeConnection);
+	swap(first.m_originalData, second.m_originalData);
+	swap(first.m_originalSampleRate, second.m_originalSampleRate);
 }
 
 void SampleBuffer::sampleRateChanged()
 {
-	resample(Engine::audioEngine()->processingSampleRate());
-	update();
-}
+	const auto engineRate = Engine::audioEngine()->processingSampleRate();
+	if (empty() || m_sampleRate == engineRate) { return; }
 
-sample_rate_t SampleBuffer::audioEngineSampleRate()
-{
-	return Engine::audioEngine()->processingSampleRate();
-}
-
-void SampleBuffer::update()
-{
-	if (frames() > 0)
-	{
-		Oscillator::generateAntiAliasUserWaveTable(this);
-	}
+	/* Note:
+	// We should not lock just because the sample rate of the engine changed,
+	// but I cannot see any other way around this.
+	// Since this does not occur on the audio thread, the problem is not
+	// really real-time safety, but more removing the need for synchronization
+	// and making this class overall simpler.
+	*/
+	const auto engineGuard = AudioEngine::RequestChangesGuard{};
+	const auto lockGuard = std::unique_lock{m_mutex};
+	resample(engineRate);
 }
 
 bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui) const
@@ -177,7 +199,7 @@ bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
 
 	if (exceedsLimits && reportToGui)
 	{
-		const auto title = QObject::tr("Fail to open file");
+		const auto title = QObject::tr("Failed to open file");
 		const auto message = QObject::tr("Audio files are limited to %1 MB "
 				"in size and %2 minutes of playing time").arg(maxFileSize).arg(maxFileLength);
 
@@ -194,23 +216,23 @@ bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui)
 	return exceedsLimits;
 }
 
-void SampleBuffer::decodeSampleSF(const QString& fileName)
+void SampleBuffer::decodeSampleSF(const QString& audioFile)
 {
 	SNDFILE* sndFile = nullptr;
 	auto sfInfo = SF_INFO{};
 
 	// Use QFile to handle unicode file names on Windows
-	auto file = QFile{fileName};
+	auto file = QFile{audioFile};
 	if (!file.open(QIODevice::ReadOnly))
 	{
 		throw std::runtime_error{"Failed to open sample "
-			+ fileName.toStdString() + ": " + file.errorString().toStdString()};
+			+ audioFile.toStdString() + ": " + file.errorString().toStdString()};
 	}
 
 	sndFile = sf_open_fd(file.handle(), SFM_READ, &sfInfo, false);
 	if (sf_error(sndFile) != 0)
 	{
-		throw std::runtime_error{"Failed to open sndfile handle: " + std::string{sf_strerror(sndFile)}};
+		throw std::runtime_error{"Failure opening audio handle: " + std::string{sf_strerror(sndFile)}};
 	}
 
 	auto buf = std::vector<sample_t>(sfInfo.channels * sfInfo.frames);
@@ -218,7 +240,8 @@ void SampleBuffer::decodeSampleSF(const QString& fileName)
 
 	if (sfFramesRead < sfInfo.channels * sfInfo.frames)
 	{
-		throw std::runtime_error{"Failed to read sample " + fileName.toStdString() + ": " + sf_strerror(sndFile)};
+		throw std::runtime_error{"Failure reading audio file: failed to read " + audioFile.toStdString() +
+			": " + sf_strerror(sndFile)};
 	}
 
 	sf_close(sndFile);
@@ -243,18 +266,19 @@ void SampleBuffer::decodeSampleSF(const QString& fileName)
 
 	m_data = result;
 	m_originalData = result;
-	m_audioFile = fileName;
+	m_audioFile = audioFile;
 	m_sampleRate = sfInfo.samplerate;
 	m_originalSampleRate = sfInfo.samplerate;
 }
 
-void SampleBuffer::decodeSampleDS(const QString& fileName)
+void SampleBuffer::decodeSampleDS(const QString& audioFile)
 {
 	auto data = std::unique_ptr<int_sample_t>{};
 	int_sample_t* dataPtr = nullptr;
 
 	auto ds = DrumSynth{};
-	const auto frames = ds.GetDSFileSamples(fileName, dataPtr, DEFAULT_CHANNELS, audioEngineSampleRate());
+	const auto engineRate = Engine::audioEngine()->processingSampleRate();
+	const auto frames = ds.GetDSFileSamples(audioFile, dataPtr, DEFAULT_CHANNELS, engineRate);
 	data.reset(dataPtr);
 
 	auto result = std::vector<sampleFrame>(frames);
@@ -264,14 +288,14 @@ void SampleBuffer::decodeSampleDS(const QString& fileName)
 	}
 	else
 	{
-		throw std::runtime_error{"SampleBuffer::decodeSampleDS: Failed to decode DrumSynth file."};
+		throw std::runtime_error{"Decoding failure: failed to decode DrumSynth file."};
 	}
 
 	m_data = result;
 	m_originalData = result;
-	m_audioFile = fileName;
-	m_sampleRate = audioEngineSampleRate();
-	m_originalSampleRate = audioEngineSampleRate();
+	m_audioFile = audioFile;
+	m_sampleRate = engineRate;
+	m_originalSampleRate = engineRate;
 }
 
 QString SampleBuffer::toBase64() const
@@ -285,7 +309,7 @@ QString SampleBuffer::toBase64() const
 void SampleBuffer::resample(sample_rate_t newSampleRate, bool fromOriginal)
 {
 	const auto srcSampleRate = fromOriginal ? m_originalSampleRate : m_sampleRate;
-	const auto dstFrames = static_cast<f_cnt_t>((frames() / static_cast<float>(srcSampleRate)) * static_cast<float>(newSampleRate));
+	const auto dstFrames = static_cast<f_cnt_t>((size() / static_cast<float>(srcSampleRate)) * static_cast<float>(newSampleRate));
 	auto dst = std::vector<sampleFrame>(dstFrames);
 
 	// yeah, libsamplerate, let's rock with sinc-interpolation!
@@ -293,7 +317,7 @@ void SampleBuffer::resample(sample_rate_t newSampleRate, bool fromOriginal)
 	srcData.end_of_input = 1;
 	srcData.data_in = fromOriginal ? &m_originalData[0][0] : &m_data[0][0];
 	srcData.data_out = &dst[0][0];
-	srcData.input_frames = frames();
+	srcData.input_frames = size();
 	srcData.output_frames = dstFrames;
 	srcData.src_ratio = static_cast<double>(newSampleRate) / srcSampleRate;
 
@@ -306,60 +330,4 @@ void SampleBuffer::resample(sample_rate_t newSampleRate, bool fromOriginal)
 	m_data = std::move(dst);
 	m_sampleRate = newSampleRate;
 }
-
-void SampleBuffer::loadFromAudioFile(const QString& audioFile)
-{
-	if (audioFile.isEmpty()) { return; }
-	try
-	{
-		const auto file = PathUtil::toAbsolute(PathUtil::toShortestRelative(audioFile));
-		if (QFileInfo{file}.suffix() == "ds")
-		{
-			// Note: DrumSynth files aren't checked for file limits since we are using sndfile to detect them.
-			// In the future, checking for limits may become unnecessary anyways, so this seems fine for now.
-			decodeSampleDS(file);
-		}
-		else if (!fileExceedsLimits(file))
-		{
-			decodeSampleSF(file);
-		}
-
-		if (m_sampleRate != audioEngineSampleRate())
-		{
-			resample(audioEngineSampleRate());
-		}
-
-		update();
-	}
-	catch (std::runtime_error& error)
-	{
-		if (gui::getGUI() != nullptr)
-		{
-			QMessageBox::information(nullptr,
-				QObject::tr("File load error"),
-				QObject::tr("An error occurred while loading %1").arg(audioFile), QMessageBox::Ok);
-		}
-
-		std::cerr << "Could not load audio file: " << error.what() << '\n';
-	}
-}
-
-void SampleBuffer::loadFromBase64(const QString& data)
-{
-	if (data.isEmpty()) { return; }
-
-	// TODO: Replace with non-Qt equivalent
-	auto base64Data = data.toUtf8().toBase64();
-	auto sampleBufferData = reinterpret_cast<SampleBuffer*>(base64Data.data());
-
-	*this = std::move(*sampleBufferData);
-
-	if (m_sampleRate != audioEngineSampleRate())
-	{
-		resample(audioEngineSampleRate());
-	}
-
-	update();
-}
-
 } // namespace lmms

@@ -44,60 +44,60 @@
 #include "MemoryManager.h"
 #include "Note.h"
 
-class QPainter;
-class QRect;
-
 namespace lmms
 {
 class LMMS_EXPORT SampleBuffer
 {
 public:
-	SampleBuffer();
-	SampleBuffer(const sampleFrame* data, f_cnt_t frames, int sampleRate = audioEngineSampleRate());
-	explicit SampleBuffer(f_cnt_t frames);
-	SampleBuffer(const SampleBuffer& other) = delete;
-	SampleBuffer(SampleBuffer&& other);
+	using value_type = sampleFrame;
+	using reference = sampleFrame&;
+	using const_iterator = std::vector<sampleFrame>::const_iterator;
+	using const_reverse_iterator = std::vector<sampleFrame>::const_reverse_iterator;
+	using difference_type = std::vector<sampleFrame>::difference_type;
+	using size_type = std::vector<sampleFrame>::size_type;
+
+	SampleBuffer() = default;
+	SampleBuffer(const SampleBuffer& other) noexcept;
+	SampleBuffer(SampleBuffer&& other) noexcept;
+	SampleBuffer(const QString& audioFile);
+	SampleBuffer(const QByteArray& base64);
+	SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate = Engine::audioEngine()->processingSampleRate());
+	explicit SampleBuffer(int numFrames);
 	~SampleBuffer() noexcept;
 
-	SampleBuffer& operator=(const SampleBuffer& other) = delete;
-	SampleBuffer& operator=(SampleBuffer&& other);
-
-	static std::shared_ptr<SampleBuffer> createFromAudioFile(const QString& audioFile);
-	static std::shared_ptr<SampleBuffer> createFromBase64(const QString& base64);
+	SampleBuffer& operator=(SampleBuffer other) noexcept;
+	const sampleFrame& operator[](size_t index) const; 
+	friend void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
 
 	QString toBase64() const;
 
 	const QString& audioFile() const { return m_audioFile; }
-	const std::vector<sampleFrame>& data() const { return m_data; }
 	std::shared_mutex& mutex() const { return m_mutex; }
 	sample_rate_t sampleRate() const { return m_sampleRate; }
-	const std::unique_ptr<OscillatorConstants::waveform_t>& userAntiAliasWaveTable() const { return m_userAntiAliasWaveTable; }
 
-	f_cnt_t frames() const { return static_cast<f_cnt_t>(m_data.size()); }
+	const_iterator begin() const { return m_data.begin(); }
+	const_iterator end() const { return m_data.end(); }
+	const_reverse_iterator rbegin() const { return m_data.rbegin(); }
+	const_reverse_iterator rend() const { return m_data.rend(); }
+
+	const sampleFrame* data() const { return m_data.data(); }
+	size_type size() const { return m_data.size(); }
+	bool empty() const { return m_data.empty(); }
+
 private:
-	void update();
 	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true) const;
-	static sample_rate_t audioEngineSampleRate();
-	
-	void loadFromAudioFile(const QString& audioFile);
-	void loadFromBase64(const QString& data);
-
 	void decodeSampleSF(const QString& fileName);
 	void decodeSampleDS(const QString& fileName);
-	
 	void sampleRateChanged();
 	void resample(sample_rate_t newSampleRate, bool fromOriginal = true);
 private:
-	QString m_audioFile = "";
 	std::vector<sampleFrame> m_data;
-	mutable std::shared_mutex m_mutex;
-	sample_rate_t m_sampleRate = audioEngineSampleRate();
-	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
-	QMetaObject::Connection m_sampleRateChangeConnection;
-
-	// TODO: Move out of SampleBuffer class when sample caching is added
 	std::vector<sampleFrame> m_originalData;
-	sample_rate_t m_originalSampleRate = audioEngineSampleRate();
+	QMetaObject::Connection m_sampleRateChangeConnection;
+	QString m_audioFile = "";
+	mutable std::shared_mutex m_mutex;
+	sample_rate_t m_sampleRate = 0;
+	sample_rate_t m_originalSampleRate = 0;
 };
 
 } // namespace lmms

@@ -59,6 +59,8 @@
 #include "StringPairDrag.h"
 #include "TextFloat.h"
 
+#include <iostream>
+
 namespace lmms::gui
 {
 
@@ -611,9 +613,19 @@ void FileBrowserTreeWidget::previewFileItem(FileItem* file)
 			embed::getIconPixmap("sample_file", 24, 24), 0);
 		// TODO: this can be removed once we do this outside the event thread
 		qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
-		auto s = new SamplePlayHandle(fileName);
-		s->setDoneMayReturnTrue(false);
-		newPPH = s;
+		
+		SamplePlayHandle* s = nullptr;
+		try 
+		{
+			s = new SamplePlayHandle(fileName);
+			s->setDoneMayReturnTrue(false);
+			newPPH = s;
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
+
 		delete tf;
 	}
 	else if (
