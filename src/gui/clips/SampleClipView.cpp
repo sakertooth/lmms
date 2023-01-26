@@ -36,6 +36,8 @@
 #include "Song.h"
 #include "StringPairDrag.h"
 
+#include <iostream>
+
 namespace lmms::gui
 {
 
@@ -113,7 +115,16 @@ void SampleClipView::dropEvent( QDropEvent * _de )
 	}
 	else if( StringPairDrag::decodeKey( _de ) == "sampledata" )
 	{
-		m_clip->m_sample = Sample::createFromBase64(StringPairDrag::decodeValue(_de));
+		try 
+		{
+			auto buffer = std::make_shared<SampleBuffer>(QByteArray::fromBase64(StringPairDrag::decodeValue(_de).toUtf8()));
+			m_clip->m_sample->setSampleBuffer(buffer);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
+
 		m_clip->updateLength();
 		update();
 		_de->accept();
@@ -175,7 +186,7 @@ void SampleClipView::mouseDoubleClickEvent( QMouseEvent * )
 	if (audioFile.isEmpty()) {} //Don't do anything if no file is loaded
 	else if (audioFile == m_clip->m_sample->buffer()->audioFile())
 	{	//Instead of reloading the existing file, just reset the size
-		int length = (int) ( m_clip->m_sample->buffer()->frames() / Engine::framesPerTick() );
+		int length = static_cast<int>(m_clip->m_sample->buffer()->size() / Engine::framesPerTick());
 		m_clip->changeLength(length);
 	}
 	else

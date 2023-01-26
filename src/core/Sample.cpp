@@ -41,20 +41,11 @@ namespace lmms
 
     Sample::Sample(std::shared_ptr<SampleBuffer> buffer) :
         m_buffer(buffer),
-        m_playMarkers({0, m_buffer->frames(), 0, m_buffer->frames()}),
+        m_playMarkers({0, static_cast<f_cnt_t>(m_buffer->size()), 0, static_cast<f_cnt_t>(m_buffer->size())}),
         m_markerSampleRate(m_buffer->sampleRate()) {}
 
-    auto Sample::createFromAudioFile(const QString& audioFile) -> std::shared_ptr<Sample>
-    {
-        auto buffer = SampleBuffer::createFromAudioFile(audioFile);
-        return std::make_shared<Sample>(buffer);
-    }
-
-    auto Sample::createFromBase64(const QString& base64) -> std::shared_ptr<Sample>
-    {
-        auto buffer = SampleBuffer::createFromBase64(base64);
-        return std::make_shared<Sample>(buffer);
-    }
+    Sample::Sample(const QString& audioFile) :
+        Sample(std::make_shared<SampleBuffer>(audioFile)) {}
 
     auto Sample::play(
         sampleFrame* dst, PlaybackState* state,
@@ -165,7 +156,7 @@ namespace lmms
         if (m_markerSampleRate != engineRate)
         {
             auto oldRateToNewRateRatio = static_cast<float>(engineRate) / m_markerSampleRate;
-            const auto numFrames = m_buffer->frames();
+            const auto numFrames = static_cast<f_cnt_t>(m_buffer->size());
             auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_playMarkers;
 
             startFrame = std::clamp(static_cast<f_cnt_t>(startFrame * oldRateToNewRateRatio), 0, numFrames);
@@ -229,11 +220,11 @@ namespace lmms
 
             if (m_reversed)
             {
-                std::copy_n(m_buffer->data().rbegin() + currentFrame, numFramesToCopy, out.begin());
+                std::copy_n(m_buffer->rbegin() + currentFrame, numFramesToCopy, out.begin());
             }
             else
             {
-                std::copy_n(m_buffer->data().begin() + currentFrame, numFramesToCopy, out.begin());
+                std::copy_n(m_buffer->begin() + currentFrame, numFramesToCopy, out.begin());
             }
         }
         else if (loopMode == LoopMode::LoopOn || loopMode == LoopMode::LoopPingPong)
@@ -268,24 +259,24 @@ namespace lmms
                 {
                     if (m_reversed)
                     {
-                        std::copy_n(m_buffer->data().rbegin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
+                        std::copy_n(m_buffer->rbegin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
                     }
                     else
                     {
-                        std::copy_n(m_buffer->data().begin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
+                        std::copy_n(m_buffer->begin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
                     }
                 }
                 else if (*backwards && loopMode == LoopMode::LoopPingPong)
                 {
-                    auto distanceFromPlayPosition = std::distance(m_buffer->data().begin() + playPosition, m_buffer->data().end());
+                    auto distanceFromPlayPosition = std::distance(m_buffer->begin() + playPosition, m_buffer->end());
 
                     if (m_reversed)
                     {
-                        std::copy_n(m_buffer->data().begin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
+                        std::copy_n(m_buffer->begin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
                     }
                     else
                     {
-                        std::copy_n(m_buffer->data().rbegin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
+                        std::copy_n(m_buffer->rbegin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
                     }
                 }
 
@@ -323,7 +314,7 @@ namespace lmms
         f_cnt_t toFrame
     )
     {
-        const auto numFrames = m_buffer->frames();
+        const auto numFrames = static_cast<f_cnt_t>(m_buffer->size());
         if (numFrames == 0) { return; }
 
         const bool focusOnRange = toFrame <= numFrames && 0 <= fromFrame && fromFrame < toFrame;

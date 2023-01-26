@@ -42,6 +42,8 @@
 #include "embed.h"
 #include "plugin_export.h"
 
+#include <iostream>
+
 namespace lmms
 {
 
@@ -145,7 +147,15 @@ void OscillatorObject::oscUserDefWaveDblClick()
 	const auto audioFile = gui::SampleFileDialog::openWaveformFile(m_sampleBuffer->audioFile());
 	if (audioFile != "")
 	{
-		m_sampleBuffer = SampleBuffer::createFromAudioFile(audioFile);
+		try 
+		{
+			m_sampleBuffer = std::make_shared<SampleBuffer>(audioFile);
+			m_userAntiAliasWaveTable = Oscillator::generateAntiAliasUserWaveTable(m_sampleBuffer.get());
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
 
 		// TODO:
 		//m_usrWaveBtn->setToolTip(m_sampleBuffer->audioFile());
@@ -287,7 +297,20 @@ void TripleOscillator::loadSettings( const QDomElement & _this )
 					"modalgo" + QString::number( i+1 ) );
 		m_osc[i]->m_useWaveTableModel.loadSettings( _this,
 							"useWaveTable" + QString::number (i+1 ) );
-		m_osc[i]->m_sampleBuffer = SampleBuffer::createFromAudioFile(_this.attribute("userwavefile" + is));
+
+		const auto userWaveFile = _this.attribute("userwavefile" + is);
+		if (!userWaveFile.isEmpty())
+		{
+			try
+			{
+				m_osc[i]->m_sampleBuffer = std::make_shared<SampleBuffer>(userWaveFile);
+				m_osc[i]->m_userAntiAliasWaveTable = Oscillator::generateAntiAliasUserWaveTable(m_osc[i]->m_sampleBuffer.get());
+			}
+			catch (const std::runtime_error& e)
+			{
+				std::cerr << e.what() << '\n';
+			}
+		}		
 	}
 }
 
@@ -358,6 +381,11 @@ void TripleOscillator::playNote( NotePlayHandle * _n,
 			oscs_l[i]->setUserWave(m_osc[i]->m_sampleBuffer);
 			oscs_r[i]->setUserWave(m_osc[i]->m_sampleBuffer);
 
+			if (m_osc[i]->m_userAntiAliasWaveTable)
+			{
+				oscs_r[i]->setUserAntiAliasWaveTable(m_osc[i]->m_userAntiAliasWaveTable.get());
+				oscs_r[i]->setUserAntiAliasWaveTable(m_osc[i]->m_userAntiAliasWaveTable.get());
+			}
 		}
 
 		_n->m_pluginData = new oscPtr;

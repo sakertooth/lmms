@@ -42,6 +42,8 @@
 #include "TextFloat.h"
 #include "Track.h"
 
+#include <iostream>
+
 namespace lmms
 {
 
@@ -320,9 +322,17 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 {
 	QString type = StringPairDrag::decodeKey( _de );
 	QString value = StringPairDrag::decodeValue( _de );
-	if( type == "samplefile" )
+	if (type == "samplefile" && !value.isEmpty())
 	{
-		m_params->m_userWave = SampleBuffer::createFromAudioFile(StringPairDrag::decodeValue(_de));
+		try 
+		{
+			m_params->m_userWave = std::make_shared<SampleBuffer>(value);		
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
+
 		m_userLfoBtn->model()->setValue( true );
 		m_params->m_lfoWaveModel.setValue(EnvelopeAndLfoParameters::UserDefinedWave);
 		_de->accept();
@@ -331,9 +341,17 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	else if( type == QString( "clip_%1" ).arg( Track::SampleTrack ) )
 	{
 		DataFile dataFile( value.toUtf8() );
-		m_params->m_userWave = SampleBuffer::createFromAudioFile(dataFile.content().
+
+		try 
+		{
+			m_params->m_userWave = std::make_shared<SampleBuffer>(dataFile.content().
 					firstChildElement().firstChildElement().
 					firstChildElement().attribute("src"));
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
 		m_userLfoBtn->model()->setValue( true );
 		m_params->m_lfoWaveModel.setValue(EnvelopeAndLfoParameters::UserDefinedWave);
 		_de->accept();
@@ -516,7 +534,7 @@ void EnvelopeAndLfoView::lfoUserWaveChanged()
 	if( m_params->m_lfoWaveModel.value() ==
 				EnvelopeAndLfoParameters::UserDefinedWave )
 	{
-		if( m_params->m_userWave->frames() <= 1 )
+		if (m_params->m_userWave->size() <= 1)
 		{
 			TextFloat::displayMessage( tr( "Hint" ),
 				tr( "Drag and drop a sample into this window." ),

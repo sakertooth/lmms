@@ -81,19 +81,19 @@ public:
 
 
 private:
-	std::weak_ptr<Sample> m_sample;
-	bool m_doneMayReturnTrue;
+	std::shared_ptr<Sample> m_sample;
+	bool m_doneMayReturnTrue = true;
 
-	f_cnt_t m_frame;
+	f_cnt_t m_frame = 0;
 	Sample::PlaybackState m_state;
 
-	const bool m_ownAudioPort;
+	bool m_ownAudioPort = true;
 
-	FloatModel m_defaultVolumeModel;
-	FloatModel * m_volumeModel;
-	Track * m_track;
+	FloatModel m_defaultVolumeModel = {DefaultVolume, MinVolume, MaxVolume, 1};
+	FloatModel * m_volumeModel = &m_defaultVolumeModel;
+	Track * m_track{};
 
-	PatternTrack* m_patternTrack;
+	PatternTrack* m_patternTrack{};
 
 } ;
 

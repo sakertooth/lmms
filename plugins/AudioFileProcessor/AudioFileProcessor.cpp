@@ -29,6 +29,7 @@
 #include <QDropEvent>
 
 #include <samplerate.h>
+#include <iostream>
 
 #include "AudioEngine.h"
 #include "ComboBox.h"
@@ -159,7 +160,7 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 		static_cast<Sample::PlaybackState*>(_n->m_pluginData)->setBackwards(m_nextPlayBackwards);
 
 // debug code
-/*		qDebug( "frames %d", m_sample->buffer()->frames() );
+/*		qDebug( "frames %d", m_sample->buffer()->size() );
 		qDebug( "startframe %d", m_sample->startFrame() );
 		qDebug( "nextPlayStartPoint %d", m_nextPlayStartPoint );*/
 	}
@@ -240,7 +241,15 @@ void AudioFileProcessor::loadSettings(const QDomElement& elem)
 	}
 	else if (!elem.attribute("sampledata").isEmpty())
 	{
-		m_sample = Sample::createFromBase64(elem.attribute("srcdata"));
+		try
+		{
+			auto buffer = std::make_shared<SampleBuffer>(QByteArray::fromBase64(elem.attribute("srcdata").toUtf8()));
+			m_sample = std::make_shared<Sample>(buffer);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
 	}
 
 	m_loopModel.loadSettings(elem, "looped");
@@ -327,7 +336,14 @@ void AudioFileProcessor::setAudioFile( const QString & _audio_file,
 	}
 	// else we don't touch the track-name, because the user named it self
 
-	m_sample = Sample::createFromAudioFile(_audio_file);
+	try
+	{
+		m_sample = std::make_shared<Sample>(_audio_file);
+	}
+	catch (const std::runtime_error& e)
+	{
+		std::cout << e.what() << '\n';
+	}
 	loopPointChanged();
 }
 
@@ -421,9 +437,9 @@ void AudioFileProcessor::loopPointChanged()
 
 void AudioFileProcessor::pointChanged()
 {
-	const auto f_start = static_cast<f_cnt_t>(m_startPointModel.value() * m_sample->buffer()->frames());
-	const auto f_end = static_cast<f_cnt_t>(m_endPointModel.value() * m_sample->buffer()->frames());
-	const auto f_loop = static_cast<f_cnt_t>(m_loopPointModel.value() * m_sample->buffer()->frames());
+	const auto f_start = static_cast<f_cnt_t>(m_startPointModel.value() * m_sample->buffer()->size());
+	const auto f_end = static_cast<f_cnt_t>(m_endPointModel.value() * m_sample->buffer()->size());
+	const auto f_loop = static_cast<f_cnt_t>(m_loopPointModel.value() * m_sample->buffer()->size());
 
 	m_nextPlayStartPoint = f_start;
 	m_nextPlayBackwards = false;
@@ -712,11 +728,11 @@ void AudioFileProcessorView::modelChanged()
 
 void AudioFileProcessorWaveView::updateSampleRange()
 {
-	if( m_sample->buffer()->frames() > 1 )
+	if (m_sample->buffer()->size() > 1)
 	{
 		const f_cnt_t marging = ( m_sample->endFrame() - m_sample->startFrame() ) * 0.1;
 		m_from = qMax( 0, m_sample->startFrame() - marging );
-		m_to = qMin( m_sample->endFrame() + marging, m_sample->buffer()->frames() );
+		m_to = qMin(m_sample->endFrame() + marging, static_cast<f_cnt_t>(m_sample->buffer()->size()));
 	}
 }
 
@@ -725,7 +741,7 @@ AudioFileProcessorWaveView::AudioFileProcessorWaveView( QWidget * _parent, int _
 	m_sample(sample),
 	m_graph( QPixmap( _w - 2 * s_padding, _h - 2 * s_padding ) ),
 	m_from( 0 ),
-	m_to( m_sample->buffer()->frames() ),
+	m_to( m_sample->buffer()->size() ),
 	m_last_from( 0 ),
 	m_last_to( 0 ),
 	m_last_amp( 0 ),
@@ -981,7 +997,7 @@ void AudioFileProcessorWaveView::updateGraph()
 {
 	if( m_to == 1 )
 	{
-		m_to = m_sample->buffer()->frames() * 0.7;
+		m_to = m_sample->buffer()->size() * 0.7;
 		slideSamplePointToFrames( end, m_to * 0.7 );
 	}
 
@@ -1026,7 +1042,7 @@ void AudioFileProcessorWaveView::zoom( const bool _out )
 {
 	const f_cnt_t start = m_sample->startFrame();
 	const f_cnt_t end = m_sample->endFrame();
-	const f_cnt_t frames = m_sample->buffer()->frames();
+	const f_cnt_t frames = m_sample->buffer()->size();
 	const f_cnt_t d_from = start - m_from;
 	const f_cnt_t d_to = m_to - end;
 
@@ -1078,8 +1094,8 @@ void AudioFileProcessorWaveView::slide( int _px )
 		step = -step;
 	}
 
-	f_cnt_t step_from = qBound( 0, m_from + step, m_sample->buffer()->frames() ) - m_from;
-	f_cnt_t step_to = qBound( m_from + 1, m_to + step, m_sample->buffer()->frames() ) - m_to;
+	f_cnt_t step_from = qBound(0, m_from + step, static_cast<f_cnt_t>(m_sample->buffer()->size())) - m_from;
+	f_cnt_t step_to = qBound(m_from + 1, m_to + step, static_cast<f_cnt_t>(m_sample->buffer()->size())) - m_to;
 
 	step = qAbs( step_from ) < qAbs( step_to ) ? step_from : step_to;
 
@@ -1140,7 +1156,7 @@ void AudioFileProcessorWaveView::slideSamplePointByFrames( knobType _point, f_cn
 	}
 	else
 	{
-		const double v = static_cast<double>( _frames ) / m_sample->buffer()->frames();
+		const double v = static_cast<double>( _frames ) / m_sample->buffer()->size();
 		if( _slide_to )
 		{
 			a_knob->slideTo( v );
@@ -1157,11 +1173,11 @@ void AudioFileProcessorWaveView::slideSamplePointByFrames( knobType _point, f_cn
 
 void AudioFileProcessorWaveView::slideSampleByFrames( f_cnt_t _frames )
 {
-	if( m_sample->buffer()->frames() <= 1 )
+	if (m_sample->buffer()->size() <= 1)
 	{
 		return;
 	}
-	const double v = static_cast<double>( _frames ) / m_sample->buffer()->frames();
+	const double v = static_cast<double>(_frames) / m_sample->buffer()->size();
 	if( m_startKnob ) {
 		m_startKnob->slideBy( v, false );
 	}
@@ -1179,14 +1195,14 @@ void AudioFileProcessorWaveView::slideSampleByFrames( f_cnt_t _frames )
 void AudioFileProcessorWaveView::reverse()
 {
 	slideSampleByFrames(
-		m_sample->buffer()->frames()
+		m_sample->buffer()->size()
 			- m_sample->endFrame()
 			- m_sample->startFrame()
 	);
 
 	const f_cnt_t from = m_from;
-	m_from = m_sample->buffer()->frames() - m_to;
-	m_to = m_sample->buffer()->frames() - from;
+	m_from = m_sample->buffer()->size() - m_to;
+	m_to = m_sample->buffer()->size() - from;
 
 	m_reversed = ! m_reversed;
 }
@@ -1229,7 +1245,7 @@ float AudioFileProcessorWaveView::knob::getValue( const QPoint & _p )
 {
 	const double dec_fact = ! m_waveView ? 1 :
 		double( m_waveView->m_to - m_waveView->m_from )
-			/ m_waveView->m_sample->buffer()->frames();
+			/ m_waveView->m_sample->buffer()->size();
 	const float inc = Knob::getValue( _p ) * dec_fact;
 
 	return inc;
@@ -1250,11 +1266,11 @@ bool AudioFileProcessorWaveView::knob::checkBound( double _v ) const
 		return false;
 
 	const double d1 = qAbs( m_relatedKnob->model()->value() - model()->value() )
-		* ( m_waveView->m_sample->buffer()->frames() )
+		* ( m_waveView->m_sample->buffer()->size() )
 		/ m_waveView->m_sample->buffer()->sampleRate();
 
 	const double d2 = qAbs( m_relatedKnob->model()->value() - _v )
-		* ( m_waveView->m_sample->buffer()->frames() )
+		* ( m_waveView->m_sample->buffer()->size() )
 		/ m_waveView->m_sample->buffer()->sampleRate();
 
 	return d1 < d2 || d2 > 0.005;

@@ -24,6 +24,8 @@
 
 #include <QDomElement>
 
+#include <iostream>
+
 #include "EnvelopeAndLfoParameters.h"
 #include "AudioEngine.h"
 #include "Engine.h"
@@ -387,7 +389,18 @@ void EnvelopeAndLfoParameters::loadSettings( const QDomElement & _this )
 		m_sustainModel.setValue( 1.0 - m_sustainModel.value() );
 	}
 
-	m_userWave = SampleBuffer::createFromAudioFile(_this.attribute("userwavefile"));
+	const auto userWaveFile = _this.attribute("userwavefile");
+	if (!userWaveFile.isEmpty())
+	{
+		try 
+		{
+			m_userWave = std::make_shared<SampleBuffer>(userWaveFile);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
+	}
 
 	updateSampleVars();
 }

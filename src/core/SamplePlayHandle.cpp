@@ -31,20 +31,16 @@
 #include "SampleClip.h"
 #include "SampleTrack.h"
 
+#include <iostream>
+
 namespace lmms
 {
 
 
 SamplePlayHandle::SamplePlayHandle(std::shared_ptr<Sample> sample, bool ownAudioPort) :
-	PlayHandle( TypeSamplePlayHandle ),
+	PlayHandle(TypeSamplePlayHandle),
 	m_sample(sample),
-	m_doneMayReturnTrue( true ),
-	m_frame( 0 ),
-	m_ownAudioPort( ownAudioPort ),
-	m_defaultVolumeModel( DefaultVolume, MinVolume, MaxVolume, 1 ),
-	m_volumeModel( &m_defaultVolumeModel ),
-	m_track( nullptr ),
-	m_patternTrack( nullptr )
+	m_ownAudioPort(ownAudioPort)
 {
 	if (ownAudioPort)
 	{
@@ -56,8 +52,7 @@ SamplePlayHandle::SamplePlayHandle(std::shared_ptr<Sample> sample, bool ownAudio
 
 
 SamplePlayHandle::SamplePlayHandle( const QString& sampleFile ) :
-	SamplePlayHandle(Sample::createFromAudioFile(sampleFile), true)
-{}
+	SamplePlayHandle(std::make_shared<Sample>(sampleFile), true) {}
 
 
 
@@ -87,7 +82,7 @@ void SamplePlayHandle::play( sampleFrame * buffer )
 {
 	const fpp_t fpp = Engine::audioEngine()->framesPerPeriod();
 	//play( 0, _try_parallelizing );
-	if(framesDone() >= totalFrames() || m_sample.expired())
+	if (framesDone() >= totalFrames())
 	{
 		memset( buffer, 0, sizeof( sampleFrame ) * fpp );
 		return;
@@ -112,7 +107,7 @@ void SamplePlayHandle::play( sampleFrame * buffer )
 				m_volumeModel->value() / DefaultVolume } };*/
 		// SamplePlayHandle always plays the sample at its original pitch;
 		// it is used only for previews, SampleTracks and the metronome.
-		if (!m_sample.lock()->play(workingBuffer, &m_state, frames, DefaultBaseFreq))
+		if (!m_sample->play(workingBuffer, &m_state, frames, DefaultBaseFreq))
 		{
 			memset(workingBuffer, 0, frames * sizeof(sampleFrame));
 		}
@@ -142,11 +137,8 @@ bool SamplePlayHandle::isFromTrack( const Track * _track ) const
 
 f_cnt_t SamplePlayHandle::totalFrames() const
 {
-	if (m_sample.expired()) { return 0; }
-
-	auto sample = m_sample.lock();
-	return (sample->endFrame() - sample->startFrame()) *
-			(Engine::audioEngine()->processingSampleRate() / sample->buffer()->sampleRate());
+	return (m_sample->endFrame() - m_sample->startFrame()) *
+			(Engine::audioEngine()->processingSampleRate() / m_sample->buffer()->sampleRate());
 }
 
 

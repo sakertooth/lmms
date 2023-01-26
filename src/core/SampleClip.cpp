@@ -31,6 +31,8 @@
 #include "SampleTrack.h"
 #include "TimeLineWidget.h"
 
+#include <iostream>
+
 
 namespace lmms
 {
@@ -145,7 +147,15 @@ void SampleClip::setSampleFile( const QString & _sf )
 	}
 	else
 	{	//Otherwise set it to the sample's length
-		m_sample = Sample::createFromAudioFile(_sf);
+		try 
+		{
+			auto buffer = std::make_shared<SampleBuffer>(_sf);
+			m_sample->setSampleBuffer(buffer);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cerr << e.what() << '\n';
+		}
 		length = sampleLength();
 	}
 	changeLength(length);
@@ -216,7 +226,7 @@ void SampleClip::updateLength()
 
 TimePos SampleClip::sampleLength() const
 {
-	return (int)( m_sample->buffer()->frames() / Engine::framesPerTick() );
+	return static_cast<int>(m_sample->buffer()->size() / Engine::framesPerTick());
 }
 
 
@@ -281,7 +291,15 @@ void SampleClip::loadSettings( const QDomElement & _this )
 	setSampleFile( _this.attribute( "src" ) );
 	if( sampleFile().isEmpty() && _this.hasAttribute( "data" ) )
 	{
-		m_sample = Sample::createFromBase64(_this.attribute("data"));
+		try
+		{
+			auto buffer = std::make_shared<SampleBuffer>(QByteArray::fromBase64(_this.attribute("data").toUtf8()));
+			m_sample->setSampleBuffer(buffer);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cout << e.what() << '\n';
+		}
 	}
 	changeLength( _this.attribute( "len" ).toInt() );
 	setMuted( _this.attribute( "muted" ).toInt() );

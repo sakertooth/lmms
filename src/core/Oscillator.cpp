@@ -181,10 +181,9 @@ void Oscillator::generateFromFFT(int bands, sample_t* table)
 	normalize(s_sampleBuffer.data(), table, OscillatorConstants::WAVETABLE_LENGTH, 2*OscillatorConstants::WAVETABLE_LENGTH + 1);
 }
 
-void Oscillator::generateAntiAliasUserWaveTable(SampleBuffer *sampleBuffer)
+std::unique_ptr<OscillatorConstants::waveform_t> Oscillator::generateAntiAliasUserWaveTable(const SampleBuffer *sampleBuffer)
 {
-	if (sampleBuffer->userAntiAliasWaveTable() == nullptr) {return;}
-
+	auto userAntiAliasWaveTable = std::make_unique<OscillatorConstants::waveform_t>();
 	for (int i = 0; i < OscillatorConstants::WAVE_TABLES_PER_WAVEFORM_COUNT; ++i)
 	{
 		for (int i = 0; i < OscillatorConstants::WAVETABLE_LENGTH; ++i)
@@ -192,8 +191,10 @@ void Oscillator::generateAntiAliasUserWaveTable(SampleBuffer *sampleBuffer)
 			s_sampleBuffer[i] = Oscillator::userWaveSample(sampleBuffer, (float)i / (float)OscillatorConstants::WAVETABLE_LENGTH);
 		}
 		fftwf_execute(s_fftPlan);
-		Oscillator::generateFromFFT(OscillatorConstants::MAX_FREQ / freqFromWaveTableBand(i), (*(sampleBuffer->userAntiAliasWaveTable()))[i].data());
+		Oscillator::generateFromFFT(OscillatorConstants::MAX_FREQ / freqFromWaveTableBand(i), (*(userAntiAliasWaveTable))[i].data());
 	}
+
+	return userAntiAliasWaveTable;
 }
 
 
@@ -805,9 +806,9 @@ inline sample_t Oscillator::getSample<Oscillator::WhiteNoise>(
 template<>
 inline sample_t Oscillator::getSample<Oscillator::UserDefinedWave>(const float _sample)
 {
-	if (m_useWaveTable && !m_isModulator)
+	if (m_useWaveTable && !m_isModulator && m_userAntiAliasWaveTable != nullptr)
 	{
-		return wtSample(m_userWave->userAntiAliasWaveTable(), _sample);
+		return wtSample(m_userAntiAliasWaveTable, _sample);
 	}
 	else
 	{
