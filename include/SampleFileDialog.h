@@ -1,5 +1,5 @@
 /*
- * SampleFileDialog.cpp - Static functions that open audio files
+ * SampleFileDialog.h - Static functions that open audio files
  *
  * Copyright (c) 2005-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
  *
