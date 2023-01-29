@@ -44,42 +44,13 @@
 
 namespace lmms
 {
-SampleBuffer::SampleBuffer(const SampleBuffer& other) noexcept :
-	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
-		[this]{ sampleRateChanged(); }))
-{
-	const auto lockGuard = std::scoped_lock{m_mutex, other.m_mutex};
-	m_audioFile = other.m_audioFile;
-	m_data = other.m_data;
-	m_sampleRate = other.m_sampleRate;
-	m_originalData = other.m_originalData;
-	m_originalSampleRate = other.m_originalSampleRate;
-}
-
-SampleBuffer::SampleBuffer(SampleBuffer&& other) noexcept
-{
-	const auto lockGuard = std::shared_lock{other.m_mutex};
-	m_audioFile = std::move(other.m_audioFile);
-	m_data = std::move(other.m_data);
-	m_sampleRate = std::exchange(other.m_sampleRate, 0);
-	m_sampleRateChangeConnection = std::move(other.m_sampleRateChangeConnection);
-	m_originalData = std::move(other.m_originalData);
-	m_originalSampleRate = std::exchange(m_originalSampleRate, 0);
-}
-
 SampleBuffer::SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate) :
 	m_data(data, data + numFrames),
 	m_originalData(data, data + numFrames),
-	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
-		[this]{ sampleRateChanged(); })),
 	m_sampleRate(sampleRate),
 	m_originalSampleRate(sampleRate)
 {
-	const auto engineRate = Engine::audioEngine()->processingSampleRate();
-	if (sampleRate != static_cast<int>(engineRate))
-	{
-		resample(engineRate);
-	}
+	resample(Engine::audioEngine()->processingSampleRate());
 }
 
 SampleBuffer::SampleBuffer(const QString& audioFile)
@@ -101,9 +72,7 @@ SampleBuffer::SampleBuffer(const QString& audioFile)
 		decodeSampleSF(resolvedFileName);
 	}
 
-	// Only connect if we sucessfully loaded the file
-	m_sampleRateChangeConnection = QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
-		[this]{ sampleRateChanged(); });
+	resample(Engine::audioEngine()->processingSampleRate());
 }
 
 SampleBuffer::SampleBuffer(const QByteArray& base64)
@@ -117,54 +86,13 @@ SampleBuffer::SampleBuffer(const QByteArray& base64)
 	m_sampleRate = sampleBufferData->m_sampleRate;
 	m_originalData = std::move(sampleBufferData->m_originalData);
 	m_originalSampleRate = sampleBufferData->m_originalSampleRate;
-	m_sampleRateChangeConnection = QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
-		[this]{ sampleRateChanged(); });
-}
 
-SampleBuffer::SampleBuffer(int numFrames) : m_data(numFrames) {}
-
-SampleBuffer::~SampleBuffer() noexcept
-{
-	QObject::disconnect(m_sampleRateChangeConnection);
-}
-
-SampleBuffer& SampleBuffer::operator=(SampleBuffer other) noexcept
-{
-	std::swap(*this, other);
-	return *this;	
+	resample(Engine::audioEngine()->processingSampleRate());
 }
 
 const sampleFrame& SampleBuffer::operator[](size_t index) const
 {
 	return m_data[index];
-}
-
-void swap(SampleBuffer& first, SampleBuffer& second) noexcept
-{
-	using std::swap;
-	swap(first.m_audioFile, second.m_audioFile);
-	swap(first.m_data, second.m_data);
-	swap(first.m_sampleRate, second.m_sampleRate);
-	swap(first.m_sampleRateChangeConnection, second.m_sampleRateChangeConnection);
-	swap(first.m_originalData, second.m_originalData);
-	swap(first.m_originalSampleRate, second.m_originalSampleRate);
-}
-
-void SampleBuffer::sampleRateChanged()
-{
-	const auto engineRate = Engine::audioEngine()->processingSampleRate();
-	if (empty() || m_sampleRate == engineRate) { return; }
-
-	/* Note:
-	// We should not lock just because the sample rate of the engine changed,
-	// but I cannot see any other way around this.
-	// Since this does not occur on the audio thread, the problem is not
-	// really real-time safety, but more removing the need for synchronization
-	// and making this class overall simpler.
-	*/
-	const auto engineGuard = AudioEngine::RequestChangesGuard{};
-	const auto lockGuard = std::unique_lock{m_mutex};
-	resample(engineRate);
 }
 
 bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui) const
@@ -308,6 +236,8 @@ QString SampleBuffer::toBase64() const
 
 void SampleBuffer::resample(sample_rate_t newSampleRate, bool fromOriginal)
 {
+	if (m_sampleRate == newSampleRate) { return; }
+
 	const auto srcSampleRate = fromOriginal ? m_originalSampleRate : m_sampleRate;
 	const auto dstFrames = static_cast<f_cnt_t>((size() / static_cast<float>(srcSampleRate)) * static_cast<float>(newSampleRate));
 	auto dst = std::vector<sampleFrame>(dstFrames);

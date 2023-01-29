@@ -57,22 +57,15 @@ public:
 	using size_type = std::vector<sampleFrame>::size_type;
 
 	SampleBuffer() = default;
-	SampleBuffer(const SampleBuffer& other) noexcept;
-	SampleBuffer(SampleBuffer&& other) noexcept;
 	SampleBuffer(const QString& audioFile);
 	SampleBuffer(const QByteArray& base64);
 	SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate = Engine::audioEngine()->processingSampleRate());
-	explicit SampleBuffer(int numFrames);
-	~SampleBuffer() noexcept;
 
-	SampleBuffer& operator=(SampleBuffer other) noexcept;
-	const sampleFrame& operator[](size_t index) const; 
-	friend void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
+	const sampleFrame& operator[](size_t index) const;
 
 	QString toBase64() const;
 
 	const QString& audioFile() const { return m_audioFile; }
-	std::shared_mutex& mutex() const { return m_mutex; }
 	sample_rate_t sampleRate() const { return m_sampleRate; }
 
 	const_iterator begin() const { return m_data.begin(); }
@@ -88,16 +81,13 @@ private:
 	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true) const;
 	void decodeSampleSF(const QString& fileName);
 	void decodeSampleDS(const QString& fileName);
-	void sampleRateChanged();
 	void resample(sample_rate_t newSampleRate, bool fromOriginal = true);
 private:
 	std::vector<sampleFrame> m_data;
 	std::vector<sampleFrame> m_originalData;
-	QMetaObject::Connection m_sampleRateChangeConnection;
 	QString m_audioFile = "";
-	mutable std::shared_mutex m_mutex;
-	sample_rate_t m_sampleRate = 0;
-	sample_rate_t m_originalSampleRate = 0;
+	sample_rate_t m_sampleRate = Engine::audioEngine()->processingSampleRate();
+	sample_rate_t m_originalSampleRate = Engine::audioEngine()->processingSampleRate();
 };
 
 } // namespace lmms
