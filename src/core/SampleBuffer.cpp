@@ -131,7 +131,7 @@ SampleBuffer::~SampleBuffer() noexcept
 SampleBuffer& SampleBuffer::operator=(SampleBuffer other) noexcept
 {
 	std::swap(*this, other);
-	return *this;	
+	return *this;
 }
 
 const sampleFrame& SampleBuffer::operator[](size_t index) const
@@ -141,6 +141,8 @@ const sampleFrame& SampleBuffer::operator[](size_t index) const
 
 void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 {
+	auto lockGuard = std::scoped_lock{first.m_mutex, second.m_mutex};
+
 	using std::swap;
 	swap(first.m_audioFile, second.m_audioFile);
 	swap(first.m_data, second.m_data);
@@ -155,16 +157,12 @@ void SampleBuffer::sampleRateChanged()
 	const auto engineRate = Engine::audioEngine()->processingSampleRate();
 	if (empty() || m_sampleRate == engineRate) { return; }
 
-	/* Note:
-	// We should not lock just because the sample rate of the engine changed,
-	// but I cannot see any other way around this.
-	// Since this does not occur on the audio thread, the problem is not
-	// really real-time safety, but more removing the need for synchronization
-	// and making this class overall simpler.
-	*/
-	const auto engineGuard = AudioEngine::RequestChangesGuard{};
+	Engine::audioEngine()->requestChangeInModel();
+
 	const auto lockGuard = std::unique_lock{m_mutex};
 	resample(engineRate);
+
+	Engine::audioEngine()->doneChangeInModel();
 }
 
 bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui) const
