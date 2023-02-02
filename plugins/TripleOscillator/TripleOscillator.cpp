@@ -383,7 +383,7 @@ void TripleOscillator::playNote( NotePlayHandle * _n,
 
 			if (m_osc[i]->m_userAntiAliasWaveTable)
 			{
-				oscs_r[i]->setUserAntiAliasWaveTable(m_osc[i]->m_userAntiAliasWaveTable.get());
+				oscs_l[i]->setUserAntiAliasWaveTable(m_osc[i]->m_userAntiAliasWaveTable.get());
 				oscs_r[i]->setUserAntiAliasWaveTable(m_osc[i]->m_userAntiAliasWaveTable.get());
 			}
 		}
