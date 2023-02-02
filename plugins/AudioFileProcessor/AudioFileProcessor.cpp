@@ -342,7 +342,7 @@ void AudioFileProcessor::setAudioFile( const QString & _audio_file,
 
 	try
 	{
-		m_sample = std::make_shared<Sample>(_audio_file);
+		m_sample = Sample::createFromBuffer(_audio_file);
 	}
 	catch (const std::runtime_error& e)
 	{

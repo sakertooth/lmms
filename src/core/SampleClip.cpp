@@ -21,7 +21,7 @@
  * Boston, MA 02110-1301 USA.
  *
  */
- 
+
 #include "SampleClip.h"
 
 #include <QDomElement>
@@ -128,7 +128,7 @@ const QString & SampleClip::sampleFile() const
 
 void SampleClip::setSampleBuffer(std::shared_ptr<SampleBuffer> sb)
 {
-	m_sample->setSampleBuffer(sb);
+	m_sample = std::make_shared<Sample>(sb);
 	updateLength();
 
 	emit sampleChanged();
@@ -147,10 +147,9 @@ void SampleClip::setSampleFile( const QString & _sf )
 	}
 	else
 	{	//Otherwise set it to the sample's length
-		try 
+		try
 		{
-			auto buffer = std::make_shared<SampleBuffer>(_sf);
-			m_sample->setSampleBuffer(buffer);
+			m_sample = Sample::createFromBuffer(_sf);
 		}
 		catch (const std::runtime_error& e)
 		{
@@ -293,8 +292,7 @@ void SampleClip::loadSettings( const QDomElement & _this )
 	{
 		try
 		{
-			auto buffer = std::make_shared<SampleBuffer>(QByteArray::fromBase64(_this.attribute("data").toUtf8()));
-			m_sample->setSampleBuffer(buffer);
+			m_sample = Sample::createFromBuffer(QByteArray::fromBase64(_this.attribute("data").toUtf8()));
 		}
 		catch (const std::runtime_error& e)
 		{

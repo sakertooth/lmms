@@ -53,7 +53,7 @@ namespace lmms
         public:
             PlaybackState(bool varyingPitch = false, int mode = SRC_LINEAR);
             ~PlaybackState() noexcept;
-            
+
             auto frameIndex() const -> f_cnt_t;
             auto varyingPitch() const -> bool;
             auto isBackwards() const -> bool;
@@ -81,14 +81,14 @@ namespace lmms
         };
 
         Sample() = default;
-        Sample(const QString& audioFile);
         Sample(std::shared_ptr<SampleBuffer> buffer);
 
         template<typename... Args>
-        static std::shared_ptr<Sample> create(Args&&... args)
+        static std::shared_ptr<Sample> createFromBuffer(Args&&... args)
         {
             auto deleter = [](Sample* obj) { obj->deleteLater(); };
-            return std::shared_ptr<Sample>(new Sample(std::forward<Args>(args)..., deleter));
+            auto buffer = std::make_shared<SampleBuffer>(std::forward<Args>(args)...);
+            return std::shared_ptr<Sample>(new Sample(std::move(buffer)), deleter);
         }
 
         auto play(sampleFrame* dst, PlaybackState* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff) -> bool;
@@ -97,7 +97,7 @@ namespace lmms
         auto visualize(QPainter & p, const QRect & dr, f_cnt_t fromFrame = 0, f_cnt_t toFrame = 0) -> void;
 
         auto calculateSampleLength() const -> int;
-        
+
         static auto interpolationMargins() -> std::array<f_cnt_t, 5>&;
         auto buffer() const -> std::shared_ptr<const SampleBuffer>;
         auto startFrame() const -> f_cnt_t;
@@ -108,7 +108,6 @@ namespace lmms
         auto frequency() const -> float;
         auto reversed() const -> bool;
 
-        auto setSampleBuffer(std::shared_ptr<SampleBuffer> buffer) -> void;
         auto setStartFrame(f_cnt_t frame) -> void;
         auto setEndFrame(f_cnt_t frame) -> void;
         auto setLoopStartFrame(f_cnt_t frame) -> void;
@@ -128,7 +127,7 @@ namespace lmms
             f_cnt_t loopStart,
             f_cnt_t loopEnd,
             f_cnt_t end) const -> std::vector<sampleFrame>;
-        
+
         auto scaleMarkersBySampleRate() -> void;
         auto advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sample::PlaybackState* state) -> f_cnt_t;
         auto getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;

@@ -21,7 +21,7 @@
  * Boston, MA 02110-1301 USA.
  *
  */
- 
+
 #include "SampleClipView.h"
 
 #include <QApplication>
@@ -115,10 +115,9 @@ void SampleClipView::dropEvent( QDropEvent * _de )
 	}
 	else if( StringPairDrag::decodeKey( _de ) == "sampledata" )
 	{
-		try 
+		try
 		{
-			auto buffer = std::make_shared<SampleBuffer>(QByteArray::fromBase64(StringPairDrag::decodeValue(_de).toUtf8()));
-			m_clip->m_sample->setSampleBuffer(buffer);
+			m_clip->m_sample = Sample::createFromBuffer(QByteArray::fromBase64(StringPairDrag::decodeValue(_de).toUtf8()));
 		}
 		catch (const std::runtime_error& e)
 		{

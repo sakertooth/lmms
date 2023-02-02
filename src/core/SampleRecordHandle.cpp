@@ -55,7 +55,7 @@ SampleRecordHandle::~SampleRecordHandle()
 	{
 		m_clip->setSampleBuffer(createSampleBuffer());
 	}
-	
+
 	while( !m_buffers.empty() )
 	{
 		delete[] m_buffers.front().first;
