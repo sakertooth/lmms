@@ -44,9 +44,6 @@ namespace lmms
         m_playMarkers({0, static_cast<f_cnt_t>(m_buffer->size()), 0, static_cast<f_cnt_t>(m_buffer->size())}),
         m_markerSampleRate(m_buffer->sampleRate()) {}
 
-    Sample::Sample(const QString& audioFile) :
-        Sample(std::make_shared<SampleBuffer>(audioFile)) {}
-
     auto Sample::play(
         sampleFrame* dst, PlaybackState* state,
         fpp_t frames, float freq,
@@ -482,11 +479,6 @@ namespace lmms
     auto Sample::reversed() const -> bool
     {
         return m_reversed;
-    }
-
-    auto Sample::setSampleBuffer(std::shared_ptr<SampleBuffer> buffer) -> void
-    {
-        m_buffer = buffer;
     }
 
     auto Sample::setStartFrame(f_cnt_t frame) -> void

@@ -52,7 +52,7 @@ SamplePlayHandle::SamplePlayHandle(std::shared_ptr<Sample> sample, bool ownAudio
 
 
 SamplePlayHandle::SamplePlayHandle( const QString& sampleFile ) :
-	SamplePlayHandle(std::make_shared<Sample>(sampleFile), true) {}
+	SamplePlayHandle(Sample::createFromBuffer(sampleFile), true) {}
 
 
 
