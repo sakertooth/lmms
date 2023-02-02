@@ -44,28 +44,6 @@
 
 namespace lmms
 {
-SampleBuffer::SampleBuffer(const SampleBuffer& other) noexcept :
-	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
-		[this]{ sampleRateChanged(); }))
-{
-	const auto lockGuard = std::scoped_lock{m_mutex, other.m_mutex};
-	m_audioFile = other.m_audioFile;
-	m_data = other.m_data;
-	m_sampleRate = other.m_sampleRate;
-	m_originalData = other.m_originalData;
-	m_originalSampleRate = other.m_originalSampleRate;
-}
-
-SampleBuffer::SampleBuffer(SampleBuffer&& other) noexcept
-{
-	const auto lockGuard = std::shared_lock{other.m_mutex};
-	m_audioFile = std::move(other.m_audioFile);
-	m_data = std::move(other.m_data);
-	m_sampleRate = std::exchange(other.m_sampleRate, 0);
-	m_sampleRateChangeConnection = std::move(other.m_sampleRateChangeConnection);
-	m_originalData = std::move(other.m_originalData);
-	m_originalSampleRate = std::exchange(m_originalSampleRate, 0);
-}
 
 SampleBuffer::SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate) :
 	m_data(data, data + numFrames),
@@ -126,30 +104,6 @@ SampleBuffer::SampleBuffer(int numFrames) : m_data(numFrames) {}
 SampleBuffer::~SampleBuffer() noexcept
 {
 	QObject::disconnect(m_sampleRateChangeConnection);
-}
-
-SampleBuffer& SampleBuffer::operator=(SampleBuffer other) noexcept
-{
-	std::swap(*this, other);
-	return *this;
-}
-
-const sampleFrame& SampleBuffer::operator[](size_t index) const
-{
-	return m_data[index];
-}
-
-void swap(SampleBuffer& first, SampleBuffer& second) noexcept
-{
-	auto lockGuard = std::scoped_lock{first.m_mutex, second.m_mutex};
-
-	using std::swap;
-	swap(first.m_audioFile, second.m_audioFile);
-	swap(first.m_data, second.m_data);
-	swap(first.m_sampleRate, second.m_sampleRate);
-	swap(first.m_sampleRateChangeConnection, second.m_sampleRateChangeConnection);
-	swap(first.m_originalData, second.m_originalData);
-	swap(first.m_originalSampleRate, second.m_originalSampleRate);
 }
 
 void SampleBuffer::sampleRateChanged()

@@ -57,17 +57,17 @@ public:
 	using size_type = std::vector<sampleFrame>::size_type;
 
 	SampleBuffer() = default;
-	SampleBuffer(const SampleBuffer& other) noexcept;
-	SampleBuffer(SampleBuffer&& other) noexcept;
 	SampleBuffer(const QString& audioFile);
 	SampleBuffer(const QByteArray& base64);
 	SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate = Engine::audioEngine()->processingSampleRate());
 	explicit SampleBuffer(int numFrames);
 	~SampleBuffer() noexcept;
 
-	SampleBuffer& operator=(SampleBuffer other) noexcept;
-	const sampleFrame& operator[](size_t index) const; 
-	friend void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
+	SampleBuffer(SampleBuffer&&) = delete;
+	SampleBuffer& operator=(SampleBuffer&&) = delete;
+
+	SampleBuffer(const SampleBuffer&) = delete;
+	SampleBuffer& operator=(const SampleBuffer&) = delete;
 
 	QString toBase64() const;
 
