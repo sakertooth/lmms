@@ -40,7 +40,7 @@ namespace lmms
 
 SampleClip::SampleClip( Track * _track ) :
 	Clip( _track ),
-	m_sample(std::make_shared<Sample>()),
+	m_sample(Sample::createFromBuffer()),
 	m_isPlaying( false )
 {
 	saveJournallingState( false );
@@ -128,7 +128,7 @@ const QString & SampleClip::sampleFile() const
 
 void SampleClip::setSampleBuffer(std::shared_ptr<SampleBuffer> sb)
 {
-	m_sample = std::make_shared<Sample>(sb);
+	m_sample = Sample::create(sb);
 	updateLength();
 
 	emit sampleChanged();

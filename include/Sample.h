@@ -80,8 +80,12 @@ namespace lmms
             f_cnt_t loopEndFrame;
         };
 
-        Sample() = default;
-        Sample(std::shared_ptr<SampleBuffer> buffer);
+        template<typename... Args>
+        static std::shared_ptr<Sample> create(Args&&... args)
+        {
+            auto deleter = [](Sample* obj) { obj->deleteLater(); };
+            return std::shared_ptr<Sample>(new Sample(std::forward<Args>(args)...), deleter);
+        };
 
         template<typename... Args>
         static std::shared_ptr<Sample> createFromBuffer(Args&&... args)
@@ -119,6 +123,8 @@ namespace lmms
     signals:
         void sampleUpdated();
     private:
+        Sample(std::shared_ptr<SampleBuffer> buffer);
+
         auto getSampleFragment(
             f_cnt_t index,
             f_cnt_t frames,
@@ -132,7 +138,7 @@ namespace lmms
         auto advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sample::PlaybackState* state) -> f_cnt_t;
         auto getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
         auto getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
-    private:
+
         std::shared_ptr<const SampleBuffer> m_buffer = std::make_shared<const SampleBuffer>();
         PlayMarkers m_playMarkers = {0, 0, 0, 0};
         float m_amplification = 1.0f;
