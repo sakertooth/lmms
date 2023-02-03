@@ -79,7 +79,7 @@ Plugin::Descriptor PLUGIN_EXPORT audiofileprocessor_plugin_descriptor =
 
 AudioFileProcessor::AudioFileProcessor( InstrumentTrack * _instrument_track ) :
 	Instrument( _instrument_track, &audiofileprocessor_plugin_descriptor ),
-	m_sample(std::make_shared<Sample>()),
+	m_sample(Sample::createFromBuffer()),
 	m_ampModel( 100, 0, 500, 1, this, tr( "Amplify" ) ),
 	m_startPointModel( 0, 0, 1, 0.0000001f, this, tr( "Start of sample" ) ),
 	m_endPointModel( 1, 0, 1, 0.0000001f, this, tr( "End of sample" ) ),
@@ -243,8 +243,8 @@ void AudioFileProcessor::loadSettings(const QDomElement& elem)
 	{
 		try
 		{
-			auto buffer = std::make_shared<SampleBuffer>(QByteArray::fromBase64(elem.attribute("srcdata").toUtf8()));
-			m_sample = std::make_shared<Sample>(buffer);
+			auto base64Array = QByteArray::fromBase64(elem.attribute("srcdata").toUtf8());
+			m_sample = Sample::createFromBuffer(base64Array);
 		}
 		catch (const std::runtime_error& e)
 		{
