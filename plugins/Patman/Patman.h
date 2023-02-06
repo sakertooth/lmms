@@ -2,7 +2,7 @@
  * Patman.h - header for a GUS-compatible patch instrument plugin
  *
  * Copyright (c) 2007-2008 Javier Serrano Polo <jasp00/at/users.sourceforge.net>
- * 
+ *
  * This file is part of LMMS - https://lmms.io
  *
  * This program is free software; you can redistribute it and/or
@@ -87,7 +87,7 @@ private:
 	struct handle_data
 	{
 		MM_OPERATORS
-		Sample::PlaybackState* state;
+		SamplePlaybackState* state;
 		bool tuned;
 		std::shared_ptr<Sample> sample;
 	};

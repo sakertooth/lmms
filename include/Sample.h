@@ -29,6 +29,7 @@
 #include "Engine.h"
 #include "Note.h"
 #include "SampleBuffer.h"
+#include "SamplePlaybackState.h"
 
 #include <samplerate.h>
 #include "lmms_basics.h"
@@ -46,30 +47,6 @@ namespace lmms
         enum class LoopMode
         {
             LoopOff, LoopOn, LoopPingPong
-        };
-
-        class LMMS_EXPORT PlaybackState
-        {
-        public:
-            PlaybackState(bool varyingPitch = false, int mode = SRC_LINEAR);
-            ~PlaybackState() noexcept;
-
-            auto frameIndex() const -> f_cnt_t;
-            auto varyingPitch() const -> bool;
-            auto isBackwards() const -> bool;
-            auto interpolationMode() const -> int;
-
-            auto setFrameIndex(f_cnt_t index) -> void;
-            auto setVaryingPitch(bool varyingPitch) -> void;
-            auto setBackwards(bool backwards) -> void;
-
-        private:
-            f_cnt_t m_frameIndex = 0;
-            bool m_varyingPitch = false;
-            bool m_backwards = false;
-            SRC_STATE* m_resamplingData = nullptr;
-            int m_interpolationMode = SRC_LINEAR;
-            friend class Sample;
         };
 
         struct PlayMarkers
@@ -95,7 +72,7 @@ namespace lmms
             return std::shared_ptr<Sample>(new Sample(std::move(buffer)), deleter);
         }
 
-        auto play(sampleFrame* dst, PlaybackState* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff) -> bool;
+        auto play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, float freq, LoopMode loopMode = LoopMode::LoopOff) -> bool;
 
         //! TODO: Should be moved to its own QWidget
         auto visualize(QPainter & p, const QRect & dr, f_cnt_t fromFrame = 0, f_cnt_t toFrame = 0) -> void;
@@ -135,7 +112,7 @@ namespace lmms
             f_cnt_t end) const -> std::vector<sampleFrame>;
 
         auto scaleMarkersBySampleRate() -> void;
-        auto advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sample::PlaybackState* state) -> f_cnt_t;
+        auto advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, SamplePlaybackState* state) -> f_cnt_t;
         auto getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
         auto getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
 
