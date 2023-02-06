@@ -45,7 +45,7 @@ namespace lmms
         m_markerSampleRate(m_buffer->sampleRate()) {}
 
     auto Sample::play(
-        sampleFrame* dst, PlaybackState* state,
+        sampleFrame* dst, SamplePlaybackState* state,
         fpp_t frames, float freq,
         LoopMode loopMode
     ) -> bool
@@ -164,7 +164,7 @@ namespace lmms
         }
     }
 
-    auto Sample::advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, PlaybackState* state) -> f_cnt_t
+    auto Sample::advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, SamplePlaybackState* state) -> f_cnt_t
     {
         switch (loopMode)
         {
@@ -521,57 +521,6 @@ namespace lmms
     {
         m_reversed = reversed;
         emit sampleUpdated();
-    }
-
-    Sample::PlaybackState::PlaybackState(bool varyingPitch, int mode) :
-        m_varyingPitch(varyingPitch),
-        m_interpolationMode(mode)
-    {
-        int error = 0;
-        if ((m_resamplingData = src_new(mode, DEFAULT_CHANNELS, &error)) == nullptr)
-        {
-            std::cerr << "Error when creating resample state: " << src_strerror(error) << '\n';
-        }
-    }
-
-    Sample::PlaybackState::~PlaybackState() noexcept
-    {
-        src_delete(m_resamplingData);
-    }
-
-    auto Sample::PlaybackState::frameIndex() const -> f_cnt_t
-    {
-        return m_frameIndex;
-    }
-
-    auto Sample::PlaybackState::varyingPitch() const -> bool
-    {
-        return m_varyingPitch;
-    }
-
-    auto Sample::PlaybackState::isBackwards() const -> bool
-    {
-        return m_backwards;
-    }
-
-    auto Sample::PlaybackState::interpolationMode() const -> int
-    {
-        return m_interpolationMode;
-    }
-
-    auto Sample::PlaybackState::setFrameIndex(f_cnt_t index) -> void
-    {
-        m_frameIndex = index;
-    }
-
-    auto Sample::PlaybackState::setVaryingPitch(bool varyingPitch) -> void
-    {
-        m_varyingPitch = varyingPitch;
-    }
-
-    auto Sample::PlaybackState::setBackwards(bool backwards) -> void
-    {
-        m_backwards = backwards;
     }
 
 } // namespace lmms
