@@ -407,7 +407,7 @@ namespace lmms
         }
     }
 
-    auto Sample::calculateSampleLength() const -> int
+    auto Sample::sampleDuration() const -> int
 	{
 		return m_buffer->sampleRate() > 0 ?
             static_cast<double>(m_playMarkers.endFrame - m_playMarkers.startFrame) / m_buffer->sampleRate() * 1000 : 0;

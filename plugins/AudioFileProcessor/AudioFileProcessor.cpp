@@ -968,7 +968,7 @@ void AudioFileProcessorWaveView::paintEvent( QPaintEvent * _pe )
 	p.setFont( pointSize<8>( font() ) );
 
 	QString length_text;
-	const int length = m_sample->calculateSampleLength();
+	const int length = m_sample->sampleDuration();
 
 	if( length > 20000 )
 	{
