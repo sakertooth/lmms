@@ -315,14 +315,14 @@ void SampleBuffer::resample(sample_rate_t newSampleRate, bool fromOriginal)
 	srcData.end_of_input = 1;
 	srcData.data_in = fromOriginal ? &m_originalData[0][0] : &m_data[0][0];
 	srcData.data_out = &dst[0][0];
-	srcData.input_frames = size();
+	srcData.input_frames = fromOriginal ? m_originalData.size() : size();
 	srcData.output_frames = dstFrames;
 	srcData.src_ratio = static_cast<double>(newSampleRate) / srcSampleRate;
 
 	auto error = src_simple(&srcData, SRC_SINC_MEDIUM_QUALITY, DEFAULT_CHANNELS);
 	if (error != 0)
 	{
-		std::cout << "SampleBuffer: error while resampling:" << src_strerror(error) << '\n';
+		throw std::runtime_error{"SampleBuffer: error while resampling: " + std::string{src_strerror(error)}};
 	}
 
 	m_data = std::move(dst);
