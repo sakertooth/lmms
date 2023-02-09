@@ -412,7 +412,8 @@ namespace lmms
 
     auto Sample::calculateSampleLength() const -> int
 	{
-		return static_cast<double>(m_playMarkers.endFrame - m_playMarkers.startFrame) / m_buffer->sampleRate() * 1000;
+		return m_buffer->sampleRate() > 0 ?
+            static_cast<double>(m_playMarkers.endFrame - m_playMarkers.startFrame) / m_buffer->sampleRate() * 1000 : 0;
 	}
 
     f_cnt_t Sample::getPingPongIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) const
