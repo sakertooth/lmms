@@ -225,7 +225,7 @@ void SampleClip::updateLength()
 
 TimePos SampleClip::sampleLength() const
 {
-	return static_cast<int>(m_sample->buffer()->size() / Engine::framesPerTick());
+	return static_cast<int>(m_sample->playbackSize() / Engine::framesPerTick());
 }
 
 

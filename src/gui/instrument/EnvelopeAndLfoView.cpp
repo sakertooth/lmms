@@ -3,7 +3,7 @@
  *                          tab of instrument track window
  *
  * Copyright (c) 2004-2014 Tobias Doerffel <tobydox/at/users.sourceforge.net>
- * 
+ *
  * This file is part of LMMS - https://lmms.io
  *
  * This program is free software; you can redistribute it and/or
@@ -324,9 +324,9 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	QString value = StringPairDrag::decodeValue( _de );
 	if (type == "samplefile" && !value.isEmpty())
 	{
-		try 
+		try
 		{
-			m_params->m_userWave = std::make_shared<SampleBuffer>(value);		
+			m_params->m_userWave = std::make_shared<SampleBuffer>(value);
 		}
 		catch (const std::runtime_error& e)
 		{
@@ -342,7 +342,7 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	{
 		DataFile dataFile( value.toUtf8() );
 
-		try 
+		try
 		{
 			m_params->m_userWave = std::make_shared<SampleBuffer>(dataFile.content().
 					firstChildElement().firstChildElement().
@@ -387,7 +387,7 @@ void EnvelopeAndLfoView::paintEvent( QPaintEvent * )
 
 	const int y_base = ENV_GRAPH_Y + s_envGraph->height() - 3;
 	const int avail_height = s_envGraph->height() - 6;
-	
+
 	int x1 = static_cast<int>( m_predelayKnob->value<float>() * TIME_UNIT_WIDTH );
 	int x2 = x1 + static_cast<int>( m_attackKnob->value<float>() * TIME_UNIT_WIDTH );
 	int x3 = x2 + static_cast<int>( m_holdKnob->value<float>() * TIME_UNIT_WIDTH );
@@ -424,7 +424,7 @@ void EnvelopeAndLfoView::paintEvent( QPaintEvent * )
 	p.fillRect( x3 - 1, y_base - 2 - avail_height, 4, 4,
 							end_points_bg_color );
 	p.fillRect( x3, y_base - 1 - avail_height, 2, 2, end_points_color );
-	
+
 	p.drawLine( x4, static_cast<int>( y_base - avail_height +
 						( 1 - m_sustainKnob->value<float>() ) *
 						avail_height ), x5, y_base );
@@ -463,8 +463,6 @@ void EnvelopeAndLfoView::paintEvent( QPaintEvent * )
 		osc_frames *= 100.0f;
 	}
 
-	// userWaveSample() may be used, called out of loop for efficiency
-	const auto lockGuard = std::lock_guard{m_params->m_userWave->mutex()};
 	float old_y = 0;
 	for( int x = 0; x <= LFO_GRAPH_W; ++x )
 	{

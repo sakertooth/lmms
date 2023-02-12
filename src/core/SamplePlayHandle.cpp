@@ -40,6 +40,7 @@ namespace lmms
 SamplePlayHandle::SamplePlayHandle(std::shared_ptr<Sample> sample, bool ownAudioPort) :
 	PlayHandle(TypeSamplePlayHandle),
 	m_sample(sample),
+	m_state(false, Engine::audioEngine()->currentQualitySettings().libsrcInterpolation()),
 	m_ownAudioPort(ownAudioPort)
 {
 	if (ownAudioPort)
@@ -137,8 +138,7 @@ bool SamplePlayHandle::isFromTrack( const Track * _track ) const
 
 f_cnt_t SamplePlayHandle::totalFrames() const
 {
-	return (m_sample->endFrame() - m_sample->startFrame()) *
-			(Engine::audioEngine()->processingSampleRate() / m_sample->buffer()->sampleRate());
+	return m_sample->playbackSize();
 }
 
 
