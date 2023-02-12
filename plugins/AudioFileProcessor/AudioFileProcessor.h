@@ -292,6 +292,7 @@ private:
 		return qAbs( _a - _b ) < 4;
 	}
 
+	friend class gui::AudioFileProcessorView;
 } ;
 
 
