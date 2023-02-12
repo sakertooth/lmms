@@ -28,6 +28,7 @@
 
 #include <samplerate.h>
 #include <stdexcept>
+#include <string>
 
 namespace lmms
 {
