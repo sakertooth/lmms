@@ -705,7 +705,9 @@ void AudioFileProcessorView::openAudioFile()
 	if (audioFile != "")
 	{
 		castModel<AudioFileProcessor>()->setAudioFile(audioFile);
+		m_waveView->m_sample = castModel<AudioFileProcessor>()->m_sample.get();
 		Engine::getSong()->setModified();
+		m_waveView->updateGraph();
 		m_waveView->updateSampleRange();
 	}
 }
