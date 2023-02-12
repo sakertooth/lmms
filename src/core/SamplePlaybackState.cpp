@@ -81,4 +81,4 @@ namespace lmms
     {
         m_backwards = backwards;
     }
-}
+} // namespace lmms
