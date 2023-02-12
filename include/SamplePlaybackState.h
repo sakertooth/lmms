@@ -53,6 +53,6 @@ namespace lmms
         int m_interpolationMode = SRC_LINEAR;
         friend class Sample;
     };
-}
+} // namespace lmms
 
 #endif
