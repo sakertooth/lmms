@@ -52,10 +52,7 @@ SampleBuffer::SampleBuffer(const sampleFrame* data, int numFrames, int sampleRat
 	m_originalSampleRate(sampleRate)
 {
 	const auto engineRate = Engine::audioEngine()->processingSampleRate();
-	if (sampleRate != static_cast<int>(engineRate))
-	{
-		resample(engineRate);
-	}
+	if (sampleRate != static_cast<int>(engineRate)) { resample(engineRate); }
 }
 
 SampleBuffer::SampleBuffer(const QString& audioFile)
@@ -76,6 +73,9 @@ SampleBuffer::SampleBuffer(const QString& audioFile)
 	{
 		decodeSampleSF(resolvedFileName);
 	}
+
+	const auto engineRate = Engine::audioEngine()->processingSampleRate();
+	if (m_sampleRate != engineRate) { resample(engineRate); }
 }
 
 SampleBuffer::SampleBuffer(const QByteArray& base64)
@@ -89,9 +89,10 @@ SampleBuffer::SampleBuffer(const QByteArray& base64)
 	m_sampleRate = sampleBufferData->m_sampleRate;
 	m_originalData = std::move(sampleBufferData->m_originalData);
 	m_originalSampleRate = sampleBufferData->m_originalSampleRate;
-}
 
-SampleBuffer::SampleBuffer(int numFrames) : m_data(numFrames) {}
+	const auto engineRate = Engine::audioEngine()->processingSampleRate();
+	if (m_sampleRate != engineRate) { resample(engineRate); }
+}
 
 bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui) const
 {
