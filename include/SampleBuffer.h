@@ -61,7 +61,6 @@ public:
 	SampleBuffer(const QByteArray& base64);
 	SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate = Engine::audioEngine()->processingSampleRate());
 	explicit SampleBuffer(int numFrames);
-	~SampleBuffer() noexcept;
 
 	SampleBuffer(SampleBuffer&&) = delete;
 	SampleBuffer& operator=(SampleBuffer&&) = delete;
@@ -72,7 +71,6 @@ public:
 	QString toBase64() const;
 
 	const QString& audioFile() const { return m_audioFile; }
-	std::shared_mutex& mutex() const { return m_mutex; }
 	sample_rate_t sampleRate() const { return m_sampleRate; }
 
 	const_iterator begin() const { return m_data.begin(); }
@@ -93,9 +91,7 @@ private:
 private:
 	std::vector<sampleFrame> m_data;
 	std::vector<sampleFrame> m_originalData;
-	QMetaObject::Connection m_sampleRateChangeConnection;
 	QString m_audioFile = "";
-	mutable std::shared_mutex m_mutex;
 	sample_rate_t m_sampleRate = 0;
 	sample_rate_t m_originalSampleRate = 0;
 };

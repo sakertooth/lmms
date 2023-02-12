@@ -413,6 +413,12 @@ namespace lmms
             static_cast<double>(m_playMarkers.endFrame - m_playMarkers.startFrame) / m_buffer->sampleRate() * 1000 : 0;
 	}
 
+    auto Sample::playbackSize() const -> f_cnt_t
+    {
+        return m_buffer->sampleRate() > 0 ?
+            m_buffer->size() * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate() : 0;
+    }
+
     f_cnt_t Sample::getPingPongIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) const
     {
         if (index < endf)

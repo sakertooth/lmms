@@ -185,7 +185,7 @@ void SampleClipView::mouseDoubleClickEvent( QMouseEvent * )
 	if (audioFile.isEmpty()) {} //Don't do anything if no file is loaded
 	else if (audioFile == m_clip->m_sample->buffer()->audioFile())
 	{	//Instead of reloading the existing file, just reset the size
-		int length = static_cast<int>(m_clip->m_sample->buffer()->size() / Engine::framesPerTick());
+		int length = static_cast<int>(m_clip->m_sample->playbackSize() / Engine::framesPerTick());
 		m_clip->changeLength(length);
 	}
 	else

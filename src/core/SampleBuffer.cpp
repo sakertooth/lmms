@@ -48,8 +48,6 @@ namespace lmms
 SampleBuffer::SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate) :
 	m_data(data, data + numFrames),
 	m_originalData(data, data + numFrames),
-	m_sampleRateChangeConnection(QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
-		[this]{ sampleRateChanged(); })),
 	m_sampleRate(sampleRate),
 	m_originalSampleRate(sampleRate)
 {
@@ -78,10 +76,6 @@ SampleBuffer::SampleBuffer(const QString& audioFile)
 	{
 		decodeSampleSF(resolvedFileName);
 	}
-
-	// Only connect if we sucessfully loaded the file
-	m_sampleRateChangeConnection = QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
-		[this]{ sampleRateChanged(); });
 }
 
 SampleBuffer::SampleBuffer(const QByteArray& base64)
@@ -95,29 +89,9 @@ SampleBuffer::SampleBuffer(const QByteArray& base64)
 	m_sampleRate = sampleBufferData->m_sampleRate;
 	m_originalData = std::move(sampleBufferData->m_originalData);
 	m_originalSampleRate = sampleBufferData->m_originalSampleRate;
-	m_sampleRateChangeConnection = QObject::connect(Engine::audioEngine(), &AudioEngine::sampleRateChanged,
-		[this]{ sampleRateChanged(); });
 }
 
 SampleBuffer::SampleBuffer(int numFrames) : m_data(numFrames) {}
-
-SampleBuffer::~SampleBuffer() noexcept
-{
-	QObject::disconnect(m_sampleRateChangeConnection);
-}
-
-void SampleBuffer::sampleRateChanged()
-{
-	const auto engineRate = Engine::audioEngine()->processingSampleRate();
-	if (empty() || m_sampleRate == engineRate) { return; }
-
-	Engine::audioEngine()->requestChangeInModel();
-
-	const auto lockGuard = std::unique_lock{m_mutex};
-	resample(engineRate);
-
-	Engine::audioEngine()->doneChangeInModel();
-}
 
 bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui) const
 {
@@ -273,6 +247,8 @@ void SampleBuffer::resample(sample_rate_t newSampleRate, bool fromOriginal)
 	srcData.output_frames = dstFrames;
 	srcData.src_ratio = static_cast<double>(newSampleRate) / srcSampleRate;
 
+	// TODO: We may want to use the same interpolation mode as the engine
+	// in the interest of having consistent expectations
 	auto error = src_simple(&srcData, SRC_SINC_MEDIUM_QUALITY, DEFAULT_CHANNELS);
 	if (error != 0)
 	{
