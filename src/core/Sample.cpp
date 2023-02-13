@@ -147,23 +147,6 @@ namespace lmms
         return true;
     }
 
-    auto Sample::scaleMarkersBySampleRate() -> void
-    {
-        const auto engineRate = Engine::audioEngine()->processingSampleRate();
-        if (m_markerSampleRate != engineRate)
-        {
-            auto oldRateToNewRateRatio = static_cast<float>(engineRate) / m_markerSampleRate;
-            const auto numFrames = static_cast<f_cnt_t>(m_buffer->size());
-            auto& [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_playMarkers;
-
-            startFrame = std::clamp(static_cast<f_cnt_t>(startFrame * oldRateToNewRateRatio), 0, numFrames);
-            endFrame = std::clamp(static_cast<f_cnt_t>(endFrame * oldRateToNewRateRatio), startFrame, numFrames);
-            loopStartFrame = std::clamp(static_cast<f_cnt_t>(loopStartFrame * oldRateToNewRateRatio), 0, numFrames);
-            loopEndFrame = std::clamp(static_cast<f_cnt_t>(loopEndFrame * oldRateToNewRateRatio), loopStartFrame, numFrames);
-            m_markerSampleRate = engineRate;
-        }
-    }
-
     auto Sample::advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, SamplePlaybackState* state) -> f_cnt_t
     {
         switch (loopMode)
