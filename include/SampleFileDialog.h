@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SAMPLE_FILE_DIALOG_H
-#define SAMPLE_FILE_DIALOG_H
+#ifndef LMMS_GUI_SAMPLE_FILE_DIALOG_H
+#define LMMS_GUI_SAMPLE_FILE_DIALOG_H
 
 #include <QString>
 #include "lmms_export.h"
@@ -38,4 +38,4 @@ namespace lmms::gui
     };
 } // namespace lmms::gui
 
-#endif
+#endif // LMMS_GUI_SAMPLE_FILE_DIALOG_H

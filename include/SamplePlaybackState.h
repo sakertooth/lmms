@@ -21,8 +21,8 @@
  * Boston, MA 02110-1301 USA.
  *
  */
-#ifndef SAMPLE_PLAYBACK_STATE_H
-#define SAMPLE_PLAYBACK_STATE_H
+#ifndef LMMS_SAMPLE_PLAYBACK_STATE_H
+#define LMMS_SAMPLE_PLAYBACK_STATE_H
 
 #include <samplerate.h>
 #include "lmms_basics.h"
@@ -55,4 +55,4 @@ namespace lmms
     };
 } // namespace lmms
 
-#endif
+#endif // LMMS_SAMPLE_PLAYBACK_STATE_H
