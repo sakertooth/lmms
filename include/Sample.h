@@ -22,8 +22,8 @@
  *
  */
 
-#ifndef SAMPLE_H
-#define SAMPLE_H
+#ifndef LMMS_SAMPLE_H
+#define LMMS_SAMPLE_H
 
 #include "AudioEngine.h"
 #include "Engine.h"
@@ -125,4 +125,4 @@ namespace lmms
     };
 } // namespace lmms
 
-#endif
+#endif // LMMS_SAMPLE_H
