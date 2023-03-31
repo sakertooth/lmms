@@ -32,54 +32,54 @@
 
 namespace lmms
 {
-    SamplePlaybackState::SamplePlaybackState(bool varyingPitch, int mode) :
-        m_varyingPitch(varyingPitch),
-        m_interpolationMode(mode)
-    {
-        int error = 0;
-        if ((m_resamplingData = src_new(mode, DEFAULT_CHANNELS, &error)) == nullptr)
-        {
-            throw std::runtime_error{"Error when creating resample state: " + std::string{src_strerror(error)}};
-        }
-    }
+	SamplePlaybackState::SamplePlaybackState(bool varyingPitch, int mode) :
+		m_varyingPitch(varyingPitch),
+		m_interpolationMode(mode)
+	{
+		int error = 0;
+		if ((m_resamplingData = src_new(mode, DEFAULT_CHANNELS, &error)) == nullptr)
+		{
+			throw std::runtime_error{"Error when creating resample state: " + std::string{src_strerror(error)}};
+		}
+	}
 
-    SamplePlaybackState::~SamplePlaybackState() noexcept
-    {
-        src_delete(m_resamplingData);
-    }
+	SamplePlaybackState::~SamplePlaybackState() noexcept
+	{
+		src_delete(m_resamplingData);
+	}
 
-    auto SamplePlaybackState::frameIndex() const -> f_cnt_t
-    {
-        return m_frameIndex;
-    }
+	auto SamplePlaybackState::frameIndex() const -> f_cnt_t
+	{
+		return m_frameIndex;
+	}
 
-    auto SamplePlaybackState::varyingPitch() const -> bool
-    {
-        return m_varyingPitch;
-    }
+	auto SamplePlaybackState::varyingPitch() const -> bool
+	{
+		return m_varyingPitch;
+	}
 
-    auto SamplePlaybackState::isBackwards() const -> bool
-    {
-        return m_backwards;
-    }
+	auto SamplePlaybackState::isBackwards() const -> bool
+	{
+		return m_backwards;
+	}
 
-    auto SamplePlaybackState::interpolationMode() const -> int
-    {
-        return m_interpolationMode;
-    }
+	auto SamplePlaybackState::interpolationMode() const -> int
+	{
+		return m_interpolationMode;
+	}
 
-    auto SamplePlaybackState::setFrameIndex(f_cnt_t index) -> void
-    {
-        m_frameIndex = index;
-    }
+	auto SamplePlaybackState::setFrameIndex(f_cnt_t index) -> void
+	{
+		m_frameIndex = index;
+	}
 
-    auto SamplePlaybackState::setVaryingPitch(bool varyingPitch) -> void
-    {
-        m_varyingPitch = varyingPitch;
-    }
+	auto SamplePlaybackState::setVaryingPitch(bool varyingPitch) -> void
+	{
+		m_varyingPitch = varyingPitch;
+	}
 
-    auto SamplePlaybackState::setBackwards(bool backwards) -> void
-    {
-        m_backwards = backwards;
-    }
+	auto SamplePlaybackState::setBackwards(bool backwards) -> void
+	{
+		m_backwards = backwards;
+	}
 } // namespace lmms

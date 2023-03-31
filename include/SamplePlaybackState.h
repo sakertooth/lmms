@@ -30,29 +30,29 @@
 
 namespace lmms
 {
-    class LMMS_EXPORT SamplePlaybackState
-    {
-    public:
-        SamplePlaybackState(bool varyingPitch = false, int mode = SRC_LINEAR);
-        ~SamplePlaybackState() noexcept;
+	class LMMS_EXPORT SamplePlaybackState
+	{
+	public:
+		SamplePlaybackState(bool varyingPitch = false, int mode = SRC_LINEAR);
+		~SamplePlaybackState() noexcept;
 
-        auto frameIndex() const -> f_cnt_t;
-        auto varyingPitch() const -> bool;
-        auto isBackwards() const -> bool;
-        auto interpolationMode() const -> int;
+		auto frameIndex() const -> f_cnt_t;
+		auto varyingPitch() const -> bool;
+		auto isBackwards() const -> bool;
+		auto interpolationMode() const -> int;
 
-        auto setFrameIndex(f_cnt_t index) -> void;
-        auto setVaryingPitch(bool varyingPitch) -> void;
-        auto setBackwards(bool backwards) -> void;
+		auto setFrameIndex(f_cnt_t index) -> void;
+		auto setVaryingPitch(bool varyingPitch) -> void;
+		auto setBackwards(bool backwards) -> void;
 
-    private:
-        f_cnt_t m_frameIndex = 0;
-        bool m_varyingPitch = false;
-        bool m_backwards = false;
-        SRC_STATE* m_resamplingData = nullptr;
-        int m_interpolationMode = SRC_LINEAR;
-        friend class Sample;
-    };
+	private:
+		f_cnt_t m_frameIndex = 0;
+		bool m_varyingPitch = false;
+		bool m_backwards = false;
+		SRC_STATE* m_resamplingData = nullptr;
+		int m_interpolationMode = SRC_LINEAR;
+		friend class Sample;
+	};
 } // namespace lmms
 
 #endif // LMMS_SAMPLE_PLAYBACK_STATE_H
