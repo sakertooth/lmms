@@ -67,26 +67,26 @@ public:
 	SampleBuffer(const SampleBuffer&) = delete;
 	SampleBuffer& operator=(const SampleBuffer&) = delete;
 
-	QString toBase64() const;
+	auto toBase64() const -> QString;
 
-	const QString& audioFile() const { return m_audioFile; }
-	sample_rate_t sampleRate() const { return m_sampleRate; }
+	auto audioFile() const -> const QString& { return m_audioFile; }
+	auto sampleRate() const -> sample_rate_t { return m_sampleRate; }
 
-	const_iterator begin() const { return m_data.begin(); }
-	const_iterator end() const { return m_data.end(); }
-	const_reverse_iterator rbegin() const { return m_data.rbegin(); }
-	const_reverse_iterator rend() const { return m_data.rend(); }
+	auto begin() const -> const_iterator { return m_data.begin(); }
+	auto end() const -> const_iterator { return m_data.end(); }
+	auto rbegin() const -> const_reverse_iterator { return m_data.rbegin(); }
+	auto rend() const -> const_reverse_iterator { return m_data.rend(); }
 
-	const sampleFrame* data() const { return m_data.data(); }
-	size_type size() const { return m_data.size(); }
-	bool empty() const { return m_data.empty(); }
+	auto data() const -> const sampleFrame* { return m_data.data(); }
+	auto size() const -> size_type { return m_data.size(); }
+	auto empty() const -> bool { return m_data.empty(); }
 
 private:
-	bool fileExceedsLimits(const QString& audioFile, bool reportToGui = true) const;
-	void decodeSampleSF(const QString& fileName);
-	void decodeSampleDS(const QString& fileName);
-	void sampleRateChanged();
-	void resample(sample_rate_t newSampleRate, bool fromOriginal = true);
+	auto fileExceedsLimits(const QString& audioFile, bool reportToGui = true) const -> bool;
+	auto decodeSampleSF(const QString& fileName) -> void;
+	auto decodeSampleDS(const QString& fileName) -> void;
+	auto sampleRateChanged() -> void;
+	auto resample(sample_rate_t newSampleRate, bool fromOriginal = true) -> void;
 private:
 	std::vector<sampleFrame> m_data;
 	std::vector<sampleFrame> m_originalData;
