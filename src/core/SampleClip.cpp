@@ -292,7 +292,9 @@ void SampleClip::loadSettings( const QDomElement & _this )
 	{
 		try
 		{
-			m_sample = Sample::createFromBuffer(QByteArray::fromBase64(_this.attribute("data").toUtf8()));
+			const auto decodedSampleData = QByteArray::fromBase64(_this.attribute("data").toUtf8());
+			const auto sampleRate = _this.attribute("sample_rate").toInt();
+			m_sample = Sample::createFromBuffer(decodedSampleData, sampleRate);
 		}
 		catch (const std::runtime_error& e)
 		{
