@@ -31,75 +31,75 @@
 
 namespace lmms::gui
 {
-    QString SampleFileDialog::openAudioFile(const QString& previousFile)
-    {
-        auto openFileDialog = gui::FileDialog(nullptr, QObject::tr("Open audio file"));
-        auto dir = QString{};
+	QString SampleFileDialog::openAudioFile(const QString& previousFile)
+	{
+		auto openFileDialog = gui::FileDialog(nullptr, QObject::tr("Open audio file"));
+		auto dir = QString{};
 
-        if (!previousFile.isEmpty())
-        {
-            auto file = QString{previousFile};
-            if (QFileInfo{file}.isRelative())
-            {
-                file = ConfigManager::inst()->userSamplesDir() + file;
-                if (!QFileInfo{file}.exists())
-                {
-                    file = ConfigManager::inst()->factorySamplesDir() + previousFile;
-                }
-            }
+		if (!previousFile.isEmpty())
+		{
+			auto file = QString{previousFile};
+			if (QFileInfo{file}.isRelative())
+			{
+				file = ConfigManager::inst()->userSamplesDir() + file;
+				if (!QFileInfo{file}.exists())
+				{
+					file = ConfigManager::inst()->factorySamplesDir() + previousFile;
+				}
+			}
 
-            dir = QFileInfo{file}.absolutePath();
-        }
-        else
-        {
-            dir = ConfigManager::inst()->userSamplesDir();
-        }
+			dir = QFileInfo{file}.absolutePath();
+		}
+		else
+		{
+			dir = ConfigManager::inst()->userSamplesDir();
+		}
 
-        // change dir to position of previously opened file
-        openFileDialog.setDirectory(dir);
-        openFileDialog.setFileMode(gui::FileDialog::ExistingFiles);
+		// change dir to position of previously opened file
+		openFileDialog.setDirectory(dir);
+		openFileDialog.setFileMode(gui::FileDialog::ExistingFiles);
 
-        // set filters
-        // TODO: Since libsndfile 1.1.0, MP3 is supported
-        const auto fileTypes = QStringList
-        {
-            QObject::tr("All Audio-Files (*.wav *.ogg *.ds *.flac *.spx *.voc "
-                            "*.aif *.aiff *.au *.raw)"),
-            QObject::tr("Wave-Files (*.wav)"),
-            QObject::tr("OGG-Files (*.ogg)"),
-            QObject::tr("DrumSynth-Files (*.ds)"),
-            QObject::tr("FLAC-Files (*.flac)"),
-            QObject::tr("SPEEX-Files (*.spx)"),
-            QObject::tr("VOC-Files (*.voc)"),
-            QObject::tr("AIFF-Files (*.aif *.aiff)"),
-            QObject::tr("AU-Files (*.au)"),
-            QObject::tr("RAW-Files (*.raw)")
-        };
+		// set filters
+		// TODO: Since libsndfile 1.1.0, MP3 is supported
+		const auto fileTypes = QStringList
+		{
+			QObject::tr("All Audio-Files (*.wav *.ogg *.ds *.flac *.spx *.voc "
+							"*.aif *.aiff *.au *.raw)"),
+			QObject::tr("Wave-Files (*.wav)"),
+			QObject::tr("OGG-Files (*.ogg)"),
+			QObject::tr("DrumSynth-Files (*.ds)"),
+			QObject::tr("FLAC-Files (*.flac)"),
+			QObject::tr("SPEEX-Files (*.spx)"),
+			QObject::tr("VOC-Files (*.voc)"),
+			QObject::tr("AIFF-Files (*.aif *.aiff)"),
+			QObject::tr("AU-Files (*.au)"),
+			QObject::tr("RAW-Files (*.raw)")
+		};
 
-        openFileDialog.setNameFilters(fileTypes);
+		openFileDialog.setNameFilters(fileTypes);
 
-        if (!previousFile.isEmpty())
-        {
-            // select previously opened file
-            openFileDialog.selectFile(QFileInfo{previousFile}.fileName());
-        }
+		if (!previousFile.isEmpty())
+		{
+			// select previously opened file
+			openFileDialog.selectFile(QFileInfo{previousFile}.fileName());
+		}
 
-        if (openFileDialog.exec() == QDialog::Accepted)
-        {
-            if (openFileDialog.selectedFiles().isEmpty())
-            {
-                return "";
-            }
+		if (openFileDialog.exec() == QDialog::Accepted)
+		{
+			if (openFileDialog.selectedFiles().isEmpty())
+			{
+				return "";
+			}
 
-            return PathUtil::toShortestRelative(openFileDialog.selectedFiles()[0]);
-        }
+			return PathUtil::toShortestRelative(openFileDialog.selectedFiles()[0]);
+		}
 
-        return "";
-    }
+		return "";
+	}
 
-    QString SampleFileDialog::openWaveformFile(const QString& previousFile)
-    {
-        return openAudioFile(previousFile.isEmpty() ? ConfigManager::inst()->factorySamplesDir() + "waveforms/10saw.flac" : previousFile);
-    }
+	QString SampleFileDialog::openWaveformFile(const QString& previousFile)
+	{
+		return openAudioFile(previousFile.isEmpty() ? ConfigManager::inst()->factorySamplesDir() + "waveforms/10saw.flac" : previousFile);
+	}
 
 } // namespace lmms::gui

@@ -30,12 +30,12 @@
 
 namespace lmms::gui
 {
-    class LMMS_EXPORT SampleFileDialog
-    {
-    public:
-        static QString openAudioFile(const QString& previousFile = "");
-        static QString openWaveformFile(const QString& previousFile = "");
-    };
+	class LMMS_EXPORT SampleFileDialog
+	{
+	public:
+		static QString openAudioFile(const QString& previousFile = "");
+		static QString openWaveformFile(const QString& previousFile = "");
+	};
 } // namespace lmms::gui
 
 #endif // LMMS_GUI_SAMPLE_FILE_DIALOG_H
