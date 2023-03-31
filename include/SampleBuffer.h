@@ -58,7 +58,7 @@ public:
 
 	SampleBuffer() = default;
 	SampleBuffer(const QString& audioFile);
-	SampleBuffer(const QByteArray& base64);
+	SampleBuffer(const QByteArray& sampleData, int sampleRate);
 	SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate = Engine::audioEngine()->processingSampleRate());
 
 	SampleBuffer(SampleBuffer&&) = delete;
