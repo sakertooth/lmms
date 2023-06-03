@@ -25,22 +25,20 @@
 #ifndef LMMS_SAMPLE_BUFFER_H
 #define LMMS_SAMPLE_BUFFER_H
 
-#include "AudioEngine.h"
-#include "Engine.h"
-
 #include <samplerate.h>
 
-#include "lmms_export.h"
-#include "interpolation.h"
-#include "lmms_basics.h"
-#include "lmms_math.h"
-#include "shared_object.h"
-#include "OscillatorConstants.h"
+#include "AudioEngine.h"
+#include "Engine.h"
 #include "MemoryManager.h"
 #include "Note.h"
+#include "OscillatorConstants.h"
+#include "interpolation.h"
+#include "lmms_basics.h"
+#include "lmms_export.h"
+#include "lmms_math.h"
+#include "shared_object.h"
 
-namespace lmms
-{
+namespace lmms {
 class LMMS_EXPORT SampleBuffer
 {
 public:
@@ -54,7 +52,8 @@ public:
 	SampleBuffer() = default;
 	SampleBuffer(const QString& audioFile);
 	SampleBuffer(const QByteArray& sampleData, int sampleRate);
-	SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate = Engine::audioEngine()->processingSampleRate());
+	SampleBuffer(
+		const sampleFrame* data, int numFrames, int sampleRate = Engine::audioEngine()->processingSampleRate());
 
 	SampleBuffer(SampleBuffer&&) = delete;
 	SampleBuffer& operator=(SampleBuffer&&) = delete;
@@ -79,6 +78,7 @@ public:
 private:
 	auto decodeSampleSF(const QString& fileName) -> void;
 	auto decodeSampleDS(const QString& fileName) -> void;
+
 private:
 	std::vector<sampleFrame> m_data;
 	QString m_audioFile = "";
