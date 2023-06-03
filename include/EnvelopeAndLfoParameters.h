@@ -25,7 +25,7 @@
 #ifndef LMMS_ENVELOPE_AND_LFO_PARAMETERS_H
 #define LMMS_ENVELOPE_AND_LFO_PARAMETERS_H
 
-#include <vector>
+#include <memory>
 
 #include "JournallingObject.h"
 #include "AutomatableModel.h"
