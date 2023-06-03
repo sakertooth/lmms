@@ -80,13 +80,10 @@ private:
 	auto decodeSampleSF(const QString& fileName) -> void;
 	auto decodeSampleDS(const QString& fileName) -> void;
 	auto sampleRateChanged() -> void;
-	auto resample(sample_rate_t newSampleRate, bool fromOriginal = true) -> void;
 private:
 	std::vector<sampleFrame> m_data;
-	std::vector<sampleFrame> m_originalData;
 	QString m_audioFile = "";
 	sample_rate_t m_sampleRate = 0;
-	sample_rate_t m_originalSampleRate = 0;
 };
 
 } // namespace lmms

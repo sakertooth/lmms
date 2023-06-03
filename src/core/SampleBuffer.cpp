@@ -47,12 +47,8 @@ namespace lmms
 
 SampleBuffer::SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate) :
 	m_data(data, data + numFrames),
-	m_originalData(data, data + numFrames),
-	m_sampleRate(sampleRate),
-	m_originalSampleRate(sampleRate)
+	m_sampleRate(sampleRate)
 {
-	const auto engineRate = Engine::audioEngine()->processingSampleRate();
-	if (sampleRate != static_cast<int>(engineRate)) { resample(engineRate); }
 }
 
 SampleBuffer::SampleBuffer(const QString& audioFile)
@@ -71,23 +67,13 @@ SampleBuffer::SampleBuffer(const QString& audioFile)
 	{
 		decodeSampleSF(resolvedFileName);
 	}
-
-	const auto engineRate = Engine::audioEngine()->processingSampleRate();
-	if (m_sampleRate != engineRate) { resample(engineRate); }
 }
 
-SampleBuffer::SampleBuffer(const QByteArray& sampleData, int sampleRate)
+SampleBuffer::SampleBuffer(const QByteArray& sampleData, int sampleRate) :
+	m_data(reinterpret_cast<const sampleFrame*>(sampleData.data()),
+	reinterpret_cast<const sampleFrame*>(sampleData.data()) + sampleData.size() / sizeof(sampleFrame)),
+	m_sampleRate(sampleRate)
 {
-	const auto begin = reinterpret_cast<const sampleFrame*>(sampleData.data());
-	const auto end = reinterpret_cast<const sampleFrame*>(sampleData.data()) + sampleData.size() / sizeof(sampleFrame);
-
-	m_data = std::vector<sampleFrame>(begin, end);
-	m_originalData = std::vector<sampleFrame>(begin, end);
-	m_sampleRate = sampleRate;
-	m_originalSampleRate = sampleRate;
-
-	const auto engineRate = Engine::audioEngine()->processingSampleRate();
-	if (m_sampleRate != engineRate) { resample(engineRate); }
 }
 
 void SampleBuffer::decodeSampleSF(const QString& audioFile)
@@ -139,10 +125,8 @@ void SampleBuffer::decodeSampleSF(const QString& audioFile)
 	}
 
 	m_data = result;
-	m_originalData = result;
 	m_audioFile = audioFile;
 	m_sampleRate = sfInfo.samplerate;
-	m_originalSampleRate = sfInfo.samplerate;
 }
 
 void SampleBuffer::decodeSampleDS(const QString& audioFile)
@@ -166,10 +150,8 @@ void SampleBuffer::decodeSampleDS(const QString& audioFile)
 	}
 
 	m_data = result;
-	m_originalData = result;
 	m_audioFile = audioFile;
 	m_sampleRate = engineRate;
-	m_originalSampleRate = engineRate;
 }
 
 QString SampleBuffer::toBase64() const
@@ -179,32 +161,5 @@ QString SampleBuffer::toBase64() const
 	const auto size = static_cast<int>(m_data.size() * sizeof(sampleFrame));
 	const auto byteArray = QByteArray{data, size};
 	return byteArray.toBase64();
-}
-
-void SampleBuffer::resample(sample_rate_t newSampleRate, bool fromOriginal)
-{
-	const auto srcSampleRate = fromOriginal ? m_originalSampleRate : m_sampleRate;
-	const auto dstFrames = static_cast<f_cnt_t>((size() / static_cast<float>(srcSampleRate)) * static_cast<float>(newSampleRate));
-	auto dst = std::vector<sampleFrame>(dstFrames);
-
-	// yeah, libsamplerate, let's rock with sinc-interpolation!
-	auto srcData = SRC_DATA{};
-	srcData.end_of_input = 1;
-	srcData.data_in = fromOriginal ? &m_originalData[0][0] : &m_data[0][0];
-	srcData.data_out = &dst[0][0];
-	srcData.input_frames = fromOriginal ? m_originalData.size() : size();
-	srcData.output_frames = dstFrames;
-	srcData.src_ratio = static_cast<double>(newSampleRate) / srcSampleRate;
-
-	// TODO: We may want to use the same interpolation mode as the engine
-	// in the interest of having consistent expectations
-	auto error = src_simple(&srcData, SRC_SINC_MEDIUM_QUALITY, DEFAULT_CHANNELS);
-	if (error != 0)
-	{
-		throw std::runtime_error{"SampleBuffer: error while resampling: " + std::string{src_strerror(error)}};
-	}
-
-	m_data = std::move(dst);
-	m_sampleRate = newSampleRate;
 }
 } // namespace lmms
