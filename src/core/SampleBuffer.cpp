@@ -23,56 +23,44 @@
  */
 
 #include "SampleBuffer.h"
-#include "Oscillator.h"
-
-#include <algorithm>
-#include <iostream>
 
 #include <QFile>
 #include <QMessageBox>
-
+#include <algorithm>
+#include <iostream>
 #include <sndfile.h>
 
 #include "AudioEngine.h"
-#include "base64.h"
 #include "ConfigManager.h"
 #include "DrumSynth.h"
-#include "endian_handling.h"
 #include "Engine.h"
 #include "GuiApplication.h"
+#include "Oscillator.h"
 #include "PathUtil.h"
+#include "base64.h"
+#include "endian_handling.h"
 
-namespace lmms
-{
+namespace lmms {
 
-SampleBuffer::SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate) :
-	m_data(data, data + numFrames),
-	m_sampleRate(sampleRate)
+SampleBuffer::SampleBuffer(const sampleFrame* data, int numFrames, int sampleRate)
+	: m_data(data, data + numFrames)
+	, m_sampleRate(sampleRate)
 {
 }
 
 SampleBuffer::SampleBuffer(const QString& audioFile)
 {
-	if (audioFile.isEmpty())
-	{
-		throw std::runtime_error{"Failure loading audio file: Audio file path is empty."};
-	}
+	if (audioFile.isEmpty()) { throw std::runtime_error{"Failure loading audio file: Audio file path is empty."}; }
 
 	auto resolvedFileName = PathUtil::toAbsolute(PathUtil::toShortestRelative(audioFile));
-	if (QFileInfo{resolvedFileName}.suffix() == "ds")
-	{
-		decodeSampleDS(resolvedFileName);
-	}
-	else
-	{
-		decodeSampleSF(resolvedFileName);
-	}
+	if (QFileInfo{resolvedFileName}.suffix() == "ds") { decodeSampleDS(resolvedFileName); }
+	else { decodeSampleSF(resolvedFileName); }
 }
 
-SampleBuffer::SampleBuffer(const QByteArray& sampleData, int sampleRate) :
-	m_data(reinterpret_cast<const sampleFrame*>(sampleData.data()),
-	reinterpret_cast<const sampleFrame*>(sampleData.data()) + sampleData.size() / sizeof(sampleFrame)),
-	m_sampleRate(sampleRate)
+SampleBuffer::SampleBuffer(const QByteArray& sampleData, int sampleRate)
+	: m_data(reinterpret_cast<const sampleFrame*>(sampleData.data()),
+		reinterpret_cast<const sampleFrame*>(sampleData.data()) + sampleData.size() / sizeof(sampleFrame))
+	, m_sampleRate(sampleRate)
 {
 }
 
@@ -85,8 +73,8 @@ void SampleBuffer::decodeSampleSF(const QString& audioFile)
 	auto file = QFile{audioFile};
 	if (!file.open(QIODevice::ReadOnly))
 	{
-		throw std::runtime_error{"Failed to open sample "
-			+ audioFile.toStdString() + ": " + file.errorString().toStdString()};
+		throw std::runtime_error{
+			"Failed to open sample " + audioFile.toStdString() + ": " + file.errorString().toStdString()};
 	}
 
 	sndFile = sf_open_fd(file.handle(), SFM_READ, &sfInfo, false);
@@ -100,8 +88,8 @@ void SampleBuffer::decodeSampleSF(const QString& audioFile)
 
 	if (sfFramesRead < sfInfo.channels * sfInfo.frames)
 	{
-		throw std::runtime_error{"Failure reading audio file: failed to read " + audioFile.toStdString() +
-			": " + sf_strerror(sndFile)};
+		throw std::runtime_error{
+			"Failure reading audio file: failed to read " + audioFile.toStdString() + ": " + sf_strerror(sndFile)};
 	}
 
 	sf_close(sndFile);
@@ -144,10 +132,7 @@ void SampleBuffer::decodeSampleDS(const QString& audioFile)
 	{
 		src_short_to_float_array(data.get(), &result[0][0], frames * DEFAULT_CHANNELS);
 	}
-	else
-	{
-		throw std::runtime_error{"Decoding failure: failed to decode DrumSynth file."};
-	}
+	else { throw std::runtime_error{"Decoding failure: failed to decode DrumSynth file."}; }
 
 	m_data = result;
 	m_audioFile = audioFile;

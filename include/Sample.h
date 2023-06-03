@@ -25,10 +25,9 @@
 #ifndef LMMS_SAMPLE_H
 #define LMMS_SAMPLE_H
 
-#include <memory>
-
 #include <QPainter>
 #include <QRect>
+#include <memory>
 #include <samplerate.h>
 
 #include "AudioEngine.h"
