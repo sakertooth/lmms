@@ -25,11 +25,6 @@
 #ifndef LMMS_SAMPLE_BUFFER_H
 #define LMMS_SAMPLE_BUFFER_H
 
-#include <memory>
-#include <shared_mutex>
-
-#include <QObject>
-
 #include "AudioEngine.h"
 #include "Engine.h"
 
