@@ -359,6 +359,7 @@ void AudioFileProcessor::reverseModelChanged()
 	m_sample->setReversed( m_reverseModel.value() );
 	m_nextPlayStartPoint = m_sample->startFrame();
 	m_nextPlayBackwards = false;
+	emit sampleUpdated();
 }
 
 
@@ -367,6 +368,7 @@ void AudioFileProcessor::reverseModelChanged()
 void AudioFileProcessor::ampModelChanged()
 {
 	m_sample->setAmplification( m_ampModel.value() / 100.0f );
+	emit sampleUpdated();
 }
 
 
@@ -718,7 +720,7 @@ void AudioFileProcessorView::openAudioFile()
 void AudioFileProcessorView::modelChanged()
 {
 	auto a = castModel<AudioFileProcessor>();
-	connect(a->m_sample.get(), SIGNAL(sampleUpdated()), this, SLOT(sampleUpdated()));
+	connect(a, SIGNAL(sampleUpdated()), this, SLOT(sampleUpdated()));
 	m_ampKnob->setModel( &a->m_ampModel );
 	m_startKnob->setModel( &a->m_startPointModel );
 	m_endKnob->setModel( &a->m_endPointModel );

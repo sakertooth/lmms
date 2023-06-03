@@ -82,23 +82,23 @@ public:
 	auto playbackSize() const -> f_cnt_t;
 
 	static auto interpolationMargins() -> std::array<f_cnt_t, 5>&;
-	auto buffer() const -> std::shared_ptr<const SampleBuffer>;
-	auto startFrame() const -> f_cnt_t;
-	auto endFrame() const -> f_cnt_t;
-	auto loopStartFrame() const -> f_cnt_t;
-	auto loopEndFrame() const -> f_cnt_t;
-	auto amplification() const -> float;
-	auto frequency() const -> float;
-	auto reversed() const -> bool;
+	auto buffer() const -> std::shared_ptr<const SampleBuffer> { return m_buffer; }
+	auto startFrame() const -> f_cnt_t { return m_playMarkers.startFrame; }
+	auto endFrame() const -> f_cnt_t { return m_playMarkers.endFrame; }
+	auto loopStartFrame() const -> f_cnt_t { return m_playMarkers.loopStartFrame; }
+	auto loopEndFrame() const -> f_cnt_t { return m_playMarkers.loopEndFrame; }
+	auto amplification() const -> float { return m_amplification; }
+	auto frequency() const -> float { return m_frequency; }
+	auto reversed() const -> bool { return m_reversed; }
 
-	auto setStartFrame(f_cnt_t frame) -> void;
-	auto setEndFrame(f_cnt_t frame) -> void;
-	auto setLoopStartFrame(f_cnt_t frame) -> void;
-	auto setLoopEndFrame(f_cnt_t frame) -> void;
-	auto setAllPointFrames(PlayMarkers playMarkers) -> void;
-	auto setAmplification(float amplification) -> void;
-	auto setFrequency(float frequency) -> void;
-	auto setReversed(bool reversed) -> void;
+	auto setStartFrame(f_cnt_t frame) -> void { m_playMarkers.startFrame = frame; }
+	auto setEndFrame(f_cnt_t frame) -> void { m_playMarkers.endFrame = frame; }
+	auto setLoopStartFrame(f_cnt_t frame) -> void { m_playMarkers.loopStartFrame = frame; }
+	auto setLoopEndFrame(f_cnt_t frame) -> void { m_playMarkers.loopEndFrame = frame; }
+	auto setAllPointFrames(PlayMarkers playMarkers) -> void { m_playMarkers = playMarkers; }
+	auto setAmplification(float amplification) -> void { m_amplification = amplification; }
+	auto setFrequency(float frequency) -> void { m_frequency = frequency; }
+	auto setReversed(bool reversed) -> void { m_reversed = reversed; }
 signals:
 	void sampleUpdated();
 
