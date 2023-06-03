@@ -65,11 +65,9 @@ SampleBuffer::SampleBuffer(const QString& audioFile)
 	auto resolvedFileName = PathUtil::toAbsolute(PathUtil::toShortestRelative(audioFile));
 	if (QFileInfo{resolvedFileName}.suffix() == "ds")
 	{
-		// Note: DrumSynth files aren't checked for file limits since we are using sndfile to detect them.
-		// In the future, checking for limits may become unnecessary anyways, so this seems fine for now.
 		decodeSampleDS(resolvedFileName);
 	}
-	else if (!fileExceedsLimits(resolvedFileName))
+	else
 	{
 		decodeSampleSF(resolvedFileName);
 	}
@@ -90,55 +88,6 @@ SampleBuffer::SampleBuffer(const QByteArray& sampleData, int sampleRate)
 
 	const auto engineRate = Engine::audioEngine()->processingSampleRate();
 	if (m_sampleRate != engineRate) { resample(engineRate); }
-}
-
-bool SampleBuffer::fileExceedsLimits(const QString& audioFile, bool reportToGui) const
-{
-	constexpr auto maxFileSize = 300; // In MBs
-	constexpr auto maxFileLength = 90; // In minutes
-	auto exceedsLimits = QFileInfo{audioFile}.size() > maxFileSize * 1024 * 1024;
-
-	if (!exceedsLimits)
-	{
-		auto sfInfo = SF_INFO{};
-		auto file = QFile{audioFile};
-		SNDFILE* sndFile = nullptr;
-
-		if (!file.open(QIODevice::ReadOnly))
-		{
-			throw std::runtime_error{"Could not open file handle: " + file.errorString().toStdString()};
-		}
-		else
-		{
-			sndFile = sf_open_fd(file.handle(), SFM_READ, &sfInfo, false);
-			if (sndFile != nullptr)
-			{
-				exceedsLimits = sfInfo.frames / sfInfo.samplerate > maxFileLength * 60;
-			}
-			else
-			{
-				throw std::runtime_error{"Could not open sndfile handle: " + std::string{sf_strerror(sndFile)}};
-			}
-		}
-	}
-
-	if (exceedsLimits && reportToGui)
-	{
-		const auto title = QObject::tr("Failed to open file");
-		const auto message = QObject::tr("Audio files are limited to %1 MB "
-				"in size and %2 minutes of playing time").arg(maxFileSize).arg(maxFileLength);
-
-		if (gui::getGUI() != nullptr)
-		{
-			QMessageBox::information(nullptr, title, message, QMessageBox::Ok);
-		}
-		else
-		{
-			std::cerr << message.toUtf8().constData() << '\n';
-		}
-	}
-
-	return exceedsLimits;
 }
 
 void SampleBuffer::decodeSampleSF(const QString& audioFile)

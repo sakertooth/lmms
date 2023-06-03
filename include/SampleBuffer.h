@@ -82,7 +82,6 @@ public:
 	auto empty() const -> bool { return m_data.empty(); }
 
 private:
-	auto fileExceedsLimits(const QString& audioFile, bool reportToGui = true) const -> bool;
 	auto decodeSampleSF(const QString& fileName) -> void;
 	auto decodeSampleDS(const QString& fileName) -> void;
 	auto sampleRateChanged() -> void;
