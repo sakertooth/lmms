@@ -93,7 +93,7 @@ private slots:
 
 signals:
 	void isPlaying( lmms::f_cnt_t _current_frame );
-
+	void sampleUpdated();
 
 private:
 	std::shared_ptr<Sample> m_sample;
