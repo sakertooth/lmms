@@ -126,11 +126,10 @@ const QString & SampleClip::sampleFile() const
 
 
 
-void SampleClip::setSampleBuffer(std::shared_ptr<SampleBuffer> sb)
+void SampleClip::setSampleBuffer(SampleBuffer* sb)
 {
-	m_sample = Sample::create(sb);
+	m_sample->buffer().reset(sb);
 	updateLength();
-
 	emit sampleChanged();
 }
 
