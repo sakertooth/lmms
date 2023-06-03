@@ -333,6 +333,11 @@ void Sample::visualize(QPainter& p, const QRect& dr, f_cnt_t fromFrame, f_cnt_t 
 	}
 }
 
+auto Sample::interpolationMargins() -> std::array<f_cnt_t, 5>&
+{
+	return s_interpolationMargins;
+}
+
 auto Sample::sampleDuration() const -> int
 {
 	return m_buffer->sampleRate() > 0
