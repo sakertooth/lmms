@@ -79,7 +79,6 @@ public:
 private:
 	auto decodeSampleSF(const QString& fileName) -> void;
 	auto decodeSampleDS(const QString& fileName) -> void;
-	auto sampleRateChanged() -> void;
 private:
 	std::vector<sampleFrame> m_data;
 	QString m_audioFile = "";
