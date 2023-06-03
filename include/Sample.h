@@ -99,8 +99,6 @@ public:
 	auto setAmplification(float amplification) -> void { m_amplification = amplification; }
 	auto setFrequency(float frequency) -> void { m_frequency = frequency; }
 	auto setReversed(bool reversed) -> void { m_reversed = reversed; }
-signals:
-	void sampleUpdated();
 
 private:
 	Sample(std::shared_ptr<SampleBuffer> buffer);
