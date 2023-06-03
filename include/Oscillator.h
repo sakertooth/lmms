@@ -29,6 +29,7 @@
 #include <cassert>
 #include <fftw3.h>
 #include <cstdlib>
+#include <memory>
 
 #include "Engine.h"
 #include "lmms_constants.h"
