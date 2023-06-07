@@ -40,7 +40,6 @@ namespace lmms
 
 SampleClip::SampleClip( Track * _track ) :
 	Clip( _track ),
-	m_sample(Sample::createFromBuffer()),
 	m_isPlaying( false )
 {
 	saveJournallingState( false );
@@ -92,7 +91,7 @@ SampleClip::SampleClip( Track * _track ) :
 SampleClip::SampleClip(const SampleClip& orig) :
 	SampleClip(orig.getTrack())
 {
-	m_sample = orig.m_sample;
+	m_sample = Sample::makeUniqueSample(orig.m_sample);
 	m_isPlaying = orig.m_isPlaying;
 }
 

@@ -57,6 +57,9 @@ public:
 		return std::make_shared<Sample>(buffer);
 	}
 
+	//! This creates a new std::shared_ptr<Sample> that only shares the buffer, not the Sample object
+	static std::shared_ptr<Sample> makeUniqueSample(const std::shared_ptr<Sample>& sample);
+
 	auto play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, float freq,
 		LoopMode loopMode = LoopMode::LoopOff) -> bool;
 
@@ -67,7 +70,7 @@ public:
 	auto playbackSize() const -> f_cnt_t;
 
 	static auto interpolationMargins() -> std::array<f_cnt_t, 5>&;
-	auto buffer() const -> std::shared_ptr<const SampleBuffer>;
+	auto buffer() const -> std::shared_ptr<SampleBuffer>;
 	auto startFrame() const -> f_cnt_t;
 	auto endFrame() const -> f_cnt_t;
 	auto loopStartFrame() const -> f_cnt_t;
@@ -94,7 +97,7 @@ private:
 	auto getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
 	auto getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
 
-	std::shared_ptr<const SampleBuffer> m_buffer = std::make_shared<const SampleBuffer>();
+	std::shared_ptr<SampleBuffer> m_buffer = std::make_shared<SampleBuffer>();
 	std::atomic<f_cnt_t> m_startFrame;
 	std::atomic<f_cnt_t> m_endFrame;
 	std::atomic<f_cnt_t> m_loopStartFrame;

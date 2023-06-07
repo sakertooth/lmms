@@ -47,6 +47,11 @@ Sample::Sample(std::shared_ptr<SampleBuffer> buffer)
 {
 }
 
+std::shared_ptr<Sample> Sample::makeUniqueSample(const std::shared_ptr<Sample>& sample)
+{
+	return std::make_shared<Sample>(sample->m_buffer);
+}
+
 auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, float freq, LoopMode loopMode) -> bool
 {
 	if (m_endFrame == 0 || frames == 0) { return false; }
@@ -362,7 +367,7 @@ f_cnt_t Sample::getLoopedIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) cons
 	return startf + (index - startf) % (endf - startf);
 }
 
-auto Sample::buffer() const -> std::shared_ptr<const SampleBuffer>
+auto Sample::buffer() const -> std::shared_ptr<SampleBuffer>
 {
 	return m_buffer;
 }
