@@ -26,6 +26,7 @@
 
 #include <cassert>
 #include <iostream>
+#include <samplerate.h>
 
 #include "AudioEngine.h"
 #include "Engine.h"
@@ -82,24 +83,10 @@ auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, fl
 	// check whether we have to change pitch...
 	if (freqFactor != 1.0 || state->m_varyingPitch)
 	{
-		SRC_DATA srcData;
-		// Generate output
 		const auto sampleFragment = getSampleFragment(
 			playFrame, fragmentSize, loopMode, &isBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
-		srcData.data_in = &sampleFragment[0][0];
-		srcData.data_out = dst->data();
-		srcData.input_frames = fragmentSize;
-		srcData.output_frames = frames;
-		srcData.src_ratio = 1.0 / freqFactor;
-		srcData.end_of_input = 0;
-		int error = src_process(state->m_resamplingData, &srcData);
-		if (error) { std::cerr << "SampleBuffer: error while resampling: " << src_strerror(error) << '\n'; }
-
-		if (srcData.output_frames_gen > frames)
-		{
-			std::cerr << "SampleBuffer: not enough frames: " << srcData.output_frames_gen << " / " << frames << '\n';
-		}
-
+		const auto srcData = resampleFrameBlock(
+			state->m_resamplingData, &sampleFragment[0][0], dst->data(), fragmentSize, frames, 1.0 / freqFactor);
 		playFrame = advance(playFrame, srcData.input_frames_used, loopMode, state);
 	}
 	else
@@ -108,8 +95,8 @@ auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, fl
 		// as is into pitched-copy-buffer
 
 		// Generate output
-		const auto sampleFragment
-			= getSampleFragment(playFrame, frames, loopMode, &isBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
+		const auto sampleFragment = getSampleFragment(
+			playFrame, frames, loopMode, &isBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
 		std::copy_n(sampleFragment.begin(), frames, dst);
 		playFrame = advance(playFrame, frames, loopMode, state);
 	}
@@ -242,6 +229,35 @@ std::vector<sampleFrame> Sample::getSampleFragment(f_cnt_t currentFrame, f_cnt_t
 	return out;
 }
 
+auto Sample::resampleFrameBlock(SRC_STATE* state, const float* in, float* out, int numInputFrames,
+	int numOutputFrames, double ratio) -> SRC_DATA
+{
+	auto srcData = SRC_DATA{};
+	srcData.data_in = in;
+	srcData.data_out = out;
+	srcData.input_frames = numInputFrames;
+	srcData.output_frames = numOutputFrames;
+	srcData.src_ratio = ratio;
+	srcData.end_of_input = 0;
+
+	if (const auto error = src_process(state, &srcData); error != 0)
+	{
+#ifdef LMMS_DEBUG
+		std::cerr << "SampleBuffer: error while resampling: " << src_strerror(error) << '\n';
+#endif
+	}
+
+	if (srcData.output_frames_gen > numOutputFrames)
+	{
+#ifdef LMMS_DEBUG
+		std::cerr << "SampleBuffer: not enough frames: " << srcData.output_frames_gen << " / " << numOutputFrames
+				  << '\n';
+#endif
+	}
+
+	return srcData;
+}
+
 void Sample::visualize(QPainter& p, const QRect& dr, f_cnt_t fromFrame, f_cnt_t toFrame)
 {
 	const auto numFrames = static_cast<f_cnt_t>(m_buffer->size());
@@ -338,9 +354,8 @@ auto Sample::interpolationMargins() -> std::array<f_cnt_t, 5>&
 
 auto Sample::sampleDuration() const -> int
 {
-	return m_buffer->sampleRate() > 0
-		? static_cast<double>(m_endFrame - m_startFrame) / m_buffer->sampleRate() * 1000
-		: 0;
+	return m_buffer->sampleRate() > 0 ? static_cast<double>(m_endFrame - m_startFrame) / m_buffer->sampleRate() * 1000
+									  : 0;
 }
 
 auto Sample::playbackSize() const -> f_cnt_t
@@ -425,13 +440,13 @@ auto Sample::setLoopEndFrame(f_cnt_t frame) -> void
 	m_loopEndFrame = frame;
 }
 
-auto Sample::setAllPointFrames(f_cnt_t startFrame, f_cnt_t endFrame, f_cnt_t loopStartFrame, f_cnt_t loopEndFrame) -> void
+auto Sample::setAllPointFrames(f_cnt_t startFrame, f_cnt_t endFrame, f_cnt_t loopStartFrame, f_cnt_t loopEndFrame)
+	-> void
 {
 	m_startFrame = startFrame;
 	m_endFrame = endFrame;
 	m_loopStartFrame = loopStartFrame;
 	m_loopEndFrame = loopEndFrame;
-
 }
 auto Sample::setAmplification(float amplification) -> void
 {
