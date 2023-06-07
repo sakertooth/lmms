@@ -450,7 +450,7 @@ void AudioFileProcessor::pointChanged()
 	m_nextPlayStartPoint = f_start;
 	m_nextPlayBackwards = false;
 
-	m_sample->setAllPointFrames({f_start, f_end, f_loop, f_end});
+	m_sample->setAllPointFrames(f_start, f_end, f_loop, f_end);
 	emit dataChanged();
 }
 

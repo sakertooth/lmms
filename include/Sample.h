@@ -49,14 +49,6 @@ public:
 		LoopPingPong
 	};
 
-	struct PlayMarkers
-	{
-		f_cnt_t startFrame;
-		f_cnt_t endFrame;
-		f_cnt_t loopStartFrame;
-		f_cnt_t loopEndFrame;
-	};
-
 	Sample(std::shared_ptr<SampleBuffer> buffer);
 
 	template <typename... Args> static std::shared_ptr<Sample> createFromBuffer(Args&&... args)
@@ -75,23 +67,23 @@ public:
 	auto playbackSize() const -> f_cnt_t;
 
 	static auto interpolationMargins() -> std::array<f_cnt_t, 5>&;
-	auto buffer() const -> std::shared_ptr<const SampleBuffer> { return m_buffer; }
-	auto startFrame() const -> f_cnt_t { return m_playMarkers.startFrame; }
-	auto endFrame() const -> f_cnt_t { return m_playMarkers.endFrame; }
-	auto loopStartFrame() const -> f_cnt_t { return m_playMarkers.loopStartFrame; }
-	auto loopEndFrame() const -> f_cnt_t { return m_playMarkers.loopEndFrame; }
-	auto amplification() const -> float { return m_amplification; }
-	auto frequency() const -> float { return m_frequency; }
-	auto reversed() const -> bool { return m_reversed; }
+	auto buffer() const -> std::shared_ptr<const SampleBuffer>;
+	auto startFrame() const -> f_cnt_t;
+	auto endFrame() const -> f_cnt_t;
+	auto loopStartFrame() const -> f_cnt_t;
+	auto loopEndFrame() const -> f_cnt_t;
+	auto amplification() const -> float;
+	auto frequency() const -> float;
+	auto reversed() const -> bool;
 
-	auto setStartFrame(f_cnt_t frame) -> void { m_playMarkers.startFrame = frame; }
-	auto setEndFrame(f_cnt_t frame) -> void { m_playMarkers.endFrame = frame; }
-	auto setLoopStartFrame(f_cnt_t frame) -> void { m_playMarkers.loopStartFrame = frame; }
-	auto setLoopEndFrame(f_cnt_t frame) -> void { m_playMarkers.loopEndFrame = frame; }
-	auto setAllPointFrames(PlayMarkers playMarkers) -> void { m_playMarkers = playMarkers; }
-	auto setAmplification(float amplification) -> void { m_amplification = amplification; }
-	auto setFrequency(float frequency) -> void { m_frequency = frequency; }
-	auto setReversed(bool reversed) -> void { m_reversed = reversed; }
+	auto setStartFrame(f_cnt_t frame) -> void;
+	auto setEndFrame(f_cnt_t frame) -> void;
+	auto setLoopStartFrame(f_cnt_t frame) -> void;
+	auto setLoopEndFrame(f_cnt_t frame) -> void;
+	auto setAllPointFrames(f_cnt_t startFrame, f_cnt_t endFrame, f_cnt_t loopStartFrame, f_cnt_t loopEndFrame) -> void;
+	auto setAmplification(float amplification) -> void;
+	auto setFrequency(float frequency) -> void;
+	auto setReversed(bool reversed) -> void;
 
 private:
 	auto getSampleFragment(f_cnt_t index, f_cnt_t frames, LoopMode loopMode, bool* backwards, f_cnt_t loopStart,
@@ -101,10 +93,13 @@ private:
 	auto getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
 
 	std::shared_ptr<const SampleBuffer> m_buffer = std::make_shared<const SampleBuffer>();
-	PlayMarkers m_playMarkers = {0, 0, 0, 0};
-	float m_amplification = 1.0f;
-	float m_frequency = DefaultBaseFreq;
-	bool m_reversed = false;
+	std::atomic<f_cnt_t> m_startFrame;
+	std::atomic<f_cnt_t> m_endFrame;
+	std::atomic<f_cnt_t> m_loopStartFrame;
+	std::atomic<f_cnt_t> m_loopEndFrame;
+	std::atomic<float> m_amplification = 1.0f;
+	std::atomic<float> m_frequency = DefaultBaseFreq;
+	std::atomic<bool> m_reversed = false;
 };
 } // namespace lmms
 

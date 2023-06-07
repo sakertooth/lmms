@@ -40,15 +40,14 @@ static auto s_interpolationMargins = std::array<f_cnt_t, 5>{64, 64, 64, 4, 4};
 
 Sample::Sample(std::shared_ptr<SampleBuffer> buffer)
 	: m_buffer(buffer)
-	, m_playMarkers({0, static_cast<f_cnt_t>(m_buffer->size()), 0, static_cast<f_cnt_t>(m_buffer->size())})
+	, m_endFrame(static_cast<f_cnt_t>(m_buffer->size()))
+	, m_loopEndFrame(static_cast<f_cnt_t>(m_buffer->size()))
 {
 }
 
 auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, float freq, LoopMode loopMode) -> bool
 {
-	const auto [startFrame, endFrame, loopStartFrame, loopEndFrame] = m_playMarkers;
-
-	if (endFrame == 0 || frames == 0) { return false; }
+	if (m_endFrame == 0 || frames == 0) { return false; }
 
 	// variable for determining if we should currently be playing backwards in a ping-pong loop
 	bool isBackwards = state->isBackwards();
@@ -60,23 +59,23 @@ auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, fl
 		= (double)freq / (double)m_frequency * m_buffer->sampleRate() / Engine::audioEngine()->processingSampleRate();
 
 	// calculate how many frames we have in requested pitch
-	const auto totalFramesForCurrentPitch = static_cast<f_cnt_t>((endFrame - startFrame) / freqFactor);
+	const auto totalFramesForCurrentPitch = static_cast<f_cnt_t>((m_endFrame - m_startFrame) / freqFactor);
 
 	if (totalFramesForCurrentPitch == 0) { return false; }
 
 	// this holds the index of the first frame to play
-	f_cnt_t playFrame = std::max(state->m_frameIndex, startFrame);
+	f_cnt_t playFrame = std::max(state->m_frameIndex, startFrame());
 
 	if (loopMode == LoopMode::LoopOff)
 	{
-		if (playFrame >= endFrame || (endFrame - playFrame) / freqFactor == 0)
+		if (playFrame >= m_endFrame)
 		{
 			// the sample is done being played
 			return false;
 		}
 	}
-	else if (loopMode == LoopMode::LoopOn) { playFrame = getLoopedIndex(playFrame, loopStartFrame, loopEndFrame); }
-	else { playFrame = getPingPongIndex(playFrame, loopStartFrame, loopEndFrame); }
+	else if (loopMode == LoopMode::LoopOn) { playFrame = getLoopedIndex(playFrame, m_loopStartFrame, m_loopEndFrame); }
+	else { playFrame = getPingPongIndex(playFrame, m_loopStartFrame, m_loopEndFrame); }
 
 	f_cnt_t fragmentSize = (f_cnt_t)(frames * freqFactor) + s_interpolationMargins[state->interpolationMode()];
 
@@ -86,7 +85,7 @@ auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, fl
 		SRC_DATA srcData;
 		// Generate output
 		const auto sampleFragment = getSampleFragment(
-			playFrame, fragmentSize, loopMode, &isBackwards, loopStartFrame, loopEndFrame, endFrame);
+			playFrame, fragmentSize, loopMode, &isBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
 		srcData.data_in = &sampleFragment[0][0];
 		srcData.data_out = dst->data();
 		srcData.input_frames = fragmentSize;
@@ -110,7 +109,7 @@ auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, fl
 
 		// Generate output
 		const auto sampleFragment
-			= getSampleFragment(playFrame, frames, loopMode, &isBackwards, loopStartFrame, loopEndFrame, endFrame);
+			= getSampleFragment(playFrame, frames, loopMode, &isBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
 		std::copy_n(sampleFragment.begin(), frames, dst);
 		playFrame = advance(playFrame, frames, loopMode, state);
 	}
@@ -134,21 +133,21 @@ auto Sample::advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sampl
 	case LoopMode::LoopOff:
 		return playFrame + frames;
 	case LoopMode::LoopOn:
-		return frames + getLoopedIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
+		return frames + getLoopedIndex(playFrame, m_loopStartFrame, m_loopEndFrame);
 	case LoopMode::LoopPingPong: {
 		f_cnt_t left = frames;
 		if (state->isBackwards())
 		{
 			playFrame -= frames;
-			if (playFrame < m_playMarkers.loopStartFrame)
+			if (playFrame < m_loopStartFrame)
 			{
-				left -= m_playMarkers.loopStartFrame - playFrame;
-				playFrame = m_playMarkers.loopStartFrame;
+				left -= m_loopStartFrame - playFrame;
+				playFrame = m_loopStartFrame;
 			}
 			else { left = 0; }
 		}
 
-		return left + getPingPongIndex(playFrame, m_playMarkers.loopStartFrame, m_playMarkers.loopEndFrame);
+		return left + getPingPongIndex(playFrame, m_loopStartFrame, m_loopEndFrame);
 	}
 	default:
 		return playFrame;
@@ -340,7 +339,7 @@ auto Sample::interpolationMargins() -> std::array<f_cnt_t, 5>&
 auto Sample::sampleDuration() const -> int
 {
 	return m_buffer->sampleRate() > 0
-		? static_cast<double>(m_playMarkers.endFrame - m_playMarkers.startFrame) / m_buffer->sampleRate() * 1000
+		? static_cast<double>(m_endFrame - m_startFrame) / m_buffer->sampleRate() * 1000
 		: 0;
 }
 
@@ -364,5 +363,88 @@ f_cnt_t Sample::getLoopedIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) cons
 {
 	if (index < endf) { return index; }
 	return startf + (index - startf) % (endf - startf);
+}
+
+auto Sample::buffer() const -> std::shared_ptr<const SampleBuffer>
+{
+	return m_buffer;
+}
+
+auto Sample::startFrame() const -> f_cnt_t
+{
+	return m_startFrame;
+}
+
+auto Sample::endFrame() const -> f_cnt_t
+{
+	return m_endFrame;
+}
+
+auto Sample::loopStartFrame() const -> f_cnt_t
+{
+	return m_loopStartFrame;
+}
+
+auto Sample::loopEndFrame() const -> f_cnt_t
+{
+	return m_loopEndFrame;
+}
+
+auto Sample::amplification() const -> float
+{
+	return m_amplification;
+}
+
+auto Sample::frequency() const -> float
+{
+	return m_frequency;
+}
+
+auto Sample::reversed() const -> bool
+{
+	return m_reversed;
+}
+
+auto Sample::setStartFrame(f_cnt_t frame) -> void
+{
+	m_startFrame = frame;
+}
+
+auto Sample::setEndFrame(f_cnt_t frame) -> void
+{
+	m_endFrame = frame;
+}
+
+auto Sample::setLoopStartFrame(f_cnt_t frame) -> void
+{
+	m_loopStartFrame = frame;
+}
+
+auto Sample::setLoopEndFrame(f_cnt_t frame) -> void
+{
+	m_loopEndFrame = frame;
+}
+
+auto Sample::setAllPointFrames(f_cnt_t startFrame, f_cnt_t endFrame, f_cnt_t loopStartFrame, f_cnt_t loopEndFrame) -> void
+{
+	m_startFrame = startFrame;
+	m_endFrame = endFrame;
+	m_loopStartFrame = loopStartFrame;
+	m_loopEndFrame = loopEndFrame;
+
+}
+auto Sample::setAmplification(float amplification) -> void
+{
+	m_amplification = amplification;
+}
+
+auto Sample::setFrequency(float frequency) -> void
+{
+	m_frequency = frequency;
+}
+
+auto Sample::setReversed(bool reversed) -> void
+{
+	m_reversed = reversed;
 }
 } // namespace lmms
