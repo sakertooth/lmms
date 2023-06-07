@@ -63,7 +63,7 @@ public:
 
 	auto toBase64() const -> QString;
 
-	auto audioFile() const -> const QString& { return m_audioFile; }
+	auto audioFile() const -> QString { return m_audioFile.value_or(""); }
 	auto sampleRate() const -> sample_rate_t { return m_sampleRate; }
 
 	auto begin() const -> const_iterator { return m_data.begin(); }
@@ -81,7 +81,7 @@ private:
 
 private:
 	std::vector<sampleFrame> m_data;
-	QString m_audioFile = "";
+	std::optional<QString> m_audioFile;
 	int m_sampleRate = 0;
 };
 
