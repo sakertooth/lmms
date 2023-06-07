@@ -82,7 +82,7 @@ private:
 private:
 	std::vector<sampleFrame> m_data;
 	QString m_audioFile = "";
-	sample_rate_t m_sampleRate = 0;
+	int m_sampleRate = 0;
 };
 
 } // namespace lmms
