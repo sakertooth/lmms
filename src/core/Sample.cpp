@@ -31,6 +31,7 @@
 #include "AudioEngine.h"
 #include "Engine.h"
 #include "SampleBuffer.h"
+#include "lmms_basics.h"
 
 namespace lmms {
 // values for buffer margins, used for various libsamplerate interpolation modes
@@ -52,58 +53,39 @@ auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, fl
 {
 	if (m_endFrame == 0 || frames == 0) { return false; }
 
-	// variable for determining if we should currently be playing backwards in a ping-pong loop
-	bool isBackwards = state->isBackwards();
-
-	// The SampleBuffer can play a given sample with increased or decreased pitch. However, only
-	// samples that contain a tone that matches the default base note frequency of 440 Hz will
-	// produce the exact requested pitch in [Hz].
-	const double freqFactor
-		= (double)freq / (double)m_frequency * m_buffer->sampleRate() / Engine::audioEngine()->processingSampleRate();
-
-	// calculate how many frames we have in requested pitch
+	const auto freqFactor = freq / m_frequency * m_buffer->sampleRate() / Engine::audioEngine()->processingSampleRate();
 	const auto totalFramesForCurrentPitch = static_cast<f_cnt_t>((m_endFrame - m_startFrame) / freqFactor);
-
 	if (totalFramesForCurrentPitch == 0) { return false; }
 
-	// this holds the index of the first frame to play
-	f_cnt_t playFrame = std::max(state->m_frameIndex, startFrame());
-
+	auto playFrame = std::max(state->m_frameIndex, startFrame());
 	if (loopMode == LoopMode::LoopOff)
 	{
-		if (playFrame >= m_endFrame)
-		{
-			// the sample is done being played
-			return false;
-		}
+		if (playFrame >= m_endFrame) { return false; }
 	}
 	else if (loopMode == LoopMode::LoopOn) { playFrame = getLoopedIndex(playFrame, m_loopStartFrame, m_loopEndFrame); }
 	else { playFrame = getPingPongIndex(playFrame, m_loopStartFrame, m_loopEndFrame); }
 
-	f_cnt_t fragmentSize = (f_cnt_t)(frames * freqFactor) + s_interpolationMargins[state->interpolationMode()];
+	const auto fragmentSize
+		= static_cast<f_cnt_t>(frames * freqFactor) + s_interpolationMargins[state->interpolationMode()];
+	auto pingPongBackwards = state->isBackwards();
 
-	// check whether we have to change pitch...
 	if (freqFactor != 1.0 || state->m_varyingPitch)
 	{
 		const auto sampleFragment = getSampleFragment(
-			playFrame, fragmentSize, loopMode, &isBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
+			playFrame, fragmentSize, loopMode, &pingPongBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
 		const auto srcData = resampleFrameBlock(
 			state->m_resamplingData, &sampleFragment[0][0], dst->data(), fragmentSize, frames, 1.0 / freqFactor);
 		playFrame = advance(playFrame, srcData.input_frames_used, loopMode, state);
 	}
 	else
 	{
-		// we don't have to pitch, so we just copy the sample-data
-		// as is into pitched-copy-buffer
-
-		// Generate output
 		const auto sampleFragment = getSampleFragment(
-			playFrame, frames, loopMode, &isBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
+			playFrame, frames, loopMode, &pingPongBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
 		std::copy_n(sampleFragment.begin(), frames, dst);
 		playFrame = advance(playFrame, frames, loopMode, state);
 	}
 
-	state->setBackwards(isBackwards);
+	state->setBackwards(pingPongBackwards);
 	state->setFrameIndex(playFrame);
 
 	for (fpp_t i = 0; i < frames; ++i)
@@ -231,8 +213,8 @@ std::vector<sampleFrame> Sample::getSampleFragment(f_cnt_t currentFrame, f_cnt_t
 	return out;
 }
 
-auto Sample::resampleFrameBlock(SRC_STATE* state, const float* in, float* out, int numInputFrames,
-	int numOutputFrames, double ratio) -> SRC_DATA
+auto Sample::resampleFrameBlock(
+	SRC_STATE* state, const float* in, float* out, int numInputFrames, int numOutputFrames, double ratio) -> SRC_DATA
 {
 	auto srcData = SRC_DATA{};
 	srcData.data_in = in;
