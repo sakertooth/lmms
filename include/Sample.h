@@ -39,9 +39,8 @@
 #include "lmms_export.h"
 
 namespace lmms {
-class LMMS_EXPORT Sample : public QObject
+class LMMS_EXPORT Sample
 {
-	Q_OBJECT
 public:
 	enum class LoopMode
 	{
@@ -58,17 +57,12 @@ public:
 		f_cnt_t loopEndFrame;
 	};
 
-	template <typename... Args> static std::shared_ptr<Sample> create(Args&&... args)
-	{
-		auto deleter = [](Sample* obj) { obj->deleteLater(); };
-		return std::shared_ptr<Sample>(new Sample(std::forward<Args>(args)...), deleter);
-	};
+	Sample(std::shared_ptr<SampleBuffer> buffer);
 
 	template <typename... Args> static std::shared_ptr<Sample> createFromBuffer(Args&&... args)
 	{
-		auto deleter = [](Sample* obj) { obj->deleteLater(); };
-		auto buffer = std::make_shared<SampleBuffer>(std::forward<Args>(args)...);
-		return std::shared_ptr<Sample>(new Sample(std::move(buffer)), deleter);
+		const auto buffer = std::make_shared<SampleBuffer>(std::forward<Args>(args)...);
+		return std::make_shared<Sample>(buffer);
 	}
 
 	auto play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, float freq,
@@ -100,11 +94,8 @@ public:
 	auto setReversed(bool reversed) -> void { m_reversed = reversed; }
 
 private:
-	Sample(std::shared_ptr<SampleBuffer> buffer);
-
 	auto getSampleFragment(f_cnt_t index, f_cnt_t frames, LoopMode loopMode, bool* backwards, f_cnt_t loopStart,
 		f_cnt_t loopEnd, f_cnt_t end) const -> std::vector<sampleFrame>;
-
 	auto advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, SamplePlaybackState* state) -> f_cnt_t;
 	auto getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
 	auto getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
@@ -114,7 +105,6 @@ private:
 	float m_amplification = 1.0f;
 	float m_frequency = DefaultBaseFreq;
 	bool m_reversed = false;
-	sample_rate_t m_markerSampleRate = 0;
 };
 } // namespace lmms
 

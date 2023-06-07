@@ -41,7 +41,6 @@ static auto s_interpolationMargins = std::array<f_cnt_t, 5>{64, 64, 64, 4, 4};
 Sample::Sample(std::shared_ptr<SampleBuffer> buffer)
 	: m_buffer(buffer)
 	, m_playMarkers({0, static_cast<f_cnt_t>(m_buffer->size()), 0, static_cast<f_cnt_t>(m_buffer->size())})
-	, m_markerSampleRate(m_buffer->sampleRate())
 {
 }
 
