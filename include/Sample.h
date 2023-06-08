@@ -88,8 +88,6 @@ public:
 private:
 	auto getSampleFragment(f_cnt_t index, f_cnt_t frames, LoopMode loopMode, bool* backwards, f_cnt_t loopStart,
 		f_cnt_t loopEnd, f_cnt_t end) const -> std::vector<sampleFrame>;
-	auto resampleFrameBlock(SRC_STATE* state, const float* in, float* out, int numInputFrames,
-		int numOutputFrames, double ratio) -> SRC_DATA;
 	auto advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, SamplePlaybackState* state) -> f_cnt_t;
 	auto getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
 	auto getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
