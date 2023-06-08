@@ -37,14 +37,14 @@ namespace lmms {
 // the array positions correspond to the converter_type parameter values in libsamplerate
 // if there appears problems with playback on some interpolation mode, then the value for that mode
 // may need to be higher - conversely, to optimize, some may work with lower values
-static auto s_interpolationMargins = std::array<f_cnt_t, 5>{64, 64, 64, 4, 4};
+static auto s_interpolationMargins = std::array<int, 5>{64, 64, 64, 4, 4};
 
 Sample::Sample(std::shared_ptr<SampleBuffer> buffer)
 	: m_buffer(buffer)
 	, m_startFrame(0)
-	, m_endFrame(static_cast<f_cnt_t>(m_buffer->size()))
+	, m_endFrame(static_cast<int>(m_buffer->size()))
 	, m_loopStartFrame(0)
-	, m_loopEndFrame(static_cast<f_cnt_t>(m_buffer->size()))
+	, m_loopEndFrame(static_cast<int>(m_buffer->size()))
 {
 }
 
@@ -53,7 +53,7 @@ auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, fl
 	if (m_endFrame == 0 || frames == 0) { return false; }
 
 	const auto freqFactor = freq / m_frequency * m_buffer->sampleRate() / Engine::audioEngine()->processingSampleRate();
-	const auto totalFramesForCurrentPitch = static_cast<f_cnt_t>((m_endFrame - m_startFrame) / freqFactor);
+	const auto totalFramesForCurrentPitch = static_cast<int>((m_endFrame - m_startFrame) / freqFactor);
 	if (totalFramesForCurrentPitch == 0) { return false; }
 
 	auto playFrame = std::max(state->m_frameIndex, startFrame());
@@ -65,7 +65,7 @@ auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, fl
 	else { playFrame = getPingPongIndex(playFrame, m_loopStartFrame, m_loopEndFrame); }
 
 	const auto fragmentSize
-		= static_cast<f_cnt_t>(frames * freqFactor) + s_interpolationMargins[state->interpolationMode()];
+		= static_cast<int>(frames * freqFactor) + s_interpolationMargins[state->interpolationMode()];
 	auto isBackwards = state->isBackwards();
 
 	if (freqFactor != 1.0 || state->m_varyingPitch)
@@ -118,7 +118,7 @@ auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, fl
 	return true;
 }
 
-auto Sample::advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, SamplePlaybackState* state) -> f_cnt_t
+auto Sample::advance(int playFrame, int frames, LoopMode loopMode, SamplePlaybackState* state) -> int
 {
 	switch (loopMode)
 	{
@@ -127,7 +127,7 @@ auto Sample::advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sampl
 	case LoopMode::LoopOn:
 		return frames + getLoopedIndex(playFrame, m_loopStartFrame, m_loopEndFrame);
 	case LoopMode::LoopPingPong: {
-		f_cnt_t left = frames;
+		int left = frames;
 		if (state->isBackwards())
 		{
 			playFrame -= frames;
@@ -146,8 +146,8 @@ auto Sample::advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, Sampl
 	}
 }
 
-std::vector<sampleFrame> Sample::getSampleFragment(f_cnt_t currentFrame, f_cnt_t numFramesRequested, LoopMode loopMode,
-	bool* backwards, f_cnt_t loopStart, f_cnt_t loopEnd, f_cnt_t endFrame) const
+std::vector<sampleFrame> Sample::getSampleFragment(int currentFrame, int numFramesRequested, LoopMode loopMode,
+	bool* backwards, int loopStart, int loopEnd, int endFrame) const
 {
 	auto out = std::vector<sampleFrame>(numFramesRequested);
 	if (loopMode == LoopMode::LoopOff)
@@ -234,9 +234,9 @@ std::vector<sampleFrame> Sample::getSampleFragment(f_cnt_t currentFrame, f_cnt_t
 	return out;
 }
 
-void Sample::visualize(QPainter& p, const QRect& dr, f_cnt_t fromFrame, f_cnt_t toFrame)
+void Sample::visualize(QPainter& p, const QRect& dr, int fromFrame, int toFrame)
 {
-	const auto numFrames = static_cast<f_cnt_t>(m_buffer->size());
+	const auto numFrames = static_cast<int>(m_buffer->size());
 	if (numFrames == 0) { return; }
 
 	const bool focusOnRange = toFrame <= numFrames && 0 <= fromFrame && fromFrame < toFrame;
@@ -323,7 +323,7 @@ void Sample::visualize(QPainter& p, const QRect& dr, f_cnt_t fromFrame, f_cnt_t 
 	}
 }
 
-auto Sample::interpolationMargins() -> std::array<f_cnt_t, 5>&
+auto Sample::interpolationMargins() -> std::array<int, 5>&
 {
 	return s_interpolationMargins;
 }
@@ -335,23 +335,23 @@ auto Sample::sampleDuration() const -> int
 		: 0;
 }
 
-auto Sample::playbackSize() const -> f_cnt_t
+auto Sample::playbackSize() const -> int
 {
 	return m_buffer->sampleRate() > 0
 		? m_buffer->size() * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate()
 		: 0;
 }
 
-f_cnt_t Sample::getPingPongIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) const
+int Sample::getPingPongIndex(int index, int startf, int endf) const
 {
 	if (index < endf) { return index; }
-	const f_cnt_t loopLen = endf - startf;
-	const f_cnt_t loopPos = (index - endf) % (loopLen * 2);
+	const int loopLen = endf - startf;
+	const int loopPos = (index - endf) % (loopLen * 2);
 
 	return (loopPos < loopLen) ? endf - loopPos : startf + (loopPos - loopLen);
 }
 
-f_cnt_t Sample::getLoopedIndex(f_cnt_t index, f_cnt_t startf, f_cnt_t endf) const
+int Sample::getLoopedIndex(int index, int startf, int endf) const
 {
 	if (index < endf) { return index; }
 	return startf + (index - startf) % (endf - startf);
@@ -362,22 +362,22 @@ auto Sample::buffer() const -> std::shared_ptr<const SampleBuffer>
 	return m_buffer;
 }
 
-auto Sample::startFrame() const -> f_cnt_t
+auto Sample::startFrame() const -> int
 {
 	return m_startFrame;
 }
 
-auto Sample::endFrame() const -> f_cnt_t
+auto Sample::endFrame() const -> int
 {
 	return m_endFrame;
 }
 
-auto Sample::loopStartFrame() const -> f_cnt_t
+auto Sample::loopStartFrame() const -> int
 {
 	return m_loopStartFrame;
 }
 
-auto Sample::loopEndFrame() const -> f_cnt_t
+auto Sample::loopEndFrame() const -> int
 {
 	return m_loopEndFrame;
 }
@@ -397,27 +397,27 @@ auto Sample::reversed() const -> bool
 	return m_reversed;
 }
 
-auto Sample::setStartFrame(f_cnt_t frame) -> void
+auto Sample::setStartFrame(int frame) -> void
 {
 	m_startFrame = frame;
 }
 
-auto Sample::setEndFrame(f_cnt_t frame) -> void
+auto Sample::setEndFrame(int frame) -> void
 {
 	m_endFrame = frame;
 }
 
-auto Sample::setLoopStartFrame(f_cnt_t frame) -> void
+auto Sample::setLoopStartFrame(int frame) -> void
 {
 	m_loopStartFrame = frame;
 }
 
-auto Sample::setLoopEndFrame(f_cnt_t frame) -> void
+auto Sample::setLoopEndFrame(int frame) -> void
 {
 	m_loopEndFrame = frame;
 }
 
-auto Sample::setAllPointFrames(f_cnt_t startFrame, f_cnt_t endFrame, f_cnt_t loopStartFrame, f_cnt_t loopEndFrame) -> void
+auto Sample::setAllPointFrames(int startFrame, int endFrame, int loopStartFrame, int loopEndFrame) -> void
 {
 	m_startFrame = startFrame;
 	m_endFrame = endFrame;

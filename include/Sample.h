@@ -61,42 +61,42 @@ public:
 		LoopMode loopMode = LoopMode::LoopOff) -> bool;
 
 	//! TODO: Should be moved to its own QWidget
-	auto visualize(QPainter& p, const QRect& dr, f_cnt_t fromFrame = 0, f_cnt_t toFrame = 0) -> void;
+	auto visualize(QPainter& p, const QRect& dr, int fromFrame = 0, int toFrame = 0) -> void;
 
 	auto sampleDuration() const -> int;
-	auto playbackSize() const -> f_cnt_t;
+	auto playbackSize() const -> int;
 
-	static auto interpolationMargins() -> std::array<f_cnt_t, 5>&;
-	auto buffer() const -> std::shared_ptr<const SampleBuffer>;
-	auto startFrame() const -> f_cnt_t;
-	auto endFrame() const -> f_cnt_t;
-	auto loopStartFrame() const -> f_cnt_t;
-	auto loopEndFrame() const -> f_cnt_t;
+	static auto interpolationMargins() -> std::array<int, 5>&;
+	auto buffer() const -> std::shared_ptr<SampleBuffer>;
+	auto startFrame() const -> int;
+	auto endFrame() const -> int;
+	auto loopStartFrame() const -> int;
+	auto loopEndFrame() const -> int;
 	auto amplification() const -> float;
 	auto frequency() const -> float;
 	auto reversed() const -> bool;
 
-	auto setStartFrame(f_cnt_t frame) -> void;
-	auto setEndFrame(f_cnt_t frame) -> void;
-	auto setLoopStartFrame(f_cnt_t frame) -> void;
-	auto setLoopEndFrame(f_cnt_t frame) -> void;
-	auto setAllPointFrames(f_cnt_t startFrame, f_cnt_t endFrame, f_cnt_t loopStartFrame, f_cnt_t loopEndFrame) -> void;
+	auto setStartFrame(int frame) -> void;
+	auto setEndFrame(int frame) -> void;
+	auto setLoopStartFrame(int frame) -> void;
+	auto setLoopEndFrame(int frame) -> void;
+	auto setAllPointFrames(int startFrame, int endFrame, int loopStartFrame, int loopEndFrame) -> void;
 	auto setAmplification(float amplification) -> void;
 	auto setFrequency(float frequency) -> void;
 	auto setReversed(bool reversed) -> void;
 
 private:
-	auto getSampleFragment(f_cnt_t index, f_cnt_t frames, LoopMode loopMode, bool* backwards, f_cnt_t loopStart,
-		f_cnt_t loopEnd, f_cnt_t end) const -> std::vector<sampleFrame>;
-	auto advance(f_cnt_t playFrame, f_cnt_t frames, LoopMode loopMode, SamplePlaybackState* state) -> f_cnt_t;
-	auto getLoopedIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
-	auto getPingPongIndex(f_cnt_t index, f_cnt_t startFrame, f_cnt_t endFrame) const -> f_cnt_t;
+	auto getSampleFragment(int index, int frames, LoopMode loopMode, bool* backwards, int loopStart, int loopEnd,
+		int end) const -> std::vector<sampleFrame>;
+	auto advance(int playFrame, int frames, LoopMode loopMode, SamplePlaybackState* state) -> int;
+	auto getLoopedIndex(int index, int startFrame, int endFrame) const -> int;
+	auto getPingPongIndex(int index, int startFrame, int endFrame) const -> int;
 
-	std::shared_ptr<const SampleBuffer> m_buffer = std::make_shared<const SampleBuffer>();
-	std::atomic<f_cnt_t> m_startFrame;
-	std::atomic<f_cnt_t> m_endFrame;
-	std::atomic<f_cnt_t> m_loopStartFrame;
-	std::atomic<f_cnt_t> m_loopEndFrame;
+	std::shared_ptr<SampleBuffer> m_buffer = std::make_shared<SampleBuffer>();
+	std::atomic<int> m_startFrame;
+	std::atomic<int> m_endFrame;
+	std::atomic<int> m_loopStartFrame;
+	std::atomic<int> m_loopEndFrame;
 	std::atomic<float> m_amplification = 1.0f;
 	std::atomic<float> m_frequency = DefaultBaseFreq;
 	std::atomic<bool> m_reversed = false;
