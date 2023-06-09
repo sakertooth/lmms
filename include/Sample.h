@@ -25,44 +25,34 @@
 #ifndef LMMS_SAMPLE_H
 #define LMMS_SAMPLE_H
 
-#include <QPainter>
-#include <QRect>
-#include <memory>
-#include <samplerate.h>
-
-#include "AudioEngine.h"
-#include "Engine.h"
-#include "Note.h"
 #include "SampleBuffer.h"
 #include "SamplePlaybackState.h"
-#include "lmms_basics.h"
 #include "lmms_export.h"
+
+class QPainter;
+class QRect;
 
 namespace lmms {
 class LMMS_EXPORT Sample
 {
 public:
-	enum class LoopMode
+	enum class Loop
 	{
-		LoopOff,
-		LoopOn,
-		LoopPingPong
+		Off,
+		On,
+		PingPong
 	};
 
 	Sample(std::shared_ptr<SampleBuffer> buffer);
-
 	template <typename... Args> static std::shared_ptr<Sample> createFromBuffer(Args&&... args)
 	{
 		const auto buffer = std::make_shared<SampleBuffer>(std::forward<Args>(args)...);
 		return std::make_shared<Sample>(buffer);
 	}
 
-	auto play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, float freq,
-		LoopMode loopMode = LoopMode::LoopOff) -> bool;
-
-	//! TODO: Should be moved to its own QWidget
+	bool play(sampleFrame* dst, SamplePlaybackState* state, int numFrames, float freq = DefaultBaseFreq,
+		Loop loopMode = Loop::Off);
 	auto visualize(QPainter& p, const QRect& dr, int fromFrame = 0, int toFrame = 0) -> void;
-
 	auto sampleDuration() const -> int;
 	auto playbackSize() const -> int;
 
@@ -76,21 +66,23 @@ public:
 	auto frequency() const -> float;
 	auto reversed() const -> bool;
 
-	auto setStartFrame(int frame) -> void;
-	auto setEndFrame(int frame) -> void;
-	auto setLoopStartFrame(int frame) -> void;
-	auto setLoopEndFrame(int frame) -> void;
-	auto setAllPointFrames(int startFrame, int endFrame, int loopStartFrame, int loopEndFrame) -> void;
-	auto setAmplification(float amplification) -> void;
-	auto setFrequency(float frequency) -> void;
-	auto setReversed(bool reversed) -> void;
+	void setStartFrame(int frame);
+	void setEndFrame(int frame);
+	void setLoopStartFrame(int frame);
+	void setLoopEndFrame(int frame);
+	void setAllPointFrames(int start, int end, int loopStart, int loopEnd);
+	void setAmplification(float amplification);
+	void setFrequency(float frequency);
+	void setReversed(bool reversed);
 
 private:
-	auto getSampleFragment(int index, int frames, LoopMode loopMode, bool* backwards, int loopStart, int loopEnd,
-		int end) const -> std::vector<sampleFrame>;
-	auto advance(int playFrame, int frames, LoopMode loopMode, SamplePlaybackState* state) -> int;
-	auto getLoopedIndex(int index, int startFrame, int endFrame) const -> int;
-	auto getPingPongIndex(int index, int startFrame, int endFrame) const -> int;
+	bool playSampleRange(SamplePlaybackState* state, int numFrames, sampleFrame* dst);
+	bool playSampleRangeBackwards(SamplePlaybackState* state, int numFrames, sampleFrame* dst);
+	bool playSampleRangeLoop(SamplePlaybackState* state, int numFrames, sampleFrame* dst);
+	bool playSampleRangePingPong(SamplePlaybackState* state, int numFrames, sampleFrame* dst);
+	bool resampleSampleRange(
+		SRC_STATE* state, sampleFrame* src, int numFrames, int maxSize, double ratio, sampleFrame* dst);
+	void amplifySampleRange(sampleFrame* src, int numFrames);
 
 	std::shared_ptr<SampleBuffer> m_buffer = std::make_shared<SampleBuffer>();
 	std::atomic<int> m_startFrame;
@@ -102,5 +94,4 @@ private:
 	std::atomic<bool> m_reversed = false;
 };
 } // namespace lmms
-
 #endif // LMMS_SAMPLE_H

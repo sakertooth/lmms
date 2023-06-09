@@ -25,20 +25,20 @@
 #include "SampleBuffer.h"
 
 #include <QFile>
-#include <QMessageBox>
+#include <QFileInfo>
+#include <QIODevice>
 #include <algorithm>
-#include <iostream>
+#include <array>
+#include <memory>
+#include <samplerate.h>
 #include <sndfile.h>
+#include <stdexcept>
+#include <string>
 
 #include "AudioEngine.h"
-#include "ConfigManager.h"
 #include "DrumSynth.h"
 #include "Engine.h"
-#include "GuiApplication.h"
-#include "Oscillator.h"
 #include "PathUtil.h"
-#include "base64.h"
-#include "endian_handling.h"
 
 namespace lmms {
 

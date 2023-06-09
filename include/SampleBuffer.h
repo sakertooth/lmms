@@ -25,7 +25,11 @@
 #ifndef LMMS_SAMPLE_BUFFER_H
 #define LMMS_SAMPLE_BUFFER_H
 
+#include <QByteArray>
+#include <QString>
+#include <optional>
 #include <samplerate.h>
+#include <vector>
 
 #include "AudioEngine.h"
 #include "Engine.h"
@@ -36,7 +40,6 @@
 #include "lmms_basics.h"
 #include "lmms_export.h"
 #include "lmms_math.h"
-#include "shared_object.h"
 
 namespace lmms {
 class LMMS_EXPORT SampleBuffer

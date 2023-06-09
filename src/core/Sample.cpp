@@ -24,12 +24,12 @@
 
 #include "Sample.h"
 
-#include <cassert>
+#include <QPainter>
+#include <QRect>
+#include <algorithm>
 #include <iostream>
 
-#include "AudioEngine.h"
-#include "Engine.h"
-#include "SampleBuffer.h"
+#include "SamplePlaybackState.h"
 #include "lmms_basics.h"
 
 namespace lmms {
@@ -48,190 +48,110 @@ Sample::Sample(std::shared_ptr<SampleBuffer> buffer)
 {
 }
 
-auto Sample::play(sampleFrame* dst, SamplePlaybackState* state, fpp_t frames, float freq, LoopMode loopMode) -> bool
+bool Sample::play(sampleFrame* dst, SamplePlaybackState* state, int numFrames, float freq, Loop loopMode)
 {
-	if (m_endFrame == 0 || frames == 0) { return false; }
-
-	const auto freqFactor = freq / m_frequency * m_buffer->sampleRate() / Engine::audioEngine()->processingSampleRate();
-	const auto totalFramesForCurrentPitch = static_cast<int>((m_endFrame - m_startFrame) / freqFactor);
-	if (totalFramesForCurrentPitch == 0) { return false; }
-
-	auto playFrame = std::max(state->m_frameIndex, startFrame());
-	if (loopMode == LoopMode::LoopOff)
+	auto playedSuccessfully = false;
+	switch (loopMode)
 	{
-		if (playFrame >= m_endFrame) { return false; }
-	}
-	else if (loopMode == LoopMode::LoopOn) { playFrame = getLoopedIndex(playFrame, m_loopStartFrame, m_loopEndFrame); }
-	else { playFrame = getPingPongIndex(playFrame, m_loopStartFrame, m_loopEndFrame); }
-
-	const auto fragmentSize
-		= static_cast<int>(frames * freqFactor) + s_interpolationMargins[state->interpolationMode()];
-	auto isBackwards = state->isBackwards();
-
-	if (freqFactor != 1.0 || state->m_varyingPitch)
-	{
-		auto srcData = SRC_DATA{};
-		const auto sampleFragment = getSampleFragment(
-			playFrame, fragmentSize, loopMode, &isBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
-		srcData.data_in = &sampleFragment[0][0];
-		srcData.data_out = dst->data();
-		srcData.input_frames = fragmentSize;
-		srcData.output_frames = frames;
-		srcData.src_ratio = 1.0 / freqFactor;
-		srcData.end_of_input = 0;
-		int error = src_process(state->m_resamplingData, &srcData);
-		if (error) 
-		{
-#ifdef LMMS_DEBUG
-			std::cerr << "SampleBuffer: error while resampling: " << src_strerror(error) << '\n';
-#endif
-			return false;
-		}
-
-		if (srcData.output_frames_gen > frames)
-		{
-#ifdef LMMS_DEBUG
-			std::cerr << "SampleBuffer: not enough frames: " << srcData.output_frames_gen << " / " << frames << '\n';
-#endif
-			return false;
-		}
-
-		playFrame = advance(playFrame, srcData.input_frames_used, loopMode, state);
-	}
-	else
-	{
-		const auto sampleFragment = getSampleFragment(
-			playFrame, frames, loopMode, &isBackwards, m_loopStartFrame, m_loopEndFrame, m_endFrame);
-		std::copy_n(sampleFragment.begin(), frames, dst);
-		playFrame = advance(playFrame, frames, loopMode, state);
+	case Loop::Off:
+		playedSuccessfully = playSampleRange(state, numFrames, dst);
+		break;
+	case Loop::On:
+		playedSuccessfully = playSampleRangeLoop(state, numFrames, dst);
+		break;
+	case Loop::PingPong:
+		playedSuccessfully = playSampleRangePingPong(state, numFrames, dst);
+		break;
+	default:
+		return false;
 	}
 
-	state->setBackwards(isBackwards);
-	state->setFrameIndex(playFrame);
+	if (!playedSuccessfully) { return false; }
+	auto resampleRatio = m_frequency / freq * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate();
 
-	for (fpp_t i = 0; i < frames; ++i)
+	if (resampleRatio != 1.0f)
 	{
-		dst[i][0] *= m_amplification;
-		dst[i][1] *= m_amplification;
+		auto resampleOut = std::vector<sampleFrame>(numFrames * resampleRatio);
+		auto error = resampleSampleRange(
+			state->m_resamplingData, dst, numFrames, resampleOut.size(), resampleRatio, resampleOut.data());
+		if (error) { return false; }
+		// std::fill_n(dst, numFrames, sampleFrame{0, 0});
+		// std::copy_n(resampleOut.data(), resampleOut.size(), dst);
+	}
+
+	amplifySampleRange(dst, numFrames);
+	return true;
+}
+
+bool Sample::playSampleRange(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
+{
+	if (state->m_frameIndex >= m_endFrame) { return false; }
+	auto playFrame = std::max<int>(m_startFrame, state->m_frameIndex);
+	auto framesToPlay = std::min(numFrames, m_endFrame - playFrame);
+
+	m_reversed ? std::copy_n(m_buffer->rbegin() + playFrame, framesToPlay, dst)
+			   : std::copy_n(m_buffer->begin() + playFrame, framesToPlay, dst);
+
+	std::fill_n(dst + framesToPlay, numFrames - framesToPlay, sampleFrame{0, 0});
+	state->m_frameIndex = playFrame + framesToPlay;
+	return true;
+}
+
+bool Sample::playSampleRangeBackwards(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
+{
+	if (state->m_frameIndex <= m_startFrame) { return false; }
+	auto playFrame = std::min<int>(m_endFrame, state->m_frameIndex);
+	auto framesToPlay = std::min(numFrames, m_startFrame - playFrame);
+
+	m_reversed ? std::copy_n(m_buffer->begin() + playFrame, framesToPlay, dst)
+			   : std::copy_n(m_buffer->rbegin() + playFrame, framesToPlay, dst);
+
+	std::fill_n(dst + framesToPlay, numFrames - framesToPlay, sampleFrame{0, 0});
+	state->m_frameIndex = playFrame - framesToPlay;
+	return true;
+}
+
+bool Sample::playSampleRangeLoop(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
+{
+	if (state->m_frameIndex >= m_loopEndFrame) { state->m_frameIndex = m_loopStartFrame; }
+
+	auto numFramesCopied = 0;
+	while (numFramesCopied != numFrames)
+	{
+		auto framesToPlay = std::min(numFrames - numFramesCopied, m_loopEndFrame - state->m_frameIndex);
+		playSampleRange(state, framesToPlay, dst + numFramesCopied);
+		if (state->m_frameIndex == m_loopEndFrame) { state->m_frameIndex = m_loopStartFrame; }
+		numFramesCopied += framesToPlay;
 	}
 
 	return true;
 }
 
-auto Sample::advance(int playFrame, int frames, LoopMode loopMode, SamplePlaybackState* state) -> int
+bool Sample::playSampleRangePingPong(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
 {
-	switch (loopMode)
-	{
-	case LoopMode::LoopOff:
-		return playFrame + frames;
-	case LoopMode::LoopOn:
-		return frames + getLoopedIndex(playFrame, m_loopStartFrame, m_loopEndFrame);
-	case LoopMode::LoopPingPong: {
-		int left = frames;
-		if (state->isBackwards())
-		{
-			playFrame -= frames;
-			if (playFrame < m_loopStartFrame)
-			{
-				left -= m_loopStartFrame - playFrame;
-				playFrame = m_loopStartFrame;
-			}
-			else { left = 0; }
-		}
-
-		return left + getPingPongIndex(playFrame, m_loopStartFrame, m_loopEndFrame);
-	}
-	default:
-		return playFrame;
-	}
+	// TODO: Implement
+	return true;
 }
 
-std::vector<sampleFrame> Sample::getSampleFragment(int currentFrame, int numFramesRequested, LoopMode loopMode,
-	bool* backwards, int loopStart, int loopEnd, int endFrame) const
+bool Sample::resampleSampleRange(
+	SRC_STATE* state, sampleFrame* src, int numFrames, int maxSize, double ratio, sampleFrame* dst)
 {
-	auto out = std::vector<sampleFrame>(numFramesRequested);
-	if (loopMode == LoopMode::LoopOff)
+	auto srcData = SRC_DATA{};
+	srcData.data_in = &src[0][0];
+	srcData.data_out = &dst[0][0];
+	srcData.input_frames = numFrames;
+	srcData.output_frames = maxSize;
+	srcData.src_ratio = ratio;
+	return static_cast<bool>(src_process(state, &srcData));
+}
+
+void Sample::amplifySampleRange(sampleFrame* src, int numFrames)
+{
+	for (int i = 0; i < numFrames; ++i)
 	{
-		// Specify the number of frames to copy, starting at index
-		// If there are not enough frames to copy, copy the remaining frames
-		// (endFrame - currentFrame)
-		const auto numFramesToCopy = std::min(numFramesRequested, endFrame - currentFrame);
-		assert(numFramesToCopy >= 0);
-
-		if (m_reversed) { std::copy_n(m_buffer->rbegin() + currentFrame, numFramesToCopy, out.begin()); }
-		else { std::copy_n(m_buffer->begin() + currentFrame, numFramesToCopy, out.begin()); }
+		src[i][0] *= m_amplification;
+		src[i][1] *= m_amplification;
 	}
-	else if (loopMode == LoopMode::LoopOn || loopMode == LoopMode::LoopPingPong)
-	{
-		// Will be used to track the current play position
-		// and how many frames we copied while looping
-		auto playPosition = currentFrame;
-		auto numFramesCopied = 0;
-
-		// Move playPosition to loopStart if playPosition has past or is currently at loopEnd
-		if (playPosition >= loopEnd) { playPosition = loopStart; }
-
-		while (numFramesCopied != numFramesRequested)
-		{
-			// If we do not have enough frames to copy, then one of these conditions must be true:
-			// 1. playPosition + numFramesRequested > loopEnd for LoopOn mode and LoopPingPong mode (non-backwards),
-			// 2. playPosition - numFramesRequested < loopStart for LoopPingPong mode (backwards),
-
-			// If any of the previous conditions are true, then we should only copy the remaining frames
-			// we have in the following ranges:
-			// 1. loopEnd - playPosition for LoopOn mode and LoopPingPongMode (non-backwards)
-			// 2. playPosition - loopStart for LoopPingPong mode (backwards).
-
-			// Otherwise, we want to copy numFramesRequested frames minus how many frames we already copied
-
-			const auto remainingFrames = (*backwards && loopMode == LoopMode::LoopPingPong) ? playPosition - loopStart
-																							: loopEnd - playPosition;
-			const auto numFramesToCopy = std::min(numFramesRequested - numFramesCopied, remainingFrames);
-			assert(numFramesToCopy >= 0);
-
-			if (loopMode == LoopMode::LoopOn || (!*backwards && loopMode == LoopMode::LoopPingPong))
-			{
-				if (m_reversed)
-				{
-					std::copy_n(m_buffer->rbegin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied);
-				}
-				else { std::copy_n(m_buffer->begin() + playPosition, numFramesToCopy, out.begin() + numFramesCopied); }
-			}
-			else if (*backwards && loopMode == LoopMode::LoopPingPong)
-			{
-				auto distanceFromPlayPosition = std::distance(m_buffer->begin() + playPosition, m_buffer->end());
-
-				if (m_reversed)
-				{
-					std::copy_n(
-						m_buffer->begin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
-				}
-				else
-				{
-					std::copy_n(
-						m_buffer->rbegin() + distanceFromPlayPosition, numFramesToCopy, out.begin() + numFramesCopied);
-				}
-			}
-
-			playPosition += (*backwards && loopMode == LoopMode::LoopPingPong ? -numFramesToCopy : numFramesToCopy);
-			numFramesCopied += numFramesToCopy;
-
-			// Ensure that playPosition is in the valid range [0, loopEnd]
-			assert(playPosition >= 0 && playPosition <= loopEnd);
-
-			// numFramesCopied can only be less than or equal to numFramesRequested
-			assert(numFramesCopied <= numFramesRequested);
-
-			if (playPosition == loopEnd && loopMode == LoopMode::LoopOn) { playPosition = loopStart; }
-			else if (playPosition == loopEnd && loopMode == LoopMode::LoopPingPong) { *backwards = true; }
-			else if (playPosition == loopStart && *backwards && loopMode == LoopMode::LoopPingPong)
-			{
-				*backwards = false;
-			}
-		}
-	}
-
-	return out;
 }
 
 void Sample::visualize(QPainter& p, const QRect& dr, int fromFrame, int toFrame)
@@ -330,9 +250,8 @@ auto Sample::interpolationMargins() -> std::array<int, 5>&
 
 auto Sample::sampleDuration() const -> int
 {
-	return m_buffer->sampleRate() > 0
-		? static_cast<double>(m_endFrame - m_startFrame) / m_buffer->sampleRate() * 1000
-		: 0;
+	return m_buffer->sampleRate() > 0 ? static_cast<double>(m_endFrame - m_startFrame) / m_buffer->sampleRate() * 1000
+									  : 0;
 }
 
 auto Sample::playbackSize() const -> int
@@ -342,22 +261,7 @@ auto Sample::playbackSize() const -> int
 		: 0;
 }
 
-int Sample::getPingPongIndex(int index, int startf, int endf) const
-{
-	if (index < endf) { return index; }
-	const int loopLen = endf - startf;
-	const int loopPos = (index - endf) % (loopLen * 2);
-
-	return (loopPos < loopLen) ? endf - loopPos : startf + (loopPos - loopLen);
-}
-
-int Sample::getLoopedIndex(int index, int startf, int endf) const
-{
-	if (index < endf) { return index; }
-	return startf + (index - startf) % (endf - startf);
-}
-
-auto Sample::buffer() const -> std::shared_ptr<const SampleBuffer>
+auto Sample::buffer() const -> std::shared_ptr<SampleBuffer>
 {
 	return m_buffer;
 }
@@ -417,13 +321,14 @@ auto Sample::setLoopEndFrame(int frame) -> void
 	m_loopEndFrame = frame;
 }
 
-auto Sample::setAllPointFrames(int startFrame, int endFrame, int loopStartFrame, int loopEndFrame) -> void
+auto Sample::setAllPointFrames(int start, int end, int loopStart, int loopEnd) -> void
 {
-	m_startFrame = startFrame;
-	m_endFrame = endFrame;
-	m_loopStartFrame = loopStartFrame;
-	m_loopEndFrame = loopEndFrame;
+	m_startFrame = start;
+	m_endFrame = end;
+	m_loopStartFrame = loopStart;
+	m_loopEndFrame = loopEnd;
 }
+
 auto Sample::setAmplification(float amplification) -> void
 {
 	m_amplification = amplification;

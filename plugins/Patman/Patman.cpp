@@ -154,7 +154,7 @@ void PatmanInstrument::playNote( NotePlayHandle * _n,
 						hdata->sample->frequency();
 
 	if (hdata->sample->play(_working_buffer + offset, hdata->state, frames,
-					play_freq, m_loopedModel.value() ? Sample::LoopMode::LoopOn : Sample::LoopMode::LoopOff))
+					play_freq, m_loopedModel.value() ? Sample::Loop::On : Sample::Loop::Off))
 	{
 		applyRelease( _working_buffer, _n );
 		instrumentTrack()->processAudioBuffer( _working_buffer,
