@@ -86,8 +86,8 @@ bool Sample::play(sampleFrame* dst, SamplePlaybackState* state, int numFrames, f
 bool Sample::playSampleRange(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
 {
 	if (state->m_frameIndex >= m_endFrame) { return false; }
-	auto playFrame = std::max<int>(m_startFrame, state->m_frameIndex);
-	auto framesToPlay = std::min(numFrames, m_endFrame - playFrame);
+	const auto playFrame = std::max<int>(m_startFrame, state->m_frameIndex);
+	const auto framesToPlay = std::min(numFrames, m_endFrame - playFrame);
 
 	m_reversed ? std::copy_n(m_buffer->rbegin() + playFrame, framesToPlay, dst)
 			   : std::copy_n(m_buffer->begin() + playFrame, framesToPlay, dst);
@@ -99,12 +99,12 @@ bool Sample::playSampleRange(SamplePlaybackState* state, int numFrames, sampleFr
 
 bool Sample::playSampleRangeBackwards(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
 {
-	if (state->m_frameIndex <= m_startFrame) { return false; }
-	auto playFrame = std::min<int>(m_endFrame, state->m_frameIndex);
-	auto framesToPlay = std::min(numFrames, m_startFrame - playFrame);
+	if (state->m_frameIndex < m_startFrame) { return false; }
+	const auto playFrame = std::min<int>(m_endFrame, state->m_frameIndex);
+	const auto framesToPlay = std::min(numFrames, playFrame - m_startFrame);
 
-	m_reversed ? std::copy_n(m_buffer->begin() + playFrame, framesToPlay, dst)
-			   : std::copy_n(m_buffer->rbegin() + playFrame, framesToPlay, dst);
+	m_reversed ? std::copy_n(m_buffer->begin() + m_endFrame - playFrame, framesToPlay, dst)
+			   : std::copy_n(m_buffer->rbegin() + m_endFrame - playFrame, framesToPlay, dst);
 
 	std::fill_n(dst + framesToPlay, numFrames - framesToPlay, sampleFrame{0, 0});
 	state->m_frameIndex = playFrame - framesToPlay;
@@ -118,7 +118,7 @@ bool Sample::playSampleRangeLoop(SamplePlaybackState* state, int numFrames, samp
 	auto numFramesCopied = 0;
 	while (numFramesCopied != numFrames)
 	{
-		auto framesToPlay = std::min(numFrames - numFramesCopied, m_loopEndFrame - state->m_frameIndex);
+		const auto framesToPlay = std::min(numFrames - numFramesCopied, m_loopEndFrame - state->m_frameIndex);
 		playSampleRange(state, framesToPlay, dst + numFramesCopied);
 		if (state->m_frameIndex == m_loopEndFrame) { state->m_frameIndex = m_loopStartFrame; }
 		numFramesCopied += framesToPlay;
@@ -129,7 +129,26 @@ bool Sample::playSampleRangeLoop(SamplePlaybackState* state, int numFrames, samp
 
 bool Sample::playSampleRangePingPong(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
 {
-	// TODO: Implement
+	if (state->m_frameIndex >= m_loopEndFrame)
+	{
+		state->m_frameIndex = m_loopEndFrame - 1;
+		state->m_backwards = true;
+	}
+
+	auto numFramesCopied = 0;
+	while (numFramesCopied != numFrames)
+	{
+		auto framesToPlay = std::min(numFrames - numFramesCopied,
+			state->m_backwards ? state->m_frameIndex - m_loopStartFrame : m_loopEndFrame - state->m_frameIndex);
+
+		state->m_backwards ? playSampleRangeBackwards(state, framesToPlay, dst + numFramesCopied)
+						   : playSampleRange(state, framesToPlay, dst + numFramesCopied);
+
+		if (state->m_frameIndex == m_loopEndFrame && !state->m_backwards) { state->m_backwards = true; }
+		else if (state->m_frameIndex == m_loopStartFrame && state->m_backwards) { state->m_backwards = false; }
+		numFramesCopied += framesToPlay;
+	}
+
 	return true;
 }
 
