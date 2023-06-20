@@ -50,68 +50,68 @@ Sample::Sample(std::shared_ptr<SampleBuffer> buffer)
 
 bool Sample::play(sampleFrame* dst, SamplePlaybackState* state, int numFrames, float freq, Loop loopMode)
 {
-	auto playedSuccessfully = false;
+	auto numFramesPlayed = 0;
+	const auto resampleRatio
+		= m_frequency / freq * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate();
+
 	switch (loopMode)
 	{
 	case Loop::Off:
-		playedSuccessfully = playSampleRange(state, numFrames, dst);
+		numFramesPlayed = playSampleRange(state, numFrames, dst, resampleRatio);
 		break;
 	case Loop::On:
-		playedSuccessfully = playSampleRangeLoop(state, numFrames, dst);
+		numFramesPlayed = playSampleRangeLoop(state, numFrames, dst, resampleRatio);
 		break;
 	case Loop::PingPong:
-		playedSuccessfully = playSampleRangePingPong(state, numFrames, dst);
+		numFramesPlayed = playSampleRangePingPong(state, numFrames, dst, resampleRatio);
 		break;
 	default:
 		return false;
 	}
 
-	if (!playedSuccessfully) { return false; }
-	auto resampleRatio = m_frequency / freq * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate();
+	if (src_error(state->m_resamplingData)) { return false; }
+	if (numFramesPlayed <= 0) { return false; }
 
-	if (resampleRatio != 1.0f)
-	{
-		auto resampleOut = std::vector<sampleFrame>(numFrames * resampleRatio);
-		auto error = resampleSampleRange(
-			state->m_resamplingData, dst, numFrames, resampleOut.size(), resampleRatio, resampleOut.data());
-		if (error) { return false; }
-		// std::fill_n(dst, numFrames, sampleFrame{0, 0});
-		// std::copy_n(resampleOut.data(), resampleOut.size(), dst);
-	}
-
-	amplifySampleRange(dst, numFrames);
+	amplifySampleRange(dst, numFramesPlayed);
+	std::fill_n(dst + numFramesPlayed, numFrames - numFramesPlayed, sampleFrame{0, 0});
 	return true;
 }
 
-bool Sample::playSampleRange(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
+int Sample::playSampleRange(SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio)
 {
 	if (state->m_frameIndex >= m_endFrame) { return false; }
 	const auto playFrame = std::max<int>(m_startFrame, state->m_frameIndex);
-	const auto framesToPlay = std::min(numFrames, m_endFrame - playFrame);
+	const auto numFramesToCopy = std::min<int>(
+		numFrames / resampleRatio + s_interpolationMargins[state->m_interpolationMode], m_endFrame - playFrame);
 
-	m_reversed ? std::copy_n(m_buffer->rbegin() + playFrame, framesToPlay, dst)
-			   : std::copy_n(m_buffer->begin() + playFrame, framesToPlay, dst);
+	auto buffer = std::vector<sampleFrame>(numFramesToCopy);
+	m_reversed ? std::copy_n(m_buffer->rbegin() + playFrame, buffer.size(), buffer.begin())
+			   : std::copy_n(m_buffer->begin() + playFrame, buffer.size(), buffer.begin());
 
-	std::fill_n(dst + framesToPlay, numFrames - framesToPlay, sampleFrame{0, 0});
-	state->m_frameIndex = playFrame + framesToPlay;
-	return true;
+	const auto resample
+		= resampleSampleRange(state->m_resamplingData, buffer.data(), buffer.size(), dst, numFrames, resampleRatio);
+	state->m_frameIndex = playFrame + resample.input_frames_used;
+	return resample.output_frames_gen;
 }
 
-bool Sample::playSampleRangeBackwards(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
+int Sample::playSampleRangeBackwards(SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio)
 {
 	if (state->m_frameIndex < m_startFrame) { return false; }
 	const auto playFrame = std::min<int>(m_endFrame, state->m_frameIndex);
-	const auto framesToPlay = std::min(numFrames, playFrame - m_startFrame);
+	const auto numFramesToCopy = std::min<int>(
+		numFrames / resampleRatio + s_interpolationMargins[state->m_interpolationMode], playFrame - m_startFrame);
 
-	m_reversed ? std::copy_n(m_buffer->begin() + m_endFrame - playFrame, framesToPlay, dst)
-			   : std::copy_n(m_buffer->rbegin() + m_endFrame - playFrame, framesToPlay, dst);
+	auto buffer = std::vector<sampleFrame>(numFramesToCopy);
+	m_reversed ? std::copy_n(m_buffer->begin() + m_endFrame - playFrame, buffer.size(), buffer.begin())
+			   : std::copy_n(m_buffer->rbegin() + m_endFrame - playFrame, buffer.size(), buffer.begin());
 
-	std::fill_n(dst + framesToPlay, numFrames - framesToPlay, sampleFrame{0, 0});
-	state->m_frameIndex = playFrame - framesToPlay;
-	return true;
+	const auto resample
+		= resampleSampleRange(state->m_resamplingData, buffer.data(), buffer.size(), dst, numFrames, resampleRatio);
+	state->m_frameIndex = playFrame - resample.input_frames_used;
+	return resample.output_frames_gen;
 }
 
-bool Sample::playSampleRangeLoop(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
+int Sample::playSampleRangeLoop(SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio)
 {
 	if (state->m_frameIndex >= m_loopEndFrame) { state->m_frameIndex = m_loopStartFrame; }
 
@@ -119,15 +119,14 @@ bool Sample::playSampleRangeLoop(SamplePlaybackState* state, int numFrames, samp
 	while (numFramesCopied != numFrames)
 	{
 		const auto framesToPlay = std::min(numFrames - numFramesCopied, m_loopEndFrame - state->m_frameIndex);
-		playSampleRange(state, framesToPlay, dst + numFramesCopied);
+		numFramesCopied += playSampleRange(state, framesToPlay, dst + numFramesCopied, resampleRatio);
 		if (state->m_frameIndex == m_loopEndFrame) { state->m_frameIndex = m_loopStartFrame; }
-		numFramesCopied += framesToPlay;
 	}
 
-	return true;
+	return numFramesCopied;
 }
 
-bool Sample::playSampleRangePingPong(SamplePlaybackState* state, int numFrames, sampleFrame* dst)
+int Sample::playSampleRangePingPong(SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio)
 {
 	if (state->m_frameIndex >= m_loopEndFrame)
 	{
@@ -141,27 +140,29 @@ bool Sample::playSampleRangePingPong(SamplePlaybackState* state, int numFrames, 
 		auto framesToPlay = std::min(numFrames - numFramesCopied,
 			state->m_backwards ? state->m_frameIndex - m_loopStartFrame : m_loopEndFrame - state->m_frameIndex);
 
-		state->m_backwards ? playSampleRangeBackwards(state, framesToPlay, dst + numFramesCopied)
-						   : playSampleRange(state, framesToPlay, dst + numFramesCopied);
+		numFramesCopied += state->m_backwards
+			? playSampleRangeBackwards(state, framesToPlay, dst + numFramesCopied, resampleRatio)
+			: playSampleRange(state, framesToPlay, dst + numFramesCopied, resampleRatio);
 
 		if (state->m_frameIndex == m_loopEndFrame && !state->m_backwards) { state->m_backwards = true; }
 		else if (state->m_frameIndex == m_loopStartFrame && state->m_backwards) { state->m_backwards = false; }
-		numFramesCopied += framesToPlay;
 	}
 
-	return true;
+	return numFramesCopied;
 }
 
-bool Sample::resampleSampleRange(
-	SRC_STATE* state, sampleFrame* src, int numFrames, int maxSize, double ratio, sampleFrame* dst)
+SRC_DATA Sample::resampleSampleRange(
+	SRC_STATE* state, sampleFrame* src, int numInputFrames, sampleFrame* dst, int numOutputFrames, double ratio)
 {
 	auto srcData = SRC_DATA{};
 	srcData.data_in = &src[0][0];
 	srcData.data_out = &dst[0][0];
-	srcData.input_frames = numFrames;
-	srcData.output_frames = maxSize;
+	srcData.input_frames = numInputFrames;
+	srcData.output_frames = numOutputFrames;
 	srcData.src_ratio = ratio;
-	return static_cast<bool>(src_process(state, &srcData));
+	srcData.end_of_input = 0;
+	src_process(state, &srcData);
+	return srcData;
 }
 
 void Sample::amplifySampleRange(sampleFrame* src, int numFrames)

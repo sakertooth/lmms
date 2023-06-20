@@ -76,12 +76,16 @@ public:
 	void setReversed(bool reversed);
 
 private:
-	bool playSampleRange(SamplePlaybackState* state, int numFrames, sampleFrame* dst);
-	bool playSampleRangeBackwards(SamplePlaybackState* state, int numFrames, sampleFrame* dst);
-	bool playSampleRangeLoop(SamplePlaybackState* state, int numFrames, sampleFrame* dst);
-	bool playSampleRangePingPong(SamplePlaybackState* state, int numFrames, sampleFrame* dst);
-	bool resampleSampleRange(
-		SRC_STATE* state, sampleFrame* src, int numFrames, int maxSize, double ratio, sampleFrame* dst);
+	auto playSampleRange(SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio = 1.0f)
+		-> int;
+	auto playSampleRangeBackwards(
+		SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio = 1.0f) -> int;
+	auto playSampleRangeLoop(SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio = 1.0f)
+		-> int;
+	auto playSampleRangePingPong(
+		SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio = 1.0f) -> int;
+	auto resampleSampleRange(SRC_STATE* state, sampleFrame* src, int numInputFrames, sampleFrame* dst,
+		int numOutputFrames, double ratio) -> SRC_DATA;
 	void amplifySampleRange(sampleFrame* src, int numFrames);
 
 	std::shared_ptr<SampleBuffer> m_buffer = std::make_shared<SampleBuffer>();
