@@ -357,16 +357,16 @@ PatmanInstrument::LoadErrors PatmanInstrument::loadPatch(
 			}
 		}
 
-		auto psample = Sample::tryCreateFromBuffer(data, frames, sample_rate);
-		psample->setFrequency(root_freq / 1000.0f);
+		auto psample = Sample{std::make_shared<SampleBuffer>(data, frames, sample_rate)};
+		psample.setFrequency(root_freq / 1000.0f);
 
 		if( modes & MODES_LOOPING )
 		{
-			psample->setLoopStartFrame( loop_start );
-			psample->setLoopEndFrame( loop_end );
+			psample.setLoopStartFrame(loop_start);
+			psample.setLoopEndFrame(loop_end);
 		}
 
-		m_patchSamples.push_back(std::move(psample));
+		m_patchSamples.push_back(psample);
 
 		delete[] wave_samples;
 		delete[] data;
@@ -394,24 +394,24 @@ void PatmanInstrument::selectSample( NotePlayHandle * _n )
 	const float freq = _n->frequency();
 
 	float min_dist = HUGE_VALF;
-	std::shared_ptr<Sample> sample = nullptr;
+	Sample* sample = nullptr;
 
-	for (const auto& patchSample : m_patchSamples)
+	for (auto& patchSample : m_patchSamples)
 	{
-		float patch_freq = patchSample->frequency();
+		float patch_freq = patchSample.frequency();
 		float dist = freq >= patch_freq ? freq / patch_freq :
 							patch_freq / freq;
 
 		if( dist < min_dist )
 		{
 			min_dist = dist;
-			sample = patchSample;
+			sample = &patchSample;
 		}
 	}
 
 	auto hdata = new handle_data;
 	hdata->tuned = m_tunedModel.value();
-	hdata->sample = sample ? sample : Sample::tryCreateFromBuffer();
+	hdata->sample = sample ? sample : nullptr;
 	hdata->state = new SamplePlaybackState(_n->hasDetuningInfo());
 	_n->m_pluginData = hdata;
 }

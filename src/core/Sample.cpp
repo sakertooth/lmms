@@ -49,6 +49,59 @@ Sample::Sample(std::shared_ptr<SampleBuffer> buffer)
 {
 }
 
+Sample::Sample(const Sample& other)
+{
+	auto lock = std::shared_lock{other.m_mutex};
+	m_buffer = other.m_buffer;
+	m_startFrame = other.m_startFrame.load(std::memory_order_relaxed);
+	m_endFrame = other.m_endFrame.load(std::memory_order_relaxed);
+	m_loopStartFrame = other.m_loopStartFrame.load(std::memory_order_relaxed);
+	m_loopEndFrame = other.m_loopEndFrame.load(std::memory_order_relaxed);
+}
+
+Sample::Sample(Sample&& other) noexcept
+	: m_buffer(other.m_buffer)
+	, m_startFrame(other.m_startFrame.load(std::memory_order_relaxed))
+	, m_endFrame(static_cast<int>(m_buffer->size()))
+	, m_loopStartFrame(0)
+	, m_loopEndFrame(static_cast<int>(m_buffer->size()))
+{
+	auto lock = std::unique_lock{other.m_mutex};
+
+	m_buffer = other.m_buffer;
+	m_startFrame = other.m_startFrame.load(std::memory_order_relaxed);
+	m_endFrame = other.m_endFrame.load(std::memory_order_relaxed);
+	m_loopStartFrame = other.m_loopStartFrame.load(std::memory_order_relaxed);
+	m_loopEndFrame = other.m_loopEndFrame.load(std::memory_order_relaxed);
+
+	other.m_buffer = nullptr;
+	other.m_startFrame = 0;
+	other.m_endFrame = 0;
+	other.m_loopStartFrame = 0;
+	other.m_loopEndFrame = 0;
+}
+
+Sample& Sample::operator=(Sample other) noexcept
+{
+	const auto lock = std::scoped_lock{m_mutex, other.m_mutex};
+	swap(*this, other);
+	return *this;
+}
+
+void swap(Sample& first, Sample& second) noexcept
+{
+	const auto lock = std::scoped_lock{first.m_mutex, second.m_mutex};
+	using std::swap;
+	swap(first.m_buffer, second.m_buffer);
+	second.setStartFrame(first.m_startFrame.exchange(second.startFrame()));
+	second.setEndFrame(first.m_endFrame.exchange(second.endFrame()));
+	second.setLoopStartFrame(first.m_loopStartFrame.exchange(second.loopStartFrame()));
+	second.setLoopEndFrame(first.m_loopEndFrame.exchange(second.loopEndFrame()));
+	second.setAmplification(first.m_amplification.exchange(second.amplification()));
+	second.setFrequency(first.m_frequency.exchange(second.frequency()));
+	second.setReversed(first.m_reversed.exchange(second.reversed()));
+}
+
 bool Sample::play(sampleFrame* dst, SamplePlaybackState* state, int numFrames, float freq, Loop loopMode)
 {
 	auto numFramesPlayed = 0;
@@ -287,7 +340,6 @@ auto Sample::playbackSize() const -> int
 
 void Sample::reloadFromBuffer(const SampleBuffer& newBuffer)
 {
-	auto guard = Engine::audioEngine()->requestChangesGuard();
 	auto writerLock = std::unique_lock{m_mutex};
 	auto bufferSize = static_cast<int>(m_buffer->size());
 	*m_buffer = newBuffer;

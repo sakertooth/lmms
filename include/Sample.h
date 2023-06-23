@@ -48,20 +48,11 @@ public:
 
 	Sample() = default;
 	Sample(std::shared_ptr<SampleBuffer> buffer);
+	Sample(const Sample&);
+	Sample(Sample&&) noexcept;
 
-	template <typename... Args> static std::shared_ptr<Sample> tryCreateFromBuffer(Args&&... args)
-	{
-		try
-		{
-			const auto buffer = std::make_shared<SampleBuffer>(std::forward<Args>(args)...);
-			return std::make_shared<Sample>(buffer);
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cout << e.what() << '\n';
-			return std::make_shared<Sample>(std::make_shared<SampleBuffer>());
-		}
-	}
+	Sample& operator=(Sample other) noexcept;
+	friend void swap(Sample& first, Sample& second) noexcept;
 
 	template <typename... Args> void tryLoadNewBuffer(Args&&... args)
 	{
