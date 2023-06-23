@@ -92,7 +92,7 @@ SampleClip::SampleClip( Track * _track ) :
 SampleClip::SampleClip(const SampleClip& orig) :
 	SampleClip(orig.getTrack())
 {
-	m_sample = std::make_shared<Sample>(orig.m_sample->buffer());
+	m_sample = std::make_unique<Sample>(orig.m_sample->buffer());
 	m_isPlaying = orig.m_isPlaying;
 }
 

@@ -31,13 +31,11 @@
 #include "SampleClip.h"
 #include "SampleTrack.h"
 
-#include <iostream>
-
 namespace lmms
 {
 
 
-SamplePlayHandle::SamplePlayHandle(std::shared_ptr<Sample> sample, bool ownAudioPort) :
+SamplePlayHandle::SamplePlayHandle(Sample* sample, bool ownAudioPort) :
 	PlayHandle(TypeSamplePlayHandle),
 	m_sample(sample),
 	m_state(false, Engine::audioEngine()->currentQualitySettings().libsrcInterpolation()),
@@ -53,7 +51,7 @@ SamplePlayHandle::SamplePlayHandle(std::shared_ptr<Sample> sample, bool ownAudio
 
 
 SamplePlayHandle::SamplePlayHandle( const QString& sampleFile ) :
-	SamplePlayHandle(Sample::tryCreateFromBuffer(sampleFile), true) {}
+	SamplePlayHandle(new Sample{std::make_shared<SampleBuffer>(sampleFile)}, true) {}
 
 
 
@@ -73,6 +71,7 @@ SamplePlayHandle::~SamplePlayHandle()
 	if( m_ownAudioPort )
 	{
 		delete audioPort();
+		delete m_sample;
 	}
 }
 

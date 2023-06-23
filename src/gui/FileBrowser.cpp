@@ -612,10 +612,16 @@ void FileBrowserTreeWidget::previewFileItem(FileItem* file)
 		// TODO: this can be removed once we do this outside the event thread
 		qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
 		
-		SamplePlayHandle* s = nullptr;
-		s = new SamplePlayHandle(fileName);
-		s->setDoneMayReturnTrue(false);
-		newPPH = s;
+		try
+		{
+			auto s = new SamplePlayHandle(fileName);
+			s->setDoneMayReturnTrue(false);
+			newPPH = s;
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cout << e.what() << '\n';
+		}
 		delete tf;
 	}
 	else if (

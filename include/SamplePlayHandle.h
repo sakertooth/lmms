@@ -44,7 +44,7 @@ class AudioPort;
 class SamplePlayHandle : public PlayHandle
 {
 public:
-	SamplePlayHandle(std::shared_ptr<Sample> sample, bool ownAudioPort = true);
+	SamplePlayHandle(Sample* sample, bool ownAudioPort = true);
 	SamplePlayHandle( const QString& sampleFile );
 	SamplePlayHandle( SampleClip* clip );
 	~SamplePlayHandle() override;
@@ -82,7 +82,7 @@ public:
 
 
 private:
-	std::shared_ptr<Sample> m_sample;
+	Sample* m_sample;
 	bool m_doneMayReturnTrue = true;
 
 	f_cnt_t m_frame = 0;

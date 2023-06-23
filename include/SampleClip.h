@@ -64,9 +64,9 @@ public:
 		return "sampleclip";
 	}
 
-	std::shared_ptr<Sample> sample()
+	Sample* sample()
 	{
-		return m_sample;
+		return m_sample.get();
 	}
 
 	TimePos sampleLength() const;
@@ -88,7 +88,7 @@ public slots:
 
 
 private:
-	std::shared_ptr<Sample> m_sample = Sample::tryCreateFromBuffer();
+	std::unique_ptr<Sample> m_sample = std::make_unique<Sample>();
 	BoolModel m_recordModel;
 	bool m_isPlaying;
 

@@ -46,6 +46,7 @@ public:
 		PingPong
 	};
 
+	Sample() = default;
 	Sample(std::shared_ptr<SampleBuffer> buffer);
 
 	template <typename... Args> static std::shared_ptr<Sample> tryCreateFromBuffer(Args&&... args)
