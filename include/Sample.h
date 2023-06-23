@@ -57,6 +57,7 @@ public:
 	auto visualize(QPainter& p, const QRect& dr, int fromFrame = 0, int toFrame = 0) -> void;
 	auto sampleDuration() const -> int;
 	auto playbackSize() const -> int;
+	void reloadFromBuffer(SampleBuffer* buffer);
 
 	static auto interpolationMargins() -> std::array<int, 5>&;
 	auto buffer() const -> std::shared_ptr<SampleBuffer>;

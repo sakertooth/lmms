@@ -106,6 +106,9 @@ SampleClip::~SampleClip()
 	{
 		sampletrack->updateClips();
 	}
+
+	auto guard = Engine::audioEngine()->requestChangesGuard();
+	m_sample.reset();
 }
 
 
@@ -128,7 +131,7 @@ QString SampleClip::sampleFile() const
 
 void SampleClip::setSampleBuffer(SampleBuffer* sb)
 {
-	m_sample->buffer().reset(sb);
+	m_sample->reloadFromBuffer(sb);
 	updateLength();
 	emit sampleChanged();
 }

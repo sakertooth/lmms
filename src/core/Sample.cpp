@@ -29,6 +29,7 @@
 #include <algorithm>
 #include <iostream>
 
+#include "Note.h"
 #include "SamplePlaybackState.h"
 #include "lmms_basics.h"
 
@@ -279,6 +280,20 @@ auto Sample::playbackSize() const -> int
 	return m_buffer->sampleRate() > 0
 		? m_buffer->size() * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate()
 		: 0;
+}
+
+void Sample::reloadFromBuffer(SampleBuffer* buffer)
+{
+	const auto guard = Engine::audioEngine()->requestChangesGuard();
+	const auto bufferSize = static_cast<int>(m_buffer->size());
+	m_buffer.reset(buffer);
+	setStartFrame(0);
+	setEndFrame(bufferSize);
+	setLoopStartFrame(0);
+	setLoopEndFrame(bufferSize);
+	setAmplification(1.0f);
+	setFrequency(DefaultBaseFreq);
+	setReversed(false);
 }
 
 auto Sample::buffer() const -> std::shared_ptr<SampleBuffer>
