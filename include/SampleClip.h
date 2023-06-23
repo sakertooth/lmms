@@ -88,7 +88,7 @@ public slots:
 
 
 private:
-	std::shared_ptr<Sample> m_sample;
+	std::shared_ptr<Sample> m_sample = Sample::tryCreateFromBuffer();
 	BoolModel m_recordModel;
 	bool m_isPlaying;
 

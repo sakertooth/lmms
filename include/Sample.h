@@ -25,6 +25,7 @@
 #ifndef LMMS_SAMPLE_H
 #define LMMS_SAMPLE_H
 
+#include <iostream>
 #include <memory>
 
 #include "SampleBuffer.h"
@@ -46,10 +47,33 @@ public:
 	};
 
 	Sample(std::shared_ptr<SampleBuffer> buffer);
-	template <typename... Args> static std::shared_ptr<Sample> createFromBuffer(Args&&... args)
+
+	template <typename... Args> static std::shared_ptr<Sample> tryCreateFromBuffer(Args&&... args)
 	{
-		const auto buffer = std::make_shared<SampleBuffer>(std::forward<Args>(args)...);
-		return std::make_shared<Sample>(buffer);
+		try
+		{
+			const auto buffer = std::make_shared<SampleBuffer>(std::forward<Args>(args)...);
+			return std::make_shared<Sample>(buffer);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cout << e.what() << '\n';
+			return std::make_shared<Sample>(std::make_shared<SampleBuffer>());
+		}
+	}
+
+	template <typename... Args> void tryLoadNewBuffer(Args&&... args)
+	{
+		try
+		{
+			const auto buffer = SampleBuffer{std::forward<Args>(args)...};
+			reloadFromBuffer(buffer);
+		}
+		catch (const std::runtime_error& e)
+		{
+			std::cout << e.what() << '\n';
+			reloadFromBuffer(SampleBuffer{});
+		}
 	}
 
 	bool play(sampleFrame* dst, SamplePlaybackState* state, int numFrames, float freq = DefaultBaseFreq,
@@ -57,7 +81,7 @@ public:
 	auto visualize(QPainter& p, const QRect& dr, int fromFrame = 0, int toFrame = 0) -> void;
 	auto sampleDuration() const -> int;
 	auto playbackSize() const -> int;
-	void reloadFromBuffer(SampleBuffer* buffer);
+	void reloadFromBuffer(const SampleBuffer& newBuffer);
 
 	static auto interpolationMargins() -> std::array<int, 5>&;
 	auto buffer() const -> std::shared_ptr<SampleBuffer>;
@@ -99,6 +123,7 @@ private:
 	std::atomic<float> m_amplification = 1.0f;
 	std::atomic<float> m_frequency = DefaultBaseFreq;
 	std::atomic<bool> m_reversed = false;
+	mutable std::shared_mutex m_mutex;
 };
 } // namespace lmms
 #endif // LMMS_SAMPLE_H

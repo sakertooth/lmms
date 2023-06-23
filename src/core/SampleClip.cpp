@@ -131,7 +131,7 @@ QString SampleClip::sampleFile() const
 
 void SampleClip::setSampleBuffer(SampleBuffer* sb)
 {
-	m_sample->reloadFromBuffer(sb);
+	m_sample->reloadFromBuffer(*sb);
 	updateLength();
 	emit sampleChanged();
 }
@@ -149,14 +149,7 @@ void SampleClip::setSampleFile( const QString & _sf )
 	}
 	else
 	{	//Otherwise set it to the sample's length
-		try
-		{
-			m_sample = Sample::createFromBuffer(_sf);
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
+		m_sample->tryLoadNewBuffer(_sf);
 		length = sampleLength();
 	}
 	changeLength(length);
@@ -292,16 +285,9 @@ void SampleClip::loadSettings( const QDomElement & _this )
 	setSampleFile( _this.attribute( "src" ) );
 	if( sampleFile().isEmpty() && _this.hasAttribute( "data" ) )
 	{
-		try
-		{
-			const auto decodedSampleData = QByteArray::fromBase64(_this.attribute("data").toUtf8());
-			const auto sampleRate = _this.attribute("sample_rate").toInt();
-			m_sample = Sample::createFromBuffer(decodedSampleData, sampleRate);
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cout << e.what() << '\n';
-		}
+		const auto decodedSampleData = QByteArray::fromBase64(_this.attribute("data").toUtf8());
+		const auto sampleRate = _this.attribute("sample_rate").toInt();
+		m_sample->tryLoadNewBuffer(decodedSampleData, sampleRate);
 	}
 	changeLength( _this.attribute( "len" ).toInt() );
 	setMuted( _this.attribute( "muted" ).toInt() );

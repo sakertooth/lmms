@@ -29,7 +29,6 @@
 #include <QDropEvent>
 
 #include <samplerate.h>
-#include <iostream>
 
 #include "AudioEngine.h"
 #include "ComboBox.h"
@@ -79,7 +78,7 @@ Plugin::Descriptor PLUGIN_EXPORT audiofileprocessor_plugin_descriptor =
 
 AudioFileProcessor::AudioFileProcessor( InstrumentTrack * _instrument_track ) :
 	Instrument( _instrument_track, &audiofileprocessor_plugin_descriptor ),
-	m_sample(Sample::createFromBuffer()),
+	m_sample(Sample::tryCreateFromBuffer()),
 	m_ampModel( 100, 0, 500, 1, this, tr( "Amplify" ) ),
 	m_startPointModel( 0, 0, 1, 0.0000001f, this, tr( "Start of sample" ) ),
 	m_endPointModel( 1, 0, 1, 0.0000001f, this, tr( "End of sample" ) ),
@@ -241,15 +240,8 @@ void AudioFileProcessor::loadSettings(const QDomElement& elem)
 	}
 	else if (!elem.attribute("sampledata").isEmpty())
 	{
-		try
-		{
-			auto base64Array = QByteArray::fromBase64(elem.attribute("srcdata").toUtf8());
-			m_sample = Sample::createFromBuffer(base64Array);
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
+		auto base64Array = QByteArray::fromBase64(elem.attribute("srcdata").toUtf8());
+		m_sample->tryLoadNewBuffer(base64Array);
 	}
 
 	m_loopModel.loadSettings(elem, "looped");
@@ -335,15 +327,7 @@ void AudioFileProcessor::setAudioFile( const QString & _audio_file,
 		instrumentTrack()->setName( PathUtil::cleanName( _audio_file ) );
 	}
 	// else we don't touch the track-name, because the user named it self
-
-	try
-	{
-		m_sample = Sample::createFromBuffer(_audio_file);
-	}
-	catch (const std::runtime_error& e)
-	{
-		std::cout << e.what() << '\n';
-	}
+	m_sample->tryLoadNewBuffer(_audio_file);
 	loopPointChanged();
 }
 

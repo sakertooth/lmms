@@ -36,8 +36,6 @@
 #include "Song.h"
 #include "StringPairDrag.h"
 
-#include <iostream>
-
 namespace lmms::gui
 {
 
@@ -115,15 +113,8 @@ void SampleClipView::dropEvent( QDropEvent * _de )
 	}
 	else if( StringPairDrag::decodeKey( _de ) == "sampledata" )
 	{
-		try
-		{
-			m_clip->m_sample = Sample::createFromBuffer(QByteArray::fromBase64(StringPairDrag::decodeValue(_de).toUtf8()));
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
-
+		auto base64Array = QByteArray::fromBase64(StringPairDrag::decodeValue(_de).toUtf8());
+		m_clip->m_sample->tryLoadNewBuffer(base64Array);
 		m_clip->updateLength();
 		update();
 		_de->accept();

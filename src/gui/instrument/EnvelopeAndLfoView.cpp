@@ -42,8 +42,6 @@
 #include "TextFloat.h"
 #include "Track.h"
 
-#include <iostream>
-
 namespace lmms
 {
 
@@ -324,15 +322,7 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	QString value = StringPairDrag::decodeValue( _de );
 	if (type == "samplefile" && !value.isEmpty())
 	{
-		try
-		{
-			m_params->m_userWave = std::make_shared<SampleBuffer>(value);
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
-
+		m_params->m_userWave->tryLoadFromAudioFile(value);
 		m_userLfoBtn->model()->setValue( true );
 		m_params->m_lfoWaveModel.setValue(EnvelopeAndLfoParameters::UserDefinedWave);
 		_de->accept();
@@ -342,16 +332,10 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	{
 		DataFile dataFile( value.toUtf8() );
 
-		try
-		{
-			m_params->m_userWave = std::make_shared<SampleBuffer>(dataFile.content().
+		m_params->m_userWave->tryLoadFromAudioFile(dataFile.content().
 					firstChildElement().firstChildElement().
 					firstChildElement().attribute("src"));
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
+
 		m_userLfoBtn->model()->setValue( true );
 		m_params->m_lfoWaveModel.setValue(EnvelopeAndLfoParameters::UserDefinedWave);
 		_de->accept();

@@ -357,7 +357,7 @@ PatmanInstrument::LoadErrors PatmanInstrument::loadPatch(
 			}
 		}
 
-		auto psample = Sample::createFromBuffer(data, frames, sample_rate);
+		auto psample = Sample::tryCreateFromBuffer(data, frames, sample_rate);
 		psample->setFrequency(root_freq / 1000.0f);
 
 		if( modes & MODES_LOOPING )
@@ -411,16 +411,8 @@ void PatmanInstrument::selectSample( NotePlayHandle * _n )
 
 	auto hdata = new handle_data;
 	hdata->tuned = m_tunedModel.value();
-	if( sample )
-	{
-		hdata->sample = sample;
-	}
-	else
-	{
-		hdata->sample = Sample::createFromBuffer();
-	}
+	hdata->sample = sample ? sample : Sample::tryCreateFromBuffer();
 	hdata->state = new SamplePlaybackState(_n->hasDetuningInfo());
-
 	_n->m_pluginData = hdata;
 }
 

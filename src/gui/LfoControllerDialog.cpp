@@ -26,8 +26,6 @@
 
 #include "embed.h"
 
-#include <iostream>
-
 #include "LfoController.h"
 #include "Knob.h"
 #include "TempoSyncKnob.h"
@@ -212,20 +210,12 @@ LfoControllerDialog::~LfoControllerDialog()
 
 void LfoControllerDialog::askUserDefWave()
 {
-	auto sampleBuffer = dynamic_cast<LfoController*>(this->model())->m_userDefSampleBuffer;
+	auto& sampleBuffer = dynamic_cast<LfoController*>(this->model())->m_userDefSampleBuffer;
 	const auto fileName = gui::SampleFileDialog::openWaveformFile(sampleBuffer->audioFile());
 
 	if (!fileName.isEmpty())
 	{
-		try
-		{
-			sampleBuffer = std::make_shared<SampleBuffer>(fileName);
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
-
+		sampleBuffer->tryLoadFromAudioFile(fileName);
 		// TODO:
 		m_userWaveBtn->setToolTip(sampleBuffer->audioFile());
 	}

@@ -177,6 +177,7 @@ void Sample::amplifySampleRange(sampleFrame* src, int numFrames)
 
 void Sample::visualize(QPainter& p, const QRect& dr, int fromFrame, int toFrame)
 {
+	const auto readerLock = std::shared_lock{m_mutex};
 	const auto numFrames = static_cast<int>(m_buffer->size());
 	if (numFrames == 0) { return; }
 
@@ -271,22 +272,25 @@ auto Sample::interpolationMargins() -> std::array<int, 5>&
 
 auto Sample::sampleDuration() const -> int
 {
-	return m_buffer->sampleRate() > 0 ? static_cast<double>(m_endFrame - m_startFrame) / m_buffer->sampleRate() * 1000
+	auto readerLock = std::shared_lock{m_mutex};
+	return m_buffer->sampleRate() > 0 ? static_cast<double>(endFrame() - startFrame()) / m_buffer->sampleRate() * 1000
 									  : 0;
 }
 
 auto Sample::playbackSize() const -> int
 {
+	auto readerLock = std::shared_lock{m_mutex};
 	return m_buffer->sampleRate() > 0
 		? m_buffer->size() * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate()
 		: 0;
 }
 
-void Sample::reloadFromBuffer(SampleBuffer* buffer)
+void Sample::reloadFromBuffer(const SampleBuffer& newBuffer)
 {
-	const auto guard = Engine::audioEngine()->requestChangesGuard();
-	const auto bufferSize = static_cast<int>(m_buffer->size());
-	m_buffer.reset(buffer);
+	auto guard = Engine::audioEngine()->requestChangesGuard();
+	auto writerLock = std::unique_lock{m_mutex};
+	auto bufferSize = static_cast<int>(m_buffer->size());
+	*m_buffer = newBuffer;
 	setStartFrame(0);
 	setEndFrame(bufferSize);
 	setLoopStartFrame(0);
@@ -298,6 +302,7 @@ void Sample::reloadFromBuffer(SampleBuffer* buffer)
 
 auto Sample::buffer() const -> std::shared_ptr<SampleBuffer>
 {
+	const auto readerLock = std::shared_lock{m_mutex};
 	return m_buffer;
 }
 

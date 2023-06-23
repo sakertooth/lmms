@@ -31,8 +31,6 @@
 #include "SampleFileDialog.h"
 #include "Oscillator.h"
 
-#include <iostream>
-
 namespace lmms
 {
 
@@ -594,19 +592,11 @@ QString graphModel::setWaveToUser()
 	const auto fileName = gui::SampleFileDialog::openWaveformFile();
 	if (!fileName.isEmpty())
 	{
-		auto sampleBuffer = std::shared_ptr<SampleBuffer>{};
-		try
-		{
-			sampleBuffer = std::make_shared<SampleBuffer>(fileName);
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
-		
+		auto sampleBuffer = SampleBuffer{};
+		sampleBuffer.tryLoadFromAudioFile(fileName);
 		for( int i = 0; i < length(); i++ )
 		{
-			m_samples[i] = Oscillator::userWaveSample(sampleBuffer.get(), i / static_cast<float>(length()));
+			m_samples[i] = Oscillator::userWaveSample(&sampleBuffer, i / static_cast<float>(length()));
 		}
 	}
 

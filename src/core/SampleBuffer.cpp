@@ -29,6 +29,7 @@
 #include <QIODevice>
 #include <algorithm>
 #include <array>
+#include <iostream>
 #include <memory>
 #include <samplerate.h>
 #include <shared_mutex>
@@ -188,6 +189,37 @@ QString SampleBuffer::toBase64() const
 	const auto size = static_cast<int>(m_data.size() * sizeof(sampleFrame));
 	const auto byteArray = QByteArray{data, size};
 	return byteArray.toBase64();
+}
+
+void SampleBuffer::tryLoadFromAudioFile(const QString& audioFile)
+{
+	const auto guard = Engine::audioEngine()->requestChangesGuard();
+	const auto writerLock = std::unique_lock{m_mutex};
+
+	try
+	{
+		*this = SampleBuffer{audioFile};
+	}
+	catch (std::runtime_error& e)
+	{
+		std::cout << e.what() << '\n';
+	}
+}
+
+void SampleBuffer::tryLoadFromBase64(const QString& base64, int sampleRate)
+{
+	const auto guard = Engine::audioEngine()->requestChangesGuard();
+	const auto writerLock = std::unique_lock{m_mutex};
+
+	try
+	{
+		const auto base64Array = base64.toUtf8().toBase64();
+		*this = SampleBuffer{base64Array, sampleRate};
+	}
+	catch (std::runtime_error& e)
+	{
+		std::cout << e.what() << '\n';
+	}
 }
 
 auto SampleBuffer::audioFile() const -> QString

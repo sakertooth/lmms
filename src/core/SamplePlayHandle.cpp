@@ -53,7 +53,7 @@ SamplePlayHandle::SamplePlayHandle(std::shared_ptr<Sample> sample, bool ownAudio
 
 
 SamplePlayHandle::SamplePlayHandle( const QString& sampleFile ) :
-	SamplePlayHandle(Sample::createFromBuffer(sampleFile), true) {}
+	SamplePlayHandle(Sample::tryCreateFromBuffer(sampleFile), true) {}
 
 
 
