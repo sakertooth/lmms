@@ -42,8 +42,6 @@
 #include "embed.h"
 #include "plugin_export.h"
 
-#include <iostream>
-
 namespace lmms
 {
 
@@ -147,16 +145,8 @@ void OscillatorObject::oscUserDefWaveDblClick()
 	const auto audioFile = gui::SampleFileDialog::openWaveformFile(m_sampleBuffer->audioFile());
 	if (audioFile != "")
 	{
-		try 
-		{
-			m_sampleBuffer = std::make_shared<SampleBuffer>(audioFile);
-			m_userAntiAliasWaveTable = Oscillator::generateAntiAliasUserWaveTable(m_sampleBuffer.get());
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
-
+		m_sampleBuffer->tryLoadFromAudioFile(audioFile);
+		m_userAntiAliasWaveTable = Oscillator::generateAntiAliasUserWaveTable(m_sampleBuffer.get());
 		// TODO:
 		//m_usrWaveBtn->setToolTip(m_sampleBuffer->audioFile());
 	}
@@ -301,16 +291,9 @@ void TripleOscillator::loadSettings( const QDomElement & _this )
 		const auto userWaveFile = _this.attribute("userwavefile" + is);
 		if (!userWaveFile.isEmpty())
 		{
-			try
-			{
-				m_osc[i]->m_sampleBuffer = std::make_shared<SampleBuffer>(userWaveFile);
-				m_osc[i]->m_userAntiAliasWaveTable = Oscillator::generateAntiAliasUserWaveTable(m_osc[i]->m_sampleBuffer.get());
-			}
-			catch (const std::runtime_error& e)
-			{
-				std::cerr << e.what() << '\n';
-			}
-		}		
+			m_osc[i]->m_sampleBuffer->tryLoadFromAudioFile(userWaveFile);
+			m_osc[i]->m_userAntiAliasWaveTable = Oscillator::generateAntiAliasUserWaveTable(m_osc[i]->m_sampleBuffer.get());
+		}
 	}
 }
 

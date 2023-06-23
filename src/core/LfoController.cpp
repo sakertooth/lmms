@@ -25,9 +25,6 @@
 
 #include <QDomElement>
 
-#include <iostream>
-
-
 #include "LfoController.h"
 #include "AudioEngine.h"
 #include "Song.h"
@@ -215,14 +212,7 @@ void LfoController::loadSettings( const QDomElement & _this )
 	const auto userWaveFile = _this.attribute("userwavefile");
 	if (!userWaveFile.isEmpty())
 	{
-		try
-		{
-			m_userDefSampleBuffer = std::make_shared<SampleBuffer>(_this.attribute("userwavefile"));
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cerr << e.what() << '\n';
-		}
+		m_userDefSampleBuffer->tryLoadFromAudioFile(_this.attribute("userwavefile"));
 	}
 
 	updateSampleFunction();
