@@ -31,6 +31,7 @@
 #include <array>
 #include <memory>
 #include <samplerate.h>
+#include <shared_mutex>
 #include <sndfile.h>
 #include <stdexcept>
 #include <string>
@@ -62,6 +63,43 @@ SampleBuffer::SampleBuffer(const QByteArray& sampleData, int sampleRate)
 		reinterpret_cast<const sampleFrame*>(sampleData.data()) + sampleData.size() / sizeof(sampleFrame))
 	, m_sampleRate(sampleRate)
 {
+}
+
+SampleBuffer::SampleBuffer(const SampleBuffer& other)
+{
+	auto scopedLock = std::scoped_lock{m_mutex, other.m_mutex};
+	m_data = other.m_data;
+	m_audioFile = other.m_audioFile;
+	m_sampleRate = other.m_sampleRate;
+}
+
+SampleBuffer::SampleBuffer(SampleBuffer&& other) noexcept
+{
+	auto scopedLock = std::scoped_lock{m_mutex, other.m_mutex};
+	m_data = other.m_data;
+	m_audioFile = other.m_audioFile;
+	m_sampleRate = other.m_sampleRate;
+
+	other.m_data.clear();
+	other.m_audioFile->clear();
+	other.m_sampleRate = 0;
+}
+
+SampleBuffer& SampleBuffer::operator=(SampleBuffer other) noexcept
+{
+	swap(*this, other);
+	return *this;
+}
+
+void SampleBuffer::swap(SampleBuffer& first, SampleBuffer& second) noexcept
+{
+	auto audioGuard = Engine::audioEngine()->requestChangesGuard();
+	auto scopedLock = std::scoped_lock{first.m_mutex, second.m_mutex};
+
+	using std::swap;
+	swap(first.m_data, second.m_data);
+	swap(first.m_audioFile, second.m_audioFile);
+	swap(first.m_sampleRate, second.m_sampleRate);
 }
 
 void SampleBuffer::decodeSampleSF(const QString& audioFile)
@@ -112,6 +150,7 @@ void SampleBuffer::decodeSampleSF(const QString& audioFile)
 		}
 	}
 
+	auto writerGuard = std::unique_lock{m_mutex};
 	m_data = result;
 	m_audioFile = audioFile;
 	m_sampleRate = sfInfo.samplerate;
@@ -134,6 +173,7 @@ void SampleBuffer::decodeSampleDS(const QString& audioFile)
 	}
 	else { throw std::runtime_error{"Decoding failure: failed to decode DrumSynth file."}; }
 
+	auto writerGuard = std::unique_lock{m_mutex};
 	m_data = result;
 	m_audioFile = audioFile;
 	m_sampleRate = engineRate;
@@ -141,10 +181,67 @@ void SampleBuffer::decodeSampleDS(const QString& audioFile)
 
 QString SampleBuffer::toBase64() const
 {
+	auto readerGuard = std::shared_lock{m_mutex};
+
 	// TODO: Replace with non-Qt equivalent
 	const auto data = reinterpret_cast<const char*>(m_data.data());
 	const auto size = static_cast<int>(m_data.size() * sizeof(sampleFrame));
 	const auto byteArray = QByteArray{data, size};
 	return byteArray.toBase64();
 }
+
+auto SampleBuffer::audioFile() const -> QString
+{
+	auto readerGuard = std::shared_lock{m_mutex};
+	return m_audioFile.value_or("");
+}
+
+auto SampleBuffer::sampleRate() const -> sample_rate_t
+{
+	auto readerGuard = std::shared_lock{m_mutex};
+	return m_sampleRate;
+}
+
+auto SampleBuffer::begin() const -> const_iterator
+{
+	auto readerGuard = std::shared_lock{m_mutex};
+	return m_data.begin();
+}
+
+auto SampleBuffer::end() const -> const_iterator
+{
+	auto readerGuard = std::shared_lock{m_mutex};
+	return m_data.end();
+}
+
+auto SampleBuffer::rbegin() const -> const_reverse_iterator
+{
+	auto readerGuard = std::shared_lock{m_mutex};
+	return m_data.rbegin();
+}
+
+auto SampleBuffer::rend() const -> const_reverse_iterator
+{
+	auto readerGuard = std::shared_lock{m_mutex};
+	return m_data.rend();
+}
+
+auto SampleBuffer::data() const -> const sampleFrame*
+{
+	auto readerGuard = std::shared_lock{m_mutex};
+	return m_data.data();
+}
+
+auto SampleBuffer::size() const -> size_type
+{
+	auto readerGuard = std::shared_lock{m_mutex};
+	return m_data.size();
+}
+
+auto SampleBuffer::empty() const -> bool
+{
+	auto readerGuard = std::shared_lock{m_mutex};
+	return m_data.empty();
+}
+
 } // namespace lmms

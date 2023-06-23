@@ -41,6 +41,12 @@
 #include "lmms_export.h"
 #include "lmms_math.h"
 
+#ifdef USE_MINGW_THREADS_REPLACEMENT
+#include <mingw.shared_mutex.h>
+#else
+#include <shared_mutex>
+#endif
+
 namespace lmms {
 class LMMS_EXPORT SampleBuffer
 {
@@ -58,34 +64,34 @@ public:
 	SampleBuffer(
 		const sampleFrame* data, int numFrames, int sampleRate = Engine::audioEngine()->processingSampleRate());
 
-	SampleBuffer(SampleBuffer&&) = delete;
-	SampleBuffer& operator=(SampleBuffer&&) = delete;
+	SampleBuffer(const SampleBuffer&);
+	SampleBuffer(SampleBuffer&&) noexcept;
+	SampleBuffer& operator=(SampleBuffer other) noexcept;
 
-	SampleBuffer(const SampleBuffer&) = delete;
-	SampleBuffer& operator=(const SampleBuffer&) = delete;
-
+	void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
 	auto toBase64() const -> QString;
 
-	auto audioFile() const -> QString { return m_audioFile.value_or(""); }
-	auto sampleRate() const -> sample_rate_t { return m_sampleRate; }
+	auto audioFile() const -> QString;
+	auto sampleRate() const -> sample_rate_t;
 
-	auto begin() const -> const_iterator { return m_data.begin(); }
-	auto end() const -> const_iterator { return m_data.end(); }
-	auto rbegin() const -> const_reverse_iterator { return m_data.rbegin(); }
-	auto rend() const -> const_reverse_iterator { return m_data.rend(); }
+	auto begin() const -> const_iterator;
+	auto end() const -> const_iterator;
+	auto rbegin() const -> const_reverse_iterator;
+	auto rend() const -> const_reverse_iterator;
 
-	auto data() const -> const sampleFrame* { return m_data.data(); }
-	auto size() const -> size_type { return m_data.size(); }
-	auto empty() const -> bool { return m_data.empty(); }
+	auto data() const -> const sampleFrame*;
+	auto size() const -> size_type;
+	bool empty() const;
 
 private:
-	auto decodeSampleSF(const QString& fileName) -> void;
-	auto decodeSampleDS(const QString& fileName) -> void;
+	void decodeSampleSF(const QString& fileName);
+	void decodeSampleDS(const QString& fileName);
 
 private:
 	std::vector<sampleFrame> m_data;
 	std::optional<QString> m_audioFile;
 	int m_sampleRate = 0;
+	mutable std::shared_mutex m_mutex;
 };
 
 } // namespace lmms
