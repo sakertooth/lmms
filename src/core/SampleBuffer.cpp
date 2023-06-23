@@ -94,9 +94,7 @@ SampleBuffer& SampleBuffer::operator=(SampleBuffer other) noexcept
 
 void SampleBuffer::swap(SampleBuffer& first, SampleBuffer& second) noexcept
 {
-	auto audioGuard = Engine::audioEngine()->requestChangesGuard();
 	auto scopedLock = std::scoped_lock{first.m_mutex, second.m_mutex};
-
 	using std::swap;
 	swap(first.m_data, second.m_data);
 	swap(first.m_audioFile, second.m_audioFile);
@@ -193,9 +191,7 @@ QString SampleBuffer::toBase64() const
 
 void SampleBuffer::tryLoadFromAudioFile(const QString& audioFile)
 {
-	const auto guard = Engine::audioEngine()->requestChangesGuard();
 	const auto writerLock = std::unique_lock{m_mutex};
-
 	try
 	{
 		*this = SampleBuffer{audioFile};
@@ -208,9 +204,7 @@ void SampleBuffer::tryLoadFromAudioFile(const QString& audioFile)
 
 void SampleBuffer::tryLoadFromBase64(const QString& base64, int sampleRate)
 {
-	const auto guard = Engine::audioEngine()->requestChangesGuard();
 	const auto writerLock = std::unique_lock{m_mutex};
-
 	try
 	{
 		const auto base64Array = base64.toUtf8().toBase64();
