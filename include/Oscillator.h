@@ -169,9 +169,9 @@ public:
 
 	static inline sample_t userWaveSample(const SampleBuffer* buffer, const float sample)
 	{
+		if (buffer->size() == 0) { return 0; }
 		const auto frames = buffer->size();
 		const auto frame = sample * frames;
-
 		auto f1 = static_cast<f_cnt_t>(frame) % frames;
 		if (f1 < 0)
 		{
