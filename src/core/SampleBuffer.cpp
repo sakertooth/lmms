@@ -121,7 +121,7 @@ void SampleBuffer::decodeSampleSF(const QString& audioFile)
 	}
 
 	auto buf = std::vector<sample_t>(sfInfo.channels * sfInfo.frames);
-	const auto sfFramesRead = sf_read_float(sndFile, buf.data(), buf.size());
+	sf_read_float(sndFile, buf.data(), buf.size());
 
 	sf_close(sndFile);
 	file.close();
