@@ -29,7 +29,6 @@
 #include "Sample.h"
 #include "AutomatableModel.h"
 #include "PlayHandle.h"
-#include "SamplePlaybackState.h"
 
 namespace lmms
 {
@@ -86,7 +85,7 @@ private:
 	bool m_doneMayReturnTrue = true;
 
 	f_cnt_t m_frame = 0;
-	SamplePlaybackState m_state;
+	Sample::PlaybackState m_state;
 
 	bool m_ownAudioPort = true;
 

@@ -87,7 +87,7 @@ private:
 	struct handle_data
 	{
 		MM_OPERATORS
-		SamplePlaybackState* state;
+		Sample::PlaybackState* state;
 		bool tuned;
 		Sample* sample;
 	};

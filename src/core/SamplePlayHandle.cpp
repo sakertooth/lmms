@@ -51,7 +51,7 @@ SamplePlayHandle::SamplePlayHandle(Sample* sample, bool ownAudioPort) :
 
 
 SamplePlayHandle::SamplePlayHandle( const QString& sampleFile ) :
-	SamplePlayHandle(new Sample{std::make_shared<SampleBuffer>(sampleFile)}, true) {}
+	SamplePlayHandle(new Sample{sampleFile}, true) {}
 
 
 

@@ -26,26 +26,42 @@
 
 #include <QPainter>
 #include <QRect>
-#include <algorithm>
-#include <iostream>
-
-#include "Note.h"
-#include "SamplePlaybackState.h"
-#include "lmms_basics.h"
 
 namespace lmms {
-// values for buffer margins, used for various libsamplerate interpolation modes
-// the array positions correspond to the converter_type parameter values in libsamplerate
-// if there appears problems with playback on some interpolation mode, then the value for that mode
-// may need to be higher - conversely, to optimize, some may work with lower values
-static auto s_interpolationMargins = std::array<int, 5>{64, 64, 64, 4, 4};
+
+Sample::Sample(const QString& audioFile)
+	: m_buffer(std::make_shared<SampleBuffer>(audioFile))
+	, m_startFrame(0)
+	, m_endFrame(m_buffer->size())
+	, m_loopStartFrame(0)
+	, m_loopEndFrame(m_buffer->size())
+{
+}
+
+Sample::Sample(const QByteArray& base64, int sampleRate)
+	: m_buffer(std::make_shared<SampleBuffer>(base64, sampleRate))
+	, m_startFrame(0)
+	, m_endFrame(m_buffer->size())
+	, m_loopStartFrame(0)
+	, m_loopEndFrame(m_buffer->size())
+{
+}
+
+Sample::Sample(const sampleFrame* data, int numFrames, int sampleRate)
+	: m_buffer(std::make_shared<SampleBuffer>(data, numFrames, sampleRate))
+	, m_startFrame(0)
+	, m_endFrame(m_buffer->size())
+	, m_loopStartFrame(0)
+	, m_loopEndFrame(m_buffer->size())
+{
+}
 
 Sample::Sample(std::shared_ptr<SampleBuffer> buffer)
 	: m_buffer(buffer)
 	, m_startFrame(0)
-	, m_endFrame(static_cast<int>(m_buffer->size()))
+	, m_endFrame(m_buffer->size())
 	, m_loopStartFrame(0)
-	, m_loopEndFrame(static_cast<int>(m_buffer->size()))
+	, m_loopEndFrame(m_buffer->size())
 {
 }
 
@@ -53,184 +69,78 @@ Sample::Sample(const Sample& other)
 {
 	auto lock = std::shared_lock{other.m_mutex};
 	m_buffer = other.m_buffer;
-	m_startFrame = other.m_startFrame.load(std::memory_order_relaxed);
-	m_endFrame = other.m_endFrame.load(std::memory_order_relaxed);
-	m_loopStartFrame = other.m_loopStartFrame.load(std::memory_order_relaxed);
-	m_loopEndFrame = other.m_loopEndFrame.load(std::memory_order_relaxed);
+	m_startFrame = other.m_startFrame;
+	m_endFrame = other.m_endFrame;
+	m_loopStartFrame = other.m_loopStartFrame;
+	m_loopEndFrame = other.m_loopEndFrame;
+	m_amplification = other.m_amplification;
+	m_frequency = other.m_frequency;
+	m_reversed = other.m_reversed;
 }
 
 Sample::Sample(Sample&& other) noexcept
-	: m_buffer(other.m_buffer)
-	, m_startFrame(other.m_startFrame.load(std::memory_order_relaxed))
-	, m_endFrame(static_cast<int>(m_buffer->size()))
-	, m_loopStartFrame(0)
-	, m_loopEndFrame(static_cast<int>(m_buffer->size()))
 {
 	auto lock = std::unique_lock{other.m_mutex};
-
-	m_buffer = other.m_buffer;
-	m_startFrame = other.m_startFrame.load(std::memory_order_relaxed);
-	m_endFrame = other.m_endFrame.load(std::memory_order_relaxed);
-	m_loopStartFrame = other.m_loopStartFrame.load(std::memory_order_relaxed);
-	m_loopEndFrame = other.m_loopEndFrame.load(std::memory_order_relaxed);
-
-	other.m_buffer = nullptr;
-	other.m_startFrame = 0;
-	other.m_endFrame = 0;
-	other.m_loopStartFrame = 0;
-	other.m_loopEndFrame = 0;
+	m_buffer = std::move(other.m_buffer);
+	m_startFrame = std::exchange(other.m_startFrame, 0);
+	m_endFrame = std::exchange(other.m_endFrame, 0);
+	m_loopStartFrame = std::exchange(other.m_loopStartFrame, 0);
+	m_loopEndFrame = std::exchange(other.m_loopEndFrame, 0);
+	m_amplification = std::exchange(other.m_amplification, 0);
+	m_frequency = std::exchange(other.m_frequency, DefaultBaseFreq);
+	m_reversed = std::exchange(other.m_reversed, false);
 }
 
 Sample& Sample::operator=(Sample other) noexcept
 {
-	const auto lock = std::scoped_lock{m_mutex, other.m_mutex};
 	swap(*this, other);
 	return *this;
 }
 
-void swap(Sample& first, Sample& second) noexcept
+auto swap(Sample& first, Sample& second) -> void
 {
-	const auto lock = std::scoped_lock{first.m_mutex, second.m_mutex};
+	auto lock = std::scoped_lock{first.m_mutex, second.m_mutex};
 	using std::swap;
 	swap(first.m_buffer, second.m_buffer);
-	second.setStartFrame(first.m_startFrame.exchange(second.startFrame()));
-	second.setEndFrame(first.m_endFrame.exchange(second.endFrame()));
-	second.setLoopStartFrame(first.m_loopStartFrame.exchange(second.loopStartFrame()));
-	second.setLoopEndFrame(first.m_loopEndFrame.exchange(second.loopEndFrame()));
-	second.setAmplification(first.m_amplification.exchange(second.amplification()));
-	second.setFrequency(first.m_frequency.exchange(second.frequency()));
-	second.setReversed(first.m_reversed.exchange(second.reversed()));
+	swap(first.m_startFrame, second.m_startFrame);
+	swap(first.m_endFrame, second.m_endFrame);
+	swap(first.m_loopStartFrame, second.m_loopStartFrame);
+	swap(first.m_loopEndFrame, second.m_loopEndFrame);
+	swap(first.m_amplification, second.m_amplification);
+	swap(first.m_frequency, second.m_frequency);
+	swap(first.m_reversed, second.m_reversed);
 }
 
-bool Sample::play(sampleFrame* dst, SamplePlaybackState* state, int numFrames, float freq, Loop loopMode)
+bool Sample::play(sampleFrame* dst, PlaybackState* state, int numFrames, float desiredFrequency, Loop loopMode)
 {
-	auto numFramesPlayed = 0;
+	const auto lock = std::shared_lock{m_mutex};
 	const auto resampleRatio
-		= m_frequency / freq * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate();
+		= m_frequency / desiredFrequency * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate();
+	auto playedSuccessfully = 0;
 
 	switch (loopMode)
 	{
 	case Loop::Off:
-		numFramesPlayed = playSampleRange(state, numFrames, dst, resampleRatio);
+		playedSuccessfully = playSampleRange(state, dst, numFrames, resampleRatio);
 		break;
 	case Loop::On:
-		numFramesPlayed = playSampleRangeLoop(state, numFrames, dst, resampleRatio);
+		playedSuccessfully = playSampleRangeLoop(state, dst, numFrames, resampleRatio);
 		break;
 	case Loop::PingPong:
-		numFramesPlayed = playSampleRangePingPong(state, numFrames, dst, resampleRatio);
+		playedSuccessfully = playSampleRangePingPong(state, dst, numFrames, resampleRatio);
 		break;
 	default:
 		return false;
 	}
 
-	if (src_error(state->m_resamplingData)) { return false; }
-	if (numFramesPlayed <= 0) { return false; }
-
-	amplifySampleRange(dst, numFramesPlayed);
-	std::fill_n(dst + numFramesPlayed, numFrames - numFramesPlayed, sampleFrame{0, 0});
+	if (src_error(state->m_resampleState) != 0 || !playedSuccessfully) { return false; }
+	amplifySampleRange(dst, numFrames);
 	return true;
-}
-
-int Sample::playSampleRange(SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio)
-{
-	if (state->m_frameIndex >= m_endFrame) { return false; }
-	const auto playFrame = std::max<int>(m_startFrame, state->m_frameIndex);
-	const auto numFramesToCopy = std::min<int>(
-		numFrames / resampleRatio + s_interpolationMargins[state->m_interpolationMode], m_endFrame - playFrame);
-
-	auto buffer = std::vector<sampleFrame>(numFramesToCopy);
-	m_reversed ? std::copy_n(m_buffer->rbegin() + playFrame, buffer.size(), buffer.begin())
-			   : std::copy_n(m_buffer->begin() + playFrame, buffer.size(), buffer.begin());
-
-	const auto resample
-		= resampleSampleRange(state->m_resamplingData, buffer.data(), buffer.size(), dst, numFrames, resampleRatio);
-	state->m_frameIndex = playFrame + resample.input_frames_used;
-	return resample.output_frames_gen;
-}
-
-int Sample::playSampleRangeBackwards(SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio)
-{
-	if (state->m_frameIndex < m_startFrame) { return false; }
-	const auto playFrame = std::min<int>(m_endFrame, state->m_frameIndex);
-	const auto numFramesToCopy = std::min<int>(
-		numFrames / resampleRatio + s_interpolationMargins[state->m_interpolationMode], playFrame - m_startFrame);
-
-	auto buffer = std::vector<sampleFrame>(numFramesToCopy);
-	m_reversed ? std::copy_n(m_buffer->begin() + m_endFrame - playFrame, buffer.size(), buffer.begin())
-			   : std::copy_n(m_buffer->rbegin() + m_endFrame - playFrame, buffer.size(), buffer.begin());
-
-	const auto resample
-		= resampleSampleRange(state->m_resamplingData, buffer.data(), buffer.size(), dst, numFrames, resampleRatio);
-	state->m_frameIndex = playFrame - resample.input_frames_used;
-	return resample.output_frames_gen;
-}
-
-int Sample::playSampleRangeLoop(SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio)
-{
-	if (state->m_frameIndex >= m_loopEndFrame) { state->m_frameIndex = m_loopStartFrame; }
-
-	auto numFramesCopied = 0;
-	while (numFramesCopied != numFrames)
-	{
-		const auto framesToPlay = std::min(numFrames - numFramesCopied, m_loopEndFrame - state->m_frameIndex);
-		numFramesCopied += playSampleRange(state, framesToPlay, dst + numFramesCopied, resampleRatio);
-		if (state->m_frameIndex == m_loopEndFrame) { state->m_frameIndex = m_loopStartFrame; }
-	}
-
-	return numFramesCopied;
-}
-
-int Sample::playSampleRangePingPong(SamplePlaybackState* state, int numFrames, sampleFrame* dst, float resampleRatio)
-{
-	if (state->m_frameIndex >= m_loopEndFrame)
-	{
-		state->m_frameIndex = m_loopEndFrame - 1;
-		state->m_backwards = true;
-	}
-
-	auto numFramesCopied = 0;
-	while (numFramesCopied != numFrames)
-	{
-		auto framesToPlay = std::min(numFrames - numFramesCopied,
-			state->m_backwards ? state->m_frameIndex - m_loopStartFrame : m_loopEndFrame - state->m_frameIndex);
-
-		numFramesCopied += state->m_backwards
-			? playSampleRangeBackwards(state, framesToPlay, dst + numFramesCopied, resampleRatio)
-			: playSampleRange(state, framesToPlay, dst + numFramesCopied, resampleRatio);
-
-		if (state->m_frameIndex == m_loopEndFrame && !state->m_backwards) { state->m_backwards = true; }
-		else if (state->m_frameIndex == m_loopStartFrame && state->m_backwards) { state->m_backwards = false; }
-	}
-
-	return numFramesCopied;
-}
-
-SRC_DATA Sample::resampleSampleRange(
-	SRC_STATE* state, sampleFrame* src, int numInputFrames, sampleFrame* dst, int numOutputFrames, double ratio)
-{
-	auto srcData = SRC_DATA{};
-	srcData.data_in = &src[0][0];
-	srcData.data_out = &dst[0][0];
-	srcData.input_frames = numInputFrames;
-	srcData.output_frames = numOutputFrames;
-	srcData.src_ratio = ratio;
-	srcData.end_of_input = 0;
-	src_process(state, &srcData);
-	return srcData;
-}
-
-void Sample::amplifySampleRange(sampleFrame* src, int numFrames)
-{
-	for (int i = 0; i < numFrames; ++i)
-	{
-		src[i][0] *= m_amplification;
-		src[i][1] *= m_amplification;
-	}
 }
 
 void Sample::visualize(QPainter& p, const QRect& dr, int fromFrame, int toFrame)
 {
-	const auto readerLock = std::shared_lock{m_mutex};
+	const auto lock = std::shared_lock{m_mutex};
 	const auto numFrames = static_cast<int>(m_buffer->size());
 	if (numFrames == 0) { return; }
 
@@ -318,121 +228,347 @@ void Sample::visualize(QPainter& p, const QRect& dr, int fromFrame, int toFrame)
 	}
 }
 
-auto Sample::interpolationMargins() -> std::array<int, 5>&
-{
-	return s_interpolationMargins;
-}
-
 auto Sample::sampleDuration() const -> int
 {
-	auto readerLock = std::shared_lock{m_mutex};
-	return m_buffer->sampleRate() > 0 ? static_cast<double>(endFrame() - startFrame()) / m_buffer->sampleRate() * 1000
+	const auto lock = std::shared_lock{m_mutex};
+	return m_buffer->sampleRate() > 0 ? static_cast<double>(m_endFrame - m_startFrame) / m_buffer->sampleRate() * 1000
 									  : 0;
 }
 
 auto Sample::playbackSize() const -> int
 {
-	auto readerLock = std::shared_lock{m_mutex};
+	const auto lock = std::shared_lock{m_mutex};
 	return m_buffer->sampleRate() > 0
 		? m_buffer->size() * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate()
 		: 0;
 }
 
-void Sample::reloadFromBuffer(const SampleBuffer& newBuffer)
+auto Sample::assignNewBuffer(SampleBuffer* newBuffer) -> void
 {
-	auto writerLock = std::unique_lock{m_mutex};
-	auto bufferSize = static_cast<int>(m_buffer->size());
-	*m_buffer = newBuffer;
-	setStartFrame(0);
-	setEndFrame(bufferSize);
-	setLoopStartFrame(0);
-	setLoopEndFrame(bufferSize);
-	setAmplification(1.0f);
-	setFrequency(DefaultBaseFreq);
-	setReversed(false);
+	*this = Sample{std::shared_ptr<SampleBuffer>(newBuffer)};
+}
+
+auto Sample::tryLoadFromAudioFile(const QString& audioFile) -> bool
+{
+	try
+	{
+		*this = Sample{std::make_shared<SampleBuffer>(audioFile)};
+		return true;
+	}
+	catch (const std::runtime_error&)
+	{
+		*this = Sample{};
+		return false;
+	}
+}
+
+auto Sample::tryLoadFromBase64(const QString& base64, int sampleRate) -> bool
+{
+	try
+	{
+		const auto base64Array = base64.toUtf8().toBase64();
+		*this = Sample{std::make_shared<SampleBuffer>(base64Array, sampleRate)};
+		return true;
+	}
+	catch (const std::runtime_error&)
+	{
+		*this = Sample{};
+		return false;
+	}
 }
 
 auto Sample::buffer() const -> std::shared_ptr<SampleBuffer>
 {
-	const auto readerLock = std::shared_lock{m_mutex};
+	const auto lock = std::shared_lock{m_mutex};
 	return m_buffer;
 }
 
 auto Sample::startFrame() const -> int
 {
+	const auto lock = std::shared_lock{m_mutex};
 	return m_startFrame;
 }
 
 auto Sample::endFrame() const -> int
 {
+	const auto lock = std::shared_lock{m_mutex};
 	return m_endFrame;
 }
 
 auto Sample::loopStartFrame() const -> int
 {
+	const auto lock = std::shared_lock{m_mutex};
 	return m_loopStartFrame;
 }
 
 auto Sample::loopEndFrame() const -> int
 {
+	const auto lock = std::shared_lock{m_mutex};
 	return m_loopEndFrame;
 }
 
 auto Sample::amplification() const -> float
 {
+	const auto lock = std::shared_lock{m_mutex};
 	return m_amplification;
 }
 
 auto Sample::frequency() const -> float
 {
+	const auto lock = std::shared_lock{m_mutex};
 	return m_frequency;
 }
 
 auto Sample::reversed() const -> bool
 {
+	const auto lock = std::shared_lock{m_mutex};
 	return m_reversed;
 }
 
-auto Sample::setStartFrame(int frame) -> void
+auto Sample::setStartFrame(int startFrame) -> void
 {
-	m_startFrame = frame;
+	const auto lock = std::unique_lock{m_mutex};
+	m_startFrame = startFrame;
 }
 
-auto Sample::setEndFrame(int frame) -> void
+auto Sample::setEndFrame(int endFrame) -> void
 {
-	m_endFrame = frame;
+	const auto lock = std::unique_lock{m_mutex};
+	m_endFrame = endFrame;
 }
 
-auto Sample::setLoopStartFrame(int frame) -> void
+auto Sample::setLoopStartFrame(int loopStartFrame) -> void
 {
-	m_loopStartFrame = frame;
+	const auto lock = std::unique_lock{m_mutex};
+	m_loopStartFrame = loopStartFrame;
 }
 
-auto Sample::setLoopEndFrame(int frame) -> void
+auto Sample::setLoopEndFrame(int loopEndFrame) -> void
 {
-	m_loopEndFrame = frame;
+	const auto lock = std::unique_lock{m_mutex};
+	m_loopEndFrame = loopEndFrame;
 }
 
-auto Sample::setAllPointFrames(int start, int end, int loopStart, int loopEnd) -> void
+void Sample::setAllPointFrames(int startFrame, int endFrame, int loopStartFrame, int loopEndFrame)
 {
-	m_startFrame = start;
-	m_endFrame = end;
-	m_loopStartFrame = loopStart;
-	m_loopEndFrame = loopEnd;
+	const auto lock = std::unique_lock{m_mutex};
+	m_startFrame = startFrame;
+	m_endFrame = endFrame;
+	m_loopStartFrame = loopStartFrame;
+	m_loopEndFrame = loopEndFrame;
 }
 
 auto Sample::setAmplification(float amplification) -> void
 {
+	const auto lock = std::unique_lock{m_mutex};
 	m_amplification = amplification;
 }
 
 auto Sample::setFrequency(float frequency) -> void
 {
+	const auto lock = std::unique_lock{m_mutex};
 	m_frequency = frequency;
 }
 
 auto Sample::setReversed(bool reversed) -> void
 {
+	const auto lock = std::unique_lock{m_mutex};
 	m_reversed = reversed;
+}
+
+auto Sample::playSampleRange(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio) -> bool
+{
+	if (state->m_frameIndex >= m_endFrame || numFrames <= 0) { return false; }
+	state->m_frameIndex = std::max(m_startFrame, state->m_frameIndex);
+
+	const auto numFramesToCopy = std::min<int>(
+		numFrames / resampleRatio + (resampleRatio != 1.0f ? s_interpolationMargins[state->m_interpolationMode] : 0),
+		m_endFrame - state->m_frameIndex);
+
+	auto buffer = std::vector<sampleFrame>(numFramesToCopy);
+	copyBufferForward(buffer.data(), state->m_frameIndex, numFramesToCopy);
+
+	auto resample
+		= resampleSampleRange(state->m_resampleState, buffer.data(), dst, numFramesToCopy, numFrames, resampleRatio);
+	state->m_frameIndex += resample.input_frames_used;
+	return true;
+}
+
+auto Sample::playSampleRangeLoop(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio) -> bool
+{
+	if (numFrames <= 0) { return false; }
+	if (state->m_frameIndex >= m_loopEndFrame) { state->m_frameIndex = m_loopStartFrame; }
+	auto playFrame = std::max(m_startFrame, state->m_frameIndex);
+
+	const auto totalFramesToCopy = static_cast<int>(
+		numFrames / resampleRatio + (resampleRatio != 1.0f ? s_interpolationMargins[state->m_interpolationMode] : 0));
+	auto buffer = std::vector<sampleFrame>(totalFramesToCopy);
+
+	auto numFramesCopied = 0;
+	while (numFramesCopied != totalFramesToCopy)
+	{
+		auto numFramesToCopy = std::min(totalFramesToCopy - numFramesCopied, m_loopEndFrame - playFrame);
+		copyBufferForward(buffer.data() + numFramesCopied, playFrame, numFramesToCopy);
+
+		playFrame += numFramesToCopy;
+		numFramesCopied += numFramesToCopy;
+
+		if (playFrame >= m_loopEndFrame) { playFrame = m_loopStartFrame; }
+	}
+
+	const auto resample
+		= resampleSampleRange(state->m_resampleState, buffer.data(), dst, totalFramesToCopy, numFrames, resampleRatio);
+	state->m_frameIndex
+		= getLoopedIndex(state->m_frameIndex + resample.input_frames_used, m_loopStartFrame, m_loopEndFrame);
+	return true;
+}
+
+auto Sample::playSampleRangePingPong(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio) -> bool
+{
+	if (numFrames <= 0) { return false; }
+	if (state->m_frameIndex >= m_loopEndFrame)
+	{
+		state->m_frameIndex = m_loopEndFrame - 1;
+		state->m_backwards = true;
+	}
+
+	auto playFrame = std::min(m_endFrame, state->m_frameIndex);
+
+	const auto totalFramesToCopy = static_cast<int>(
+		numFrames / resampleRatio + (resampleRatio != 1.0f ? s_interpolationMargins[state->m_interpolationMode] : 0));
+	auto buffer = std::vector<sampleFrame>(totalFramesToCopy);
+
+	auto numFramesCopied = 0;
+	while (numFramesCopied != totalFramesToCopy)
+	{
+		auto numFramesToCopy = 0;
+		if (!state->m_backwards)
+		{
+			numFramesToCopy = std::min(totalFramesToCopy - numFramesCopied, m_loopEndFrame - playFrame);
+			copyBufferForward(buffer.data() + numFramesCopied, playFrame, numFramesToCopy);
+			playFrame += numFramesToCopy;
+		}
+		else
+		{
+			numFramesToCopy = std::min(totalFramesToCopy - numFramesCopied, playFrame - m_loopStartFrame);
+			copyBufferBackward(buffer.data() + numFramesCopied, playFrame, numFramesToCopy);
+			playFrame -= numFramesToCopy;
+		}
+
+		numFramesCopied += numFramesToCopy;
+		if (playFrame >= m_loopEndFrame && !state->m_backwards)
+		{
+			playFrame = m_loopEndFrame - 1;
+			state->m_backwards = true;
+		}
+		else if (playFrame <= m_loopStartFrame && state->m_backwards)
+		{
+			playFrame = m_loopStartFrame;
+			state->m_backwards = false;
+		}
+	}
+
+	const auto resample
+		= resampleSampleRange(state->m_resampleState, buffer.data(), dst, totalFramesToCopy, numFrames, resampleRatio);
+	state->m_frameIndex += (state->m_backwards ? -1 : 1) * resample.input_frames_used;
+	state->m_frameIndex = getPingPongIndex(state->m_frameIndex, m_loopStartFrame, m_loopEndFrame);
+	return true;
+}
+
+auto Sample::copyBufferForward(sampleFrame* dst, int initialPosition, int advanceAmount) -> void
+{
+	m_reversed ? std::copy_n(m_buffer->rbegin() + initialPosition, advanceAmount, dst)
+			   : std::copy_n(m_buffer->begin() + initialPosition, advanceAmount, dst);
+}
+
+auto Sample::copyBufferBackward(sampleFrame* dst, int initialPosition, int advanceAmount) -> void
+{
+	m_reversed ? std::reverse_copy(m_buffer->rbegin() + initialPosition - advanceAmount, m_buffer->rbegin() + initialPosition, dst)
+			   : std::reverse_copy(m_buffer->begin() + initialPosition - advanceAmount, m_buffer->begin() + initialPosition, dst);
+}
+
+auto Sample::getLoopedIndex(int index, int startFrame, int endFrame) const -> int
+{
+	return index < endFrame ? index : startFrame + (index - startFrame) % (endFrame - startFrame);
+}
+
+auto Sample::getPingPongIndex(int index, int startFrame, int endFrame) const -> int
+{
+	if (index < endFrame) { return index; }
+	const auto loopPos = getLoopedIndex(index, startFrame, endFrame * 2);
+	return loopPos > endFrame ? endFrame * 2 - loopPos : loopPos;
+}
+
+auto Sample::resampleSampleRange(SRC_STATE* state, sampleFrame* src, sampleFrame* dst, int numInputFrames,
+	int numOutputFrames, double ratio) -> SRC_DATA
+{
+	auto data = SRC_DATA{};
+	data.data_in = &src[0][0];
+	data.data_out = &dst[0][0];
+	data.input_frames = numInputFrames;
+	data.output_frames = numOutputFrames;
+	data.src_ratio = ratio;
+	data.end_of_input = 0;
+	src_process(state, &data);
+	return data;
+}
+
+auto Sample::amplifySampleRange(sampleFrame* src, int numFrames) -> void
+{
+	const auto lock = std::shared_lock{m_mutex};
+	for (int i = 0; i < numFrames; ++i)
+	{
+		src[i][0] *= m_amplification;
+		src[i][1] *= m_amplification;
+	}
+}
+
+Sample::PlaybackState::PlaybackState(bool varyingPitch, int mode)
+	: m_varyingPitch(varyingPitch)
+	, m_interpolationMode(mode)
+{
+	int error = 0;
+	m_resampleState = src_new(m_interpolationMode, DEFAULT_CHANNELS, &error);
+	if (error != 0) { throw std::runtime_error{"Error creating resample state: " + std::string{src_strerror(error)}}; }
+}
+
+Sample::PlaybackState::~PlaybackState() noexcept
+{
+	src_delete(m_resampleState);
+}
+
+auto Sample::PlaybackState::frameIndex() const -> f_cnt_t
+{
+	return m_frameIndex;
+}
+
+auto Sample::PlaybackState::varyingPitch() const -> bool
+{
+	return m_varyingPitch;
+}
+
+auto Sample::PlaybackState::isBackwards() const -> bool
+{
+	return m_backwards;
+}
+
+auto Sample::PlaybackState::interpolationMode() const -> int
+{
+	return m_interpolationMode;
+}
+
+auto Sample::PlaybackState::setFrameIndex(f_cnt_t index) -> void
+{
+	m_frameIndex = index;
+}
+
+auto Sample::PlaybackState::setVaryingPitch(bool varyingPitch) -> void
+{
+	m_varyingPitch = varyingPitch;
+}
+
+auto Sample::PlaybackState::setBackwards(bool backwards) -> void
+{
+	m_backwards = backwards;
 }
 } // namespace lmms

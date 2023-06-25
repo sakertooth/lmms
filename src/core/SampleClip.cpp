@@ -131,7 +131,7 @@ QString SampleClip::sampleFile() const
 
 void SampleClip::setSampleBuffer(SampleBuffer* sb)
 {
-	m_sample->reloadFromBuffer(*sb);
+	m_sample->assignNewBuffer(sb);
 	updateLength();
 	emit sampleChanged();
 }
@@ -149,7 +149,7 @@ void SampleClip::setSampleFile( const QString & _sf )
 	}
 	else
 	{	//Otherwise set it to the sample's length
-		m_sample->tryLoadNewBuffer(_sf);
+		m_sample->tryLoadFromAudioFile(_sf);
 		length = sampleLength();
 	}
 	changeLength(length);
@@ -287,7 +287,7 @@ void SampleClip::loadSettings( const QDomElement & _this )
 	{
 		const auto decodedSampleData = QByteArray::fromBase64(_this.attribute("data").toUtf8());
 		const auto sampleRate = _this.attribute("sample_rate").toInt();
-		m_sample->tryLoadNewBuffer(decodedSampleData, sampleRate);
+		m_sample->tryLoadFromBase64(decodedSampleData, sampleRate);
 	}
 	changeLength( _this.attribute( "len" ).toInt() );
 	setMuted( _this.attribute( "muted" ).toInt() );

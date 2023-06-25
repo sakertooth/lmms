@@ -149,6 +149,7 @@ void PatmanInstrument::playNote( NotePlayHandle * _n,
 		selectSample( _n );
 	}
 	auto hdata = (handle_data*)_n->m_pluginData;
+	if (!hdata->sample) { return; }
 
 	float play_freq = hdata->tuned ? _n->frequency() :
 						hdata->sample->frequency();
@@ -357,7 +358,7 @@ PatmanInstrument::LoadErrors PatmanInstrument::loadPatch(
 			}
 		}
 
-		auto psample = Sample{std::make_shared<SampleBuffer>(data, frames, sample_rate)};
+		auto psample = Sample(data, frames, sample_rate);
 		psample.setFrequency(root_freq / 1000.0f);
 
 		if( modes & MODES_LOOPING )
@@ -380,6 +381,7 @@ PatmanInstrument::LoadErrors PatmanInstrument::loadPatch(
 
 void PatmanInstrument::unloadCurrentPatch()
 {
+	const auto guard = Engine::audioEngine()->requestChangesGuard();
 	while( !m_patchSamples.empty() )
 	{
 		m_patchSamples.pop_back();
@@ -412,7 +414,7 @@ void PatmanInstrument::selectSample( NotePlayHandle * _n )
 	auto hdata = new handle_data;
 	hdata->tuned = m_tunedModel.value();
 	hdata->sample = sample ? sample : nullptr;
-	hdata->state = new SamplePlaybackState(_n->hasDetuningInfo());
+	hdata->state = new Sample::PlaybackState(_n->hasDetuningInfo());
 	_n->m_pluginData = hdata;
 }
 

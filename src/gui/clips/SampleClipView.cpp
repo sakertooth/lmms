@@ -114,7 +114,7 @@ void SampleClipView::dropEvent( QDropEvent * _de )
 	else if( StringPairDrag::decodeKey( _de ) == "sampledata" )
 	{
 		auto base64Array = QByteArray::fromBase64(StringPairDrag::decodeValue(_de).toUtf8());
-		m_clip->m_sample->tryLoadNewBuffer(base64Array);
+		m_clip->m_sample->tryLoadFromBase64(base64Array);
 		m_clip->updateLength();
 		update();
 		_de->accept();
