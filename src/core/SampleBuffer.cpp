@@ -143,7 +143,6 @@ void SampleBuffer::decodeSampleSF(const QString& audioFile)
 		}
 	}
 
-	auto writerGuard = std::unique_lock{m_mutex};
 	m_data = result;
 	m_audioFile = audioFile;
 	m_sampleRate = sfInfo.samplerate;
@@ -166,7 +165,6 @@ void SampleBuffer::decodeSampleDS(const QString& audioFile)
 	}
 	else { throw std::runtime_error{"Decoding failure: failed to decode DrumSynth file."}; }
 
-	auto writerGuard = std::unique_lock{m_mutex};
 	m_data = result;
 	m_audioFile = audioFile;
 	m_sampleRate = engineRate;
@@ -185,7 +183,6 @@ QString SampleBuffer::toBase64() const
 
 void SampleBuffer::tryLoadFromAudioFile(const QString& audioFile)
 {
-	const auto writerLock = std::unique_lock{m_mutex};
 	try
 	{
 		*this = SampleBuffer{audioFile};
@@ -198,7 +195,6 @@ void SampleBuffer::tryLoadFromAudioFile(const QString& audioFile)
 
 void SampleBuffer::tryLoadFromBase64(const QString& base64, int sampleRate)
 {
-	const auto writerLock = std::unique_lock{m_mutex};
 	try
 	{
 		const auto base64Array = base64.toUtf8().toBase64();
