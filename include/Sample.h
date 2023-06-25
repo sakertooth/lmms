@@ -25,7 +25,6 @@
 #ifndef LMMS_SAMPLE_H
 #define LMMS_SAMPLE_H
 
-#include <iostream>
 #include <memory>
 
 #include "SampleBuffer.h"
@@ -127,7 +126,8 @@ public:
 private:
 	auto playSampleRange(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) -> bool;
 	auto playSampleRangeLoop(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) -> bool;
-	auto playSampleRangePingPong(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) -> bool;
+	auto playSampleRangePingPong(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f)
+		-> bool;
 
 	auto copyBufferForward(sampleFrame* dst, int initialPosition, int advanceAmount) -> void;
 	auto copyBufferBackward(sampleFrame* dst, int initialPosition, int advanceAmount) -> void;
