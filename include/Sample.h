@@ -75,6 +75,15 @@ public:
 		friend class Sample;
 	};
 
+	struct WaitForEngineDeleter
+	{
+		void operator()(Sample* ptr)
+		{
+			const auto guard = Engine::audioEngine()->requestChangesGuard();
+			delete ptr;
+		}
+	};
+
 	Sample() = default;
 	Sample(const QString& audioFile);
 	Sample(const QByteArray& base64, int sampleRate = Engine::audioEngine()->processingSampleRate());

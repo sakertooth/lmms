@@ -88,7 +88,8 @@ public slots:
 
 
 private:
-	std::unique_ptr<Sample> m_sample = std::make_unique<Sample>();
+	std::unique_ptr<Sample, Sample::WaitForEngineDeleter> m_sample =
+		std::unique_ptr<Sample, Sample::WaitForEngineDeleter>(new Sample{});
 	BoolModel m_recordModel;
 	bool m_isPlaying;
 
