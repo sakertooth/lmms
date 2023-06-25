@@ -31,9 +31,6 @@
 #include "SampleTrack.h"
 #include "TimeLineWidget.h"
 
-#include <iostream>
-
-
 namespace lmms
 {
 
