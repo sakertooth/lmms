@@ -43,8 +43,10 @@
 
 #ifdef USE_MINGW_THREADS_REPLACEMENT
 #include <mingw.shared_mutex.h>
+#include <mingw.mutex.h>
 #else
 #include <shared_mutex>
+#include <mutex>
 #endif
 
 namespace lmms {
