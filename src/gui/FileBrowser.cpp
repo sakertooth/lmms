@@ -23,6 +23,7 @@
  *
  */
 
+#include <iostream>
 
 #include <QApplication>
 #include <QDesktopServices>
