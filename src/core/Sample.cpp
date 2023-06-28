@@ -111,7 +111,7 @@ auto swap(Sample& first, Sample& second) -> void
 	swap(first.m_reversed, second.m_reversed);
 }
 
-bool Sample::play(sampleFrame* dst, PlaybackState* state, int numFrames, float desiredFrequency, Loop loopMode)
+bool Sample::play(sampleFrame* dst, PlaybackState* state, int numFrames, float desiredFrequency, Loop loopMode) const
 {
 	const auto lock = std::shared_lock{m_mutex};
 	const auto resampleRatio
@@ -376,7 +376,7 @@ auto Sample::setReversed(bool reversed) -> void
 	m_reversed = reversed;
 }
 
-auto Sample::playSampleRange(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio) -> bool
+auto Sample::playSampleRange(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio) const -> bool
 {
 	if (state->m_frameIndex >= m_endFrame || numFrames <= 0) { return false; }
 	state->m_frameIndex = std::max(m_startFrame, state->m_frameIndex);
@@ -394,7 +394,7 @@ auto Sample::playSampleRange(PlaybackState* state, sampleFrame* dst, int numFram
 	return true;
 }
 
-auto Sample::playSampleRangeLoop(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio) -> bool
+auto Sample::playSampleRangeLoop(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio) const -> bool
 {
 	if (numFrames <= 0) { return false; }
 	if (state->m_frameIndex >= m_loopEndFrame) { state->m_frameIndex = m_loopStartFrame; }
@@ -423,7 +423,7 @@ auto Sample::playSampleRangeLoop(PlaybackState* state, sampleFrame* dst, int num
 	return true;
 }
 
-auto Sample::playSampleRangePingPong(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio) -> bool
+auto Sample::playSampleRangePingPong(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio) const -> bool
 {
 	if (numFrames <= 0) { return false; }
 	if (state->m_frameIndex >= m_loopEndFrame)
@@ -475,13 +475,13 @@ auto Sample::playSampleRangePingPong(PlaybackState* state, sampleFrame* dst, int
 	return true;
 }
 
-auto Sample::copyBufferForward(sampleFrame* dst, int initialPosition, int advanceAmount) -> void
+auto Sample::copyBufferForward(sampleFrame* dst, int initialPosition, int advanceAmount) const -> void
 {
 	m_reversed ? std::copy_n(m_buffer->rbegin() + initialPosition, advanceAmount, dst)
 			   : std::copy_n(m_buffer->begin() + initialPosition, advanceAmount, dst);
 }
 
-auto Sample::copyBufferBackward(sampleFrame* dst, int initialPosition, int advanceAmount) -> void
+auto Sample::copyBufferBackward(sampleFrame* dst, int initialPosition, int advanceAmount) const -> void
 {
 	m_reversed ? std::reverse_copy(m_buffer->rbegin() + initialPosition - advanceAmount, m_buffer->rbegin() + initialPosition, dst)
 			   : std::reverse_copy(m_buffer->begin() + initialPosition - advanceAmount, m_buffer->begin() + initialPosition, dst);
@@ -500,7 +500,7 @@ auto Sample::getPingPongIndex(int index, int startFrame, int endFrame) const -> 
 }
 
 auto Sample::resampleSampleRange(SRC_STATE* state, sampleFrame* src, sampleFrame* dst, int numInputFrames,
-	int numOutputFrames, double ratio) -> SRC_DATA
+	int numOutputFrames, double ratio) const -> SRC_DATA
 {
 	auto data = SRC_DATA{};
 	data.data_in = &src[0][0];
@@ -513,7 +513,7 @@ auto Sample::resampleSampleRange(SRC_STATE* state, sampleFrame* src, sampleFrame
 	return data;
 }
 
-auto Sample::amplifySampleRange(sampleFrame* src, int numFrames) -> void
+auto Sample::amplifySampleRange(sampleFrame* src, int numFrames) const -> void
 {
 	const auto lock = std::shared_lock{m_mutex};
 	for (int i = 0; i < numFrames; ++i)

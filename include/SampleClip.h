@@ -64,9 +64,9 @@ public:
 		return "sampleclip";
 	}
 
-	Sample* sample()
+	const Sample& sample()
 	{
-		return m_sample.get();
+		return m_sample;
 	}
 
 	TimePos sampleLength() const;
@@ -88,8 +88,7 @@ public slots:
 
 
 private:
-	std::unique_ptr<Sample, Sample::WaitForEngineDeleter> m_sample =
-		std::unique_ptr<Sample, Sample::WaitForEngineDeleter>(new Sample{});
+	Sample m_sample;
 	BoolModel m_recordModel;
 	bool m_isPlaying;
 

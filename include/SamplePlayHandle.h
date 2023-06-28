@@ -43,7 +43,7 @@ class AudioPort;
 class SamplePlayHandle : public PlayHandle
 {
 public:
-	SamplePlayHandle(Sample* sample, bool ownAudioPort = true);
+	SamplePlayHandle(const Sample* sample, bool ownAudioPort = true);
 	SamplePlayHandle( const QString& sampleFile );
 	SamplePlayHandle( SampleClip* clip );
 	~SamplePlayHandle() override;
@@ -81,7 +81,7 @@ public:
 
 
 private:
-	Sample* m_sample;
+	const Sample* m_sample;
 	bool m_doneMayReturnTrue = true;
 
 	f_cnt_t m_frame = 0;

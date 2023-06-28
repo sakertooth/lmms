@@ -35,7 +35,7 @@ namespace lmms
 {
 
 
-SamplePlayHandle::SamplePlayHandle(Sample* sample, bool ownAudioPort) :
+SamplePlayHandle::SamplePlayHandle(const Sample* sample, bool ownAudioPort) :
 	PlayHandle(TypeSamplePlayHandle),
 	m_sample(sample),
 	m_state(false, Engine::audioEngine()->currentQualitySettings().libsrcInterpolation()),
@@ -57,7 +57,7 @@ SamplePlayHandle::SamplePlayHandle( const QString& sampleFile ) :
 
 
 SamplePlayHandle::SamplePlayHandle( SampleClip* clip ) :
-	SamplePlayHandle( clip->sample() , false)
+	SamplePlayHandle(&clip->sample() , false)
 {
 	m_track = clip->getTrack();
 	setAudioPort( ( (SampleTrack *)clip->getTrack() )->audioPort() );

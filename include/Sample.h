@@ -74,15 +74,6 @@ public:
 		friend class Sample;
 	};
 
-	struct WaitForEngineDeleter
-	{
-		void operator()(Sample* ptr)
-		{
-			const auto guard = Engine::audioEngine()->requestChangesGuard();
-			delete ptr;
-		}
-	};
-
 	Sample() = default;
 	Sample(const QString& audioFile);
 	Sample(const QByteArray& base64, int sampleRate = Engine::audioEngine()->processingSampleRate());
@@ -95,7 +86,7 @@ public:
 	friend auto swap(Sample& first, Sample& second) -> void;
 
 	auto play(sampleFrame* dst, PlaybackState* state, int numFrames, float desiredFrequency = DefaultBaseFreq,
-		Loop loopMode = Loop::Off) -> bool;
+		Loop loopMode = Loop::Off) const -> bool;
 	auto visualize(QPainter& p, const QRect& dr, int fromFrame = 0, int toFrame = 0) -> void;
 	auto sampleDuration() const -> int;
 	auto playbackSize() const -> int;
@@ -124,20 +115,20 @@ public:
 	auto setReversed(bool reversed) -> void;
 
 private:
-	auto playSampleRange(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) -> bool;
-	auto playSampleRangeLoop(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) -> bool;
-	auto playSampleRangePingPong(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f)
+	auto playSampleRange(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) const -> bool;
+	auto playSampleRangeLoop(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) const -> bool;
+	auto playSampleRangePingPong(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) const
 		-> bool;
 
-	auto copyBufferForward(sampleFrame* dst, int initialPosition, int advanceAmount) -> void;
-	auto copyBufferBackward(sampleFrame* dst, int initialPosition, int advanceAmount) -> void;
+	auto copyBufferForward(sampleFrame* dst, int initialPosition, int advanceAmount) const -> void;
+	auto copyBufferBackward(sampleFrame* dst, int initialPosition, int advanceAmount) const -> void;
 
 	auto getPingPongIndex(int index, int startFrame, int endFrame) const -> int;
 	auto getLoopedIndex(int index, int startFrame, int endFrame) const -> int;
 
 	auto resampleSampleRange(SRC_STATE* state, sampleFrame* src, sampleFrame* dst, int numInputFrames,
-		int numOutputFrames, double ratio) -> SRC_DATA;
-	auto amplifySampleRange(sampleFrame* src, int numFrames) -> void;
+		int numOutputFrames, double ratio) const -> SRC_DATA;
+	auto amplifySampleRange(sampleFrame* src, int numFrames) const -> void;
 
 private:
 	std::shared_ptr<SampleBuffer> m_buffer = std::make_shared<SampleBuffer>();
