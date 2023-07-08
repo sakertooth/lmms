@@ -59,9 +59,9 @@ SampleBuffer::SampleBuffer(const QString& audioFile)
 	else { decodeSampleSF(resolvedFileName); }
 }
 
-SampleBuffer::SampleBuffer(const QByteArray& sampleData, int sampleRate)
-	: m_data(reinterpret_cast<const sampleFrame*>(sampleData.data()),
-		reinterpret_cast<const sampleFrame*>(sampleData.data()) + sampleData.size() / sizeof(sampleFrame))
+SampleBuffer::SampleBuffer(const QByteArray& base64Data, int sampleRate)
+	: m_data(reinterpret_cast<const sampleFrame*>(base64Data.data()),
+		reinterpret_cast<const sampleFrame*>(base64Data.data()) + base64Data.size() / sizeof(sampleFrame))
 	, m_sampleRate(sampleRate)
 {
 }
