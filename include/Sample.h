@@ -96,7 +96,7 @@ public:
 	auto tryLoadFromBase64(const QString& base64, int sampleRate = Engine::audioEngine()->processingSampleRate())
 		-> bool;
 
-	auto buffer() const -> std::shared_ptr<SampleBuffer>;
+	auto buffer() const -> std::shared_ptr<const SampleBuffer>;
 	auto startFrame() const -> int;
 	auto endFrame() const -> int;
 	auto loopStartFrame() const -> int;
@@ -131,7 +131,7 @@ private:
 	auto amplifySampleRange(sampleFrame* src, int numFrames) const -> void;
 
 private:
-	std::shared_ptr<SampleBuffer> m_buffer = std::make_shared<SampleBuffer>();
+	std::shared_ptr<const SampleBuffer> m_buffer = std::make_shared<SampleBuffer>();
 	int m_startFrame = 0;
 	int m_endFrame = 0;
 	int m_loopStartFrame = 0;

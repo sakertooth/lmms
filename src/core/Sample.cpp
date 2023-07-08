@@ -277,7 +277,7 @@ auto Sample::tryLoadFromBase64(const QString& base64, int sampleRate) -> bool
 	}
 }
 
-auto Sample::buffer() const -> std::shared_ptr<SampleBuffer>
+auto Sample::buffer() const -> std::shared_ptr<const SampleBuffer>
 {
 	const auto lock = std::shared_lock{m_mutex};
 	return m_buffer;
