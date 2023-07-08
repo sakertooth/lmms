@@ -25,8 +25,10 @@
 #ifndef LMMS_SAMPLE_H
 #define LMMS_SAMPLE_H
 
+#include <cmath>
 #include <memory>
 
+#include "Note.h"
 #include "SampleBuffer.h"
 #include "lmms_export.h"
 
@@ -115,10 +117,12 @@ public:
 	auto setReversed(bool reversed) -> void;
 
 private:
-	auto playSampleRange(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) const -> bool;
-	auto playSampleRangeLoop(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) const -> bool;
-	auto playSampleRangePingPong(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) const
+	auto playSampleRange(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) const
 		-> bool;
+	auto playSampleRangeLoop(PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) const
+		-> bool;
+	auto playSampleRangePingPong(
+		PlaybackState* state, sampleFrame* dst, int numFrames, float resampleRatio = 1.0f) const -> bool;
 
 	auto copyBufferForward(sampleFrame* dst, int initialPosition, int advanceAmount) const -> void;
 	auto copyBufferBackward(sampleFrame* dst, int initialPosition, int advanceAmount) const -> void;

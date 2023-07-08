@@ -32,7 +32,10 @@
 #include <memory>
 
 #include "Engine.h"
+#include "MemoryManager.h"
+#include "interpolation.h"
 #include "lmms_constants.h"
+#include "lmms_math.h"
 #include "lmmsconfig.h"
 #include "AudioEngine.h"
 #include "OscillatorConstants.h"

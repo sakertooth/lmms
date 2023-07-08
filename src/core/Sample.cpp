@@ -195,7 +195,7 @@ void Sample::visualize(QPainter& p, const QRect& dr, int fromFrame, int toFrame)
 		}
 
 		const float trueRmsData = (rmsData[0] + rmsData[1]) / 2 / fpp;
-		const float sqrtRmsData = sqrt(trueRmsData);
+		const float sqrtRmsData = std::sqrt(trueRmsData);
 		const float maxRmsData = std::clamp(sqrtRmsData, minData, maxData);
 		const float minRmsData = std::clamp(-sqrtRmsData, minData, maxData);
 

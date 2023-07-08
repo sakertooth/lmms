@@ -33,13 +33,8 @@
 
 #include "AudioEngine.h"
 #include "Engine.h"
-#include "MemoryManager.h"
-#include "Note.h"
-#include "OscillatorConstants.h"
-#include "interpolation.h"
 #include "lmms_basics.h"
 #include "lmms_export.h"
-#include "lmms_math.h"
 
 #ifdef USE_MINGW_THREADS_REPLACEMENT
 #include <mingw.shared_mutex.h>
