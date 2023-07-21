@@ -68,7 +68,6 @@ SampleBuffer::SampleBuffer(const QByteArray& base64Data, int sampleRate)
 
 SampleBuffer::SampleBuffer(const SampleBuffer& other)
 {
-	auto scopedLock = std::scoped_lock{m_mutex, other.m_mutex};
 	m_data = other.m_data;
 	m_audioFile = other.m_audioFile;
 	m_sampleRate = other.m_sampleRate;
@@ -76,7 +75,6 @@ SampleBuffer::SampleBuffer(const SampleBuffer& other)
 
 SampleBuffer::SampleBuffer(SampleBuffer&& other) noexcept
 {
-	auto scopedLock = std::scoped_lock{m_mutex, other.m_mutex};
 	m_data = other.m_data;
 	m_audioFile = other.m_audioFile;
 	m_sampleRate = other.m_sampleRate;
@@ -94,7 +92,6 @@ SampleBuffer& SampleBuffer::operator=(SampleBuffer other) noexcept
 
 void SampleBuffer::swap(SampleBuffer& first, SampleBuffer& second) noexcept
 {
-	auto scopedLock = std::scoped_lock{first.m_mutex, second.m_mutex};
 	using std::swap;
 	swap(first.m_data, second.m_data);
 	swap(first.m_audioFile, second.m_audioFile);
@@ -172,8 +169,6 @@ void SampleBuffer::decodeSampleDS(const QString& audioFile)
 
 QString SampleBuffer::toBase64() const
 {
-	auto readerGuard = std::shared_lock{m_mutex};
-
 	// TODO: Replace with non-Qt equivalent
 	const auto data = reinterpret_cast<const char*>(m_data.data());
 	const auto size = static_cast<int>(m_data.size() * sizeof(sampleFrame));
@@ -208,55 +203,46 @@ void SampleBuffer::tryLoadFromBase64(const QString& base64, int sampleRate)
 
 auto SampleBuffer::audioFile() const -> QString
 {
-	auto readerGuard = std::shared_lock{m_mutex};
 	return m_audioFile.value_or("");
 }
 
 auto SampleBuffer::sampleRate() const -> sample_rate_t
 {
-	auto readerGuard = std::shared_lock{m_mutex};
 	return m_sampleRate;
 }
 
 auto SampleBuffer::begin() const -> const_iterator
 {
-	auto readerGuard = std::shared_lock{m_mutex};
 	return m_data.begin();
 }
 
 auto SampleBuffer::end() const -> const_iterator
 {
-	auto readerGuard = std::shared_lock{m_mutex};
 	return m_data.end();
 }
 
 auto SampleBuffer::rbegin() const -> const_reverse_iterator
 {
-	auto readerGuard = std::shared_lock{m_mutex};
 	return m_data.rbegin();
 }
 
 auto SampleBuffer::rend() const -> const_reverse_iterator
 {
-	auto readerGuard = std::shared_lock{m_mutex};
 	return m_data.rend();
 }
 
 auto SampleBuffer::data() const -> const sampleFrame*
 {
-	auto readerGuard = std::shared_lock{m_mutex};
 	return m_data.data();
 }
 
 auto SampleBuffer::size() const -> size_type
 {
-	auto readerGuard = std::shared_lock{m_mutex};
 	return m_data.size();
 }
 
 auto SampleBuffer::empty() const -> bool
 {
-	auto readerGuard = std::shared_lock{m_mutex};
 	return m_data.empty();
 }
 

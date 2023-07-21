@@ -32,6 +32,14 @@
 #include "SampleBuffer.h"
 #include "lmms_export.h"
 
+#ifdef __MINGW32__
+#include <mingw.shared_mutex.h>
+#include <mingw.mutex.h>
+#else
+#include <shared_mutex>
+#include <mutex>
+#endif
+
 class QPainter;
 class QRect;
 

@@ -36,14 +36,6 @@
 #include "lmms_basics.h"
 #include "lmms_export.h"
 
-#ifdef USE_MINGW_THREADS_REPLACEMENT
-#include <mingw.shared_mutex.h>
-#include <mingw.mutex.h>
-#else
-#include <shared_mutex>
-#include <mutex>
-#endif
-
 namespace lmms {
 class LMMS_EXPORT SampleBuffer
 {
@@ -90,7 +82,6 @@ private:
 	std::vector<sampleFrame> m_data;
 	std::optional<QString> m_audioFile;
 	int m_sampleRate = 0;
-	mutable std::shared_mutex m_mutex;
 };
 
 } // namespace lmms
