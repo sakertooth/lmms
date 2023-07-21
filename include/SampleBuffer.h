@@ -57,7 +57,7 @@ public:
 	SampleBuffer(SampleBuffer&&) noexcept;
 	SampleBuffer& operator=(SampleBuffer other) noexcept;
 
-	void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
+	friend void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
 	auto toBase64() const -> QString;
 	void tryLoadFromAudioFile(const QString& audioFile);
 	void tryLoadFromBase64(const QString& base64, int sampleRate = Engine::audioEngine()->processingSampleRate());
