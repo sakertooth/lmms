@@ -58,7 +58,7 @@ Sample::Sample(const sampleFrame* data, int numFrames, int sampleRate)
 {
 }
 
-Sample::Sample(std::shared_ptr<SampleBuffer> buffer)
+Sample::Sample(std::shared_ptr<const SampleBuffer> buffer)
 	: m_buffer(buffer)
 	, m_startFrame(0)
 	, m_endFrame(m_buffer->size())
@@ -247,7 +247,7 @@ auto Sample::playbackSize() const -> int
 
 auto Sample::assignNewBuffer(SampleBuffer* newBuffer) -> void
 {
-	*this = Sample{std::shared_ptr<SampleBuffer>(newBuffer)};
+	*this = Sample{std::shared_ptr<const SampleBuffer>(newBuffer)};
 }
 
 auto Sample::tryLoadFromAudioFile(const QString& audioFile) -> bool

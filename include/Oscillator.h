@@ -99,7 +99,7 @@ public:
 		m_useWaveTable = n;
 	}
 
-	inline void setUserWave(std::shared_ptr<SampleBuffer> _wave)
+	inline void setUserWave(std::shared_ptr<const SampleBuffer> _wave)
 	{
 		m_userWave = _wave;
 	}
