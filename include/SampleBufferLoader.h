@@ -26,7 +26,7 @@
 #define LMMS_SAMPLE_BUFFER_LOADER_H
 
 #include <QString>
-#include <optional>
+#include <memory>
 
 #include "SampleBuffer.h"
 #include "lmms_export.h"
