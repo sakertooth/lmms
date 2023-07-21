@@ -30,6 +30,7 @@
 #include "Knob.h"
 #include "TempoSyncKnob.h"
 #include "PixmapButton.h"
+#include "SampleBufferLoader.h"
 #include "SampleFileDialog.h"
 
 namespace lmms::gui
@@ -215,7 +216,9 @@ void LfoControllerDialog::askUserDefWave()
 
 	if (!fileName.isEmpty())
 	{
-		sampleBuffer->tryLoadFromAudioFile(fileName);
+		auto buffer = SampleBufferLoader::loadFromFile(fileName);
+		if (buffer == nullptr) { return; }
+		sampleBuffer = std::move(buffer);
 		// TODO:
 		m_userWaveBtn->setToolTip(sampleBuffer->audioFile());
 	}

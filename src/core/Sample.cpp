@@ -27,6 +27,8 @@
 #include <QPainter>
 #include <QRect>
 
+#include "SampleBufferLoader.h"
+
 namespace lmms {
 
 Sample::Sample(const QString& audioFile)
@@ -250,31 +252,18 @@ auto Sample::assignNewBuffer(SampleBuffer* newBuffer) -> void
 
 auto Sample::tryLoadFromAudioFile(const QString& audioFile) -> bool
 {
-	try
-	{
-		*this = Sample{std::make_shared<SampleBuffer>(audioFile)};
-		return true;
-	}
-	catch (const std::runtime_error&)
-	{
-		*this = Sample{};
-		return false;
-	}
+	auto buffer = gui::SampleBufferLoader::loadFromFile(audioFile);
+	if (buffer == nullptr) { return false; }
+	*this = Sample{std::move(buffer)};
+	return true;
 }
 
 auto Sample::tryLoadFromBase64(const QString& base64, int sampleRate) -> bool
 {
-	try
-	{
-		const auto base64Array = base64.toUtf8().toBase64();
-		*this = Sample{std::make_shared<SampleBuffer>(base64Array, sampleRate)};
-		return true;
-	}
-	catch (const std::runtime_error&)
-	{
-		*this = Sample{};
-		return false;
-	}
+	auto buffer = gui::SampleBufferLoader::loadFromBase64(base64, sampleRate);
+	if (buffer == nullptr) { return false; }
+	*this = Sample{std::move(buffer)};
+	return true;
 }
 
 auto Sample::buffer() const -> std::shared_ptr<const SampleBuffer>

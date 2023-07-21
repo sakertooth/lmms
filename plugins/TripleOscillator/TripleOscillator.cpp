@@ -37,6 +37,7 @@
 #include "Oscillator.h"
 #include "PixmapButton.h"
 #include "SampleBuffer.h"
+#include "SampleBufferLoader.h"
 #include "SampleFileDialog.h"
 
 #include "embed.h"
@@ -145,7 +146,9 @@ void OscillatorObject::oscUserDefWaveDblClick()
 	const auto audioFile = gui::SampleFileDialog::openWaveformFile(m_sampleBuffer->audioFile());
 	if (audioFile != "")
 	{
-		m_sampleBuffer->tryLoadFromAudioFile(audioFile);
+		auto buffer = gui::SampleBufferLoader::loadFromFile(audioFile);
+		if (buffer == nullptr) { return; }
+		m_sampleBuffer = std::move(buffer);
 		m_userAntiAliasWaveTable = Oscillator::generateAntiAliasUserWaveTable(m_sampleBuffer.get());
 		// TODO:
 		//m_usrWaveBtn->setToolTip(m_sampleBuffer->audioFile());
@@ -291,7 +294,9 @@ void TripleOscillator::loadSettings( const QDomElement & _this )
 		const auto userWaveFile = _this.attribute("userwavefile" + is);
 		if (!userWaveFile.isEmpty())
 		{
-			m_osc[i]->m_sampleBuffer->tryLoadFromAudioFile(userWaveFile);
+			auto buffer = gui::SampleBufferLoader::loadFromFile(userWaveFile);
+			if (buffer == nullptr) { return; }
+			m_osc[i]->m_sampleBuffer = std::move(buffer);
 			m_osc[i]->m_userAntiAliasWaveTable = Oscillator::generateAntiAliasUserWaveTable(m_osc[i]->m_sampleBuffer.get());
 		}
 	}

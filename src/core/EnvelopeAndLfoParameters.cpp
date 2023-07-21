@@ -28,6 +28,7 @@
 #include "AudioEngine.h"
 #include "Engine.h"
 #include "Oscillator.h"
+#include "SampleBufferLoader.h"
 
 
 namespace lmms
@@ -390,7 +391,9 @@ void EnvelopeAndLfoParameters::loadSettings( const QDomElement & _this )
 	const auto userWaveFile = _this.attribute("userwavefile");
 	if (!userWaveFile.isEmpty())
 	{
-		m_userWave->tryLoadFromAudioFile(userWaveFile);
+		auto buffer = gui::SampleBufferLoader::loadFromFile(userWaveFile);
+		if (buffer == nullptr) { return; }
+		m_userWave = std::move(buffer);
 	}
 
 	updateSampleVars();

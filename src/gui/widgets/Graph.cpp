@@ -28,6 +28,7 @@
 #include "Graph.h"
 #include "StringPairDrag.h"
 #include "SampleBuffer.h"
+#include "SampleBufferLoader.h"
 #include "SampleFileDialog.h"
 #include "Oscillator.h"
 
@@ -592,11 +593,12 @@ QString graphModel::setWaveToUser()
 	const auto fileName = gui::SampleFileDialog::openWaveformFile();
 	if (!fileName.isEmpty())
 	{
-		auto sampleBuffer = SampleBuffer{};
-		sampleBuffer.tryLoadFromAudioFile(fileName);
+		auto sampleBuffer = gui::SampleBufferLoader::loadFromFile(fileName);
+		if (sampleBuffer == nullptr) { return ""; }
+
 		for( int i = 0; i < length(); i++ )
 		{
-			m_samples[i] = Oscillator::userWaveSample(&sampleBuffer, i / static_cast<float>(length()));
+			m_samples[i] = Oscillator::userWaveSample(sampleBuffer.get(), i / static_cast<float>(length()));
 		}
 	}
 

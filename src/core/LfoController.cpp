@@ -27,8 +27,8 @@
 
 #include "LfoController.h"
 #include "AudioEngine.h"
+#include "SampleBufferLoader.h"
 #include "Song.h"
-
 
 namespace lmms
 {
@@ -212,7 +212,9 @@ void LfoController::loadSettings( const QDomElement & _this )
 	const auto userWaveFile = _this.attribute("userwavefile");
 	if (!userWaveFile.isEmpty())
 	{
-		m_userDefSampleBuffer->tryLoadFromAudioFile(_this.attribute("userwavefile"));
+		auto buffer = gui::SampleBufferLoader::loadFromFile(_this.attribute("userwavefile"));
+		if (buffer == nullptr) { return; }
+		m_userDefSampleBuffer = std::move(buffer);
 	}
 
 	updateSampleFunction();

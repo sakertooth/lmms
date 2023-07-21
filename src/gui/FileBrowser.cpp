@@ -53,6 +53,7 @@
 #include "PatternStore.h"
 #include "PluginFactory.h"
 #include "PresetPreviewPlayHandle.h"
+#include "SampleBufferLoader.h"
 #include "SampleClip.h"
 #include "SamplePlayHandle.h"
 #include "SampleTrack.h"
@@ -613,15 +614,12 @@ void FileBrowserTreeWidget::previewFileItem(FileItem* file)
 		// TODO: this can be removed once we do this outside the event thread
 		qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
 		
-		try
+		auto buffer = gui::SampleBufferLoader::loadFromFile(fileName);
+		if (buffer != nullptr)
 		{
-			auto s = new SamplePlayHandle(fileName);
+			auto s = new SamplePlayHandle(new Sample{std::move(buffer)}, true);
 			s->setDoneMayReturnTrue(false);
 			newPPH = s;
-		}
-		catch (const std::runtime_error& e)
-		{
-			std::cout << e.what() << '\n';
 		}
 		delete tf;
 	}

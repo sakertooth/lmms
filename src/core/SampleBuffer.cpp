@@ -90,7 +90,7 @@ SampleBuffer& SampleBuffer::operator=(SampleBuffer other) noexcept
 	return *this;
 }
 
-void SampleBuffer::swap(SampleBuffer& first, SampleBuffer& second) noexcept
+void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 {
 	using std::swap;
 	swap(first.m_data, second.m_data);
@@ -174,31 +174,6 @@ QString SampleBuffer::toBase64() const
 	const auto size = static_cast<int>(m_data.size() * sizeof(sampleFrame));
 	const auto byteArray = QByteArray{data, size};
 	return byteArray.toBase64();
-}
-
-void SampleBuffer::tryLoadFromAudioFile(const QString& audioFile)
-{
-	try
-	{
-		*this = SampleBuffer{audioFile};
-	}
-	catch (std::runtime_error& e)
-	{
-		std::cout << e.what() << '\n';
-	}
-}
-
-void SampleBuffer::tryLoadFromBase64(const QString& base64, int sampleRate)
-{
-	try
-	{
-		const auto base64Array = base64.toUtf8().toBase64();
-		*this = SampleBuffer{base64Array, sampleRate};
-	}
-	catch (std::runtime_error& e)
-	{
-		std::cout << e.what() << '\n';
-	}
 }
 
 auto SampleBuffer::audioFile() const -> QString

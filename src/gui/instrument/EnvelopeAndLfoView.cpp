@@ -37,6 +37,7 @@
 #include "DataFile.h"
 #include "Oscillator.h"
 #include "PixmapButton.h"
+#include "SampleBufferLoader.h"
 #include "StringPairDrag.h"
 #include "TempoSyncKnob.h"
 #include "TextFloat.h"
@@ -322,7 +323,9 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	QString value = StringPairDrag::decodeValue( _de );
 	if (type == "samplefile" && !value.isEmpty())
 	{
-		m_params->m_userWave->tryLoadFromAudioFile(value);
+		auto buffer = gui::SampleBufferLoader::loadFromFile(value);
+		if (buffer == nullptr) { return; }
+		m_params->m_userWave = std::move(buffer);
 		m_userLfoBtn->model()->setValue( true );
 		m_params->m_lfoWaveModel.setValue(EnvelopeAndLfoParameters::UserDefinedWave);
 		_de->accept();
@@ -332,10 +335,11 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	{
 		DataFile dataFile( value.toUtf8() );
 
-		m_params->m_userWave->tryLoadFromAudioFile(dataFile.content().
+		auto buffer = SampleBufferLoader::loadFromFile(dataFile.content().
 					firstChildElement().firstChildElement().
 					firstChildElement().attribute("src"));
-
+		if (buffer == nullptr) { return; }
+		m_params->m_userWave = std::move(buffer);
 		m_userLfoBtn->model()->setValue( true );
 		m_params->m_lfoWaveModel.setValue(EnvelopeAndLfoParameters::UserDefinedWave);
 		_de->accept();
