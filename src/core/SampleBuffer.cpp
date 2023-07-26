@@ -55,8 +55,7 @@ SampleBuffer::SampleBuffer(const QString& audioFile)
 	if (audioFile.isEmpty()) { throw std::runtime_error{"Failure loading audio file: Audio file path is empty."}; }
 
 	auto resolvedFileName = PathUtil::toAbsolute(PathUtil::toShortestRelative(audioFile));
-	if (QFileInfo{resolvedFileName}.suffix() == "ds") { decodeSampleDS(resolvedFileName); }
-	else { decodeSampleSF(resolvedFileName); }
+	QFileInfo{resolvedFileName}.suffix() == "ds" ? decodeSampleDS(resolvedFileName) : decodeSampleSF(resolvedFileName);
 }
 
 SampleBuffer::SampleBuffer(const QByteArray& base64Data, int sampleRate)
