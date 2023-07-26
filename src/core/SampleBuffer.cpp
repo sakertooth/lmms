@@ -66,30 +66,6 @@ SampleBuffer::SampleBuffer(const QByteArray& base64Data, int sampleRate)
 {
 }
 
-SampleBuffer::SampleBuffer(const SampleBuffer& other)
-{
-	m_data = other.m_data;
-	m_audioFile = other.m_audioFile;
-	m_sampleRate = other.m_sampleRate;
-}
-
-SampleBuffer::SampleBuffer(SampleBuffer&& other) noexcept
-{
-	m_data = other.m_data;
-	m_audioFile = other.m_audioFile;
-	m_sampleRate = other.m_sampleRate;
-
-	other.m_data.clear();
-	other.m_audioFile->clear();
-	other.m_sampleRate = 0;
-}
-
-SampleBuffer& SampleBuffer::operator=(SampleBuffer other) noexcept
-{
-	swap(*this, other);
-	return *this;
-}
-
 void swap(SampleBuffer& first, SampleBuffer& second) noexcept
 {
 	using std::swap;

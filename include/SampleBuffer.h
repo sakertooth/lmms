@@ -53,10 +53,6 @@ public:
 	SampleBuffer(
 		const sampleFrame* data, int numFrames, int sampleRate = Engine::audioEngine()->processingSampleRate());
 
-	SampleBuffer(const SampleBuffer&);
-	SampleBuffer(SampleBuffer&&) noexcept;
-	SampleBuffer& operator=(SampleBuffer other) noexcept;
-
 	friend void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
 	auto toBase64() const -> QString;
 
