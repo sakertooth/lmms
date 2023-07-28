@@ -812,7 +812,7 @@ inline sample_t Oscillator::getSample<Oscillator::UserDefinedWave>(const float _
 	}
 	else
 	{
-		return Oscillator::userWaveSample(m_userWave.get(), _sample);
+		return userWaveSample(m_userWave.get(), _sample);
 	}
 }
 
