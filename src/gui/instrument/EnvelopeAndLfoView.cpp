@@ -323,7 +323,7 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	QString value = StringPairDrag::decodeValue( _de );
 	if (type == "samplefile" && !value.isEmpty())
 	{
-		auto buffer = gui::SampleBufferLoader::loadFromFile(value);
+		auto buffer = SampleBufferLoader::loadFromFile(value);
 		if (buffer == nullptr) { return; }
 		m_params->m_userWave = std::move(buffer);
 		m_userLfoBtn->model()->setValue( true );

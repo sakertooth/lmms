@@ -613,7 +613,7 @@ void FileBrowserTreeWidget::previewFileItem(FileItem* file)
 		// TODO: this can be removed once we do this outside the event thread
 		qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
 		
-		auto buffer = gui::SampleBufferLoader::loadFromFile(fileName);
+		auto buffer = SampleBufferLoader::loadFromFile(fileName);
 		if (buffer != nullptr)
 		{
 			auto s = new SamplePlayHandle(new Sample{std::move(buffer)}, true);
