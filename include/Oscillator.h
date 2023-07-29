@@ -104,7 +104,7 @@ public:
 		m_userWave = _wave;
 	}
 
-	inline void setUserAntiAliasWaveTable(const OscillatorConstants::waveform_t* table)
+	inline void setUserAntiAliasWaveTable(std::shared_ptr<const OscillatorConstants::waveform_t> table)
 	{
 		m_userAntiAliasWaveTable = table;
 	}
@@ -263,7 +263,7 @@ private:
 	float m_phaseOffset;
 	float m_phase;
 	std::shared_ptr<const SampleBuffer> m_userWave;
-	const OscillatorConstants::waveform_t* m_userAntiAliasWaveTable{};
+	std::shared_ptr<const OscillatorConstants::waveform_t> m_userAntiAliasWaveTable;
 	bool m_useWaveTable;
 	// There are many update*() variants; the modulator flag is stored as a member variable to avoid
 	// adding more explicit parameters to all of them. Can be converted to a parameter if needed.

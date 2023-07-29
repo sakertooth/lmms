@@ -73,7 +73,7 @@ private:
 	IntModel m_modulationAlgoModel;
 	BoolModel m_useWaveTableModel;
 	std::shared_ptr<const SampleBuffer> m_sampleBuffer;
-	std::unique_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable;
+	std::shared_ptr<OscillatorConstants::waveform_t> m_userAntiAliasWaveTable;
 
 	float m_volumeLeft;
 	float m_volumeRight;

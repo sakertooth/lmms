@@ -806,9 +806,9 @@ inline sample_t Oscillator::getSample<Oscillator::WhiteNoise>(
 template<>
 inline sample_t Oscillator::getSample<Oscillator::UserDefinedWave>(const float _sample)
 {
-	if (m_useWaveTable && !m_isModulator && m_userAntiAliasWaveTable != nullptr)
+	if (m_useWaveTable && m_userAntiAliasWaveTable && !m_isModulator)
 	{
-		return wtSample(m_userAntiAliasWaveTable, _sample);
+		return wtSample(m_userAntiAliasWaveTable.get(), _sample);
 	}
 	else
 	{
