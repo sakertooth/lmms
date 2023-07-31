@@ -140,7 +140,7 @@ bool Sample::play(sampleFrame* dst, PlaybackState* state, int numFrames, float d
 	return true;
 }
 
-void Sample::visualize(QPainter& p, const QRect& dr, int fromFrame, int toFrame)
+void Sample::visualize(QPainter& p, const QRect& dr, int fromFrame, int toFrame) const
 {
 	const auto lock = std::shared_lock{m_mutex};
 	const auto numFrames = static_cast<int>(m_buffer->size());
