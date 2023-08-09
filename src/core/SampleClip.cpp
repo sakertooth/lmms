@@ -118,14 +118,14 @@ void SampleClip::changeLength( const TimePos & _length )
 
 QString SampleClip::sampleFile() const
 {
-	return m_sample.buffer()->audioFile();
+	return m_sample->buffer()->audioFile();
 }
 
 
 
 void SampleClip::setSampleBuffer(SampleBuffer* sb)
 {
-	m_sample.assignNewBuffer(sb);
+	m_sample->assignNewBuffer(sb);
 	updateLength();
 	emit sampleChanged();
 }
@@ -143,7 +143,7 @@ void SampleClip::setSampleFile( const QString & _sf )
 	}
 	else
 	{	//Otherwise set it to the sample's length
-		m_sample.tryLoadFromAudioFile(_sf);
+		m_sample->tryLoadFromAudioFile(_sf);
 		length = sampleLength();
 	}
 	changeLength(length);
@@ -214,7 +214,7 @@ void SampleClip::updateLength()
 
 TimePos SampleClip::sampleLength() const
 {
-	return static_cast<int>(m_sample.playbackSize() / Engine::framesPerTick());
+	return static_cast<int>(m_sample->playbackSize() / Engine::framesPerTick());
 }
 
 
@@ -222,7 +222,7 @@ TimePos SampleClip::sampleLength() const
 
 void SampleClip::setSampleStartFrame(f_cnt_t startFrame)
 {
-	m_sample.setStartFrame( startFrame );
+	m_sample->setStartFrame(startFrame);
 }
 
 
@@ -230,7 +230,7 @@ void SampleClip::setSampleStartFrame(f_cnt_t startFrame)
 
 void SampleClip::setSamplePlayLength(f_cnt_t length)
 {
-	m_sample.setEndFrame( length );
+	m_sample->setEndFrame(length);
 }
 
 
@@ -252,15 +252,15 @@ void SampleClip::saveSettings( QDomDocument & _doc, QDomElement & _this )
 	_this.setAttribute( "off", startTimeOffset() );
 	if( sampleFile() == "" )
 	{
-		_this.setAttribute("data", m_sample.buffer()->toBase64());
+		_this.setAttribute("data", m_sample->buffer()->toBase64());
 	}
 
-	_this.setAttribute( "sample_rate", m_sample.buffer()->sampleRate());
+	_this.setAttribute( "sample_rate", m_sample->buffer()->sampleRate());
 	if( usesCustomClipColor() )
 	{
 		_this.setAttribute( "color", color().name() );
 	}
-	if (m_sample.reversed())
+	if (m_sample->reversed())
 	{
 		_this.setAttribute("reversed", "true");
 	}
@@ -281,7 +281,7 @@ void SampleClip::loadSettings( const QDomElement & _this )
 	{
 		const auto decodedSampleData = QByteArray::fromBase64(_this.attribute("data").toUtf8());
 		const auto sampleRate = _this.attribute("sample_rate").toInt();
-		m_sample.tryLoadFromBase64(decodedSampleData, sampleRate);
+		m_sample->tryLoadFromBase64(decodedSampleData, sampleRate);
 	}
 	changeLength( _this.attribute( "len" ).toInt() );
 	setMuted( _this.attribute( "muted" ).toInt() );
@@ -299,7 +299,7 @@ void SampleClip::loadSettings( const QDomElement & _this )
 
 	if(_this.hasAttribute("reversed"))
 	{
-		m_sample.setReversed(true);
+		m_sample->setReversed(true);
 		emit wasReversed(); // tell SampleClipView to update the view
 	}
 }

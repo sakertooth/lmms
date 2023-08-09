@@ -43,7 +43,7 @@ class AudioPort;
 class SamplePlayHandle : public PlayHandle
 {
 public:
-	SamplePlayHandle(const Sample* sample, bool ownSample, bool ownAudioPort = true);
+	SamplePlayHandle(std::shared_ptr<Sample> sample, bool ownAudioPort = true);
 	SamplePlayHandle( const QString& sampleFile );
 	SamplePlayHandle( SampleClip* clip );
 	~SamplePlayHandle() override;
@@ -81,14 +81,13 @@ public:
 
 
 private:
-	const Sample* m_sample;
+	std::shared_ptr<Sample> m_sample;
 	bool m_doneMayReturnTrue = true;
 
 	f_cnt_t m_frame = 0;
 	Sample::PlaybackState m_state;
 
 	bool m_ownAudioPort = true;
-	bool m_ownSample = false;
 
 	FloatModel m_defaultVolumeModel = {DefaultVolume, MinVolume, MaxVolume, 1};
 	FloatModel * m_volumeModel = &m_defaultVolumeModel;

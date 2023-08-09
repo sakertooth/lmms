@@ -616,7 +616,7 @@ void FileBrowserTreeWidget::previewFileItem(FileItem* file)
 		auto buffer = SampleBufferLoader::loadFromFile(fileName);
 		if (buffer != nullptr)
 		{
-			auto s = new SamplePlayHandle(new Sample{std::move(buffer)}, true);
+			auto s = new SamplePlayHandle(std::make_shared<Sample>(std::move(buffer)));
 			s->setDoneMayReturnTrue(false);
 			newPPH = s;
 		}
