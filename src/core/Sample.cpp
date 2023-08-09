@@ -120,7 +120,7 @@ bool Sample::play(sampleFrame* dst, PlaybackState* state, int numFrames, float d
 	const auto lock = std::shared_lock{m_mutex};
 	const auto resampleRatio
 		= m_frequency / desiredFrequency * Engine::audioEngine()->processingSampleRate() / m_buffer->sampleRate();
-	auto playedSuccessfully = 0;
+	auto playedSuccessfully = false;
 
 	switch (loopMode)
 	{
