@@ -30,9 +30,9 @@
 #include <ladspa.h>
 
 #include <QMap>
-#include <QPair>
 #include <QString>
 #include <QStringList>
+#include <utility>
 
 
 #include "lmms_export.h"
@@ -44,8 +44,8 @@ namespace lmms
 
 const float NOHINT = -99342.2243f;
 
-using ladspa_key_t = QPair<QString, QString>;
-using sortable_plugin_t = QPair<QString, ladspa_key_t>;
+using ladspa_key_t = std::pair<QString, QString>;
+using sortable_plugin_t = std::pair<QString, ladspa_key_t>;
 using l_sortable_plugin_t = QList<sortable_plugin_t>;
 using l_ladspa_key_t = QList<ladspa_key_t>;
 

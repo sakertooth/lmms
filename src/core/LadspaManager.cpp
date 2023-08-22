@@ -99,7 +99,7 @@ LadspaManager::LadspaManager()
 	l_ladspa_key_t keys = m_ladspaManagerMap.keys();
 	for (const auto& key : keys)
 	{
-		m_sortedPlugins.append(qMakePair(getName(key), key));
+		m_sortedPlugins.append(std::make_pair(getName(key), key));
 	}
 	std::sort( m_sortedPlugins.begin(), m_sortedPlugins.end() );
 }

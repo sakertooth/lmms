@@ -42,8 +42,7 @@ Ladspa2LMMS::Ladspa2LMMS()
 		
 		if( desc->type == SOURCE )
 		{
-			m_instruments.append( qMakePair( getName( key ), 
-								key ) );
+			m_instruments.append(std::make_pair(getName(key), key));
 		}
 		else if( desc->type == TRANSFER &&
 			( desc->inputChannels == desc->outputChannels &&
@@ -52,8 +51,7 @@ Ladspa2LMMS::Ladspa2LMMS()
 			desc->inputChannels == 4 )/* &&
 			isRealTimeCapable( key )*/ ) )
 		{
-			m_validEffects.append( qMakePair( getName( key ),
-								key ) );
+			m_validEffects.append(std::make_pair(getName(key), key));
 		}
 		else if( desc->type == TRANSFER &&
 			( desc->inputChannels != desc->outputChannels ||
@@ -62,18 +60,15 @@ Ladspa2LMMS::Ladspa2LMMS()
 			desc->inputChannels != 4 ) ||
 			!isRealTimeCapable( key ) ) )
 		{
-			m_invalidEffects.append( qMakePair( getName( key ), 
-								key ) );
+			m_invalidEffects.append(std::make_pair(getName(key), key));
 		}
 		else if( desc->type == SINK )
 		{
-			m_analysisTools.append( qMakePair( getName( key ),
-								key ) );
+			m_analysisTools.append(std::make_pair(getName(key), key));
 		}
 		else if( desc->type == OTHER )
 		{
-			m_otherPlugins.append( qMakePair( getName( key ), 
-								key ) );
+			m_otherPlugins.append(std::make_pair(getName(key), key));
 		}
 	}
 }
