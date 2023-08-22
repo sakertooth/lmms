@@ -358,7 +358,7 @@ void ConfigManager::setValue(const QString & cls,
 {
 	if(m_settings.contains(cls))
 	{
-		for(QPair<QString, QString>& pair : m_settings[cls])
+		for (std::pair<QString, QString>& pair : m_settings[cls])
 		{
 			if(pair.first == attribute)
 			{
@@ -372,7 +372,7 @@ void ConfigManager::setValue(const QString & cls,
 		}
 	}
 	// not in map yet, so we have to add it...
-	m_settings[cls].push_back(qMakePair(attribute, value));
+	m_settings[cls].emplace_back(attribute, value);
 }
 
 
@@ -448,8 +448,7 @@ void ConfigManager::loadConfigFile(const QString & configFile)
 						QDomNode n = node_attr.item(i);
 						if(n.isAttr())
 						{
-							attr.push_back(qMakePair(n.toAttr().name(),
-											n.toAttr().value()));
+							attr.emplace_back(n.toAttr().name(), n.toAttr().value());
 						}
 					}
 					m_settings[node.nodeName()] = attr;

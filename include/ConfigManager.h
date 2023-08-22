@@ -28,10 +28,10 @@
 #include "lmmsconfig.h"
 
 #include <QMap>
-#include <QPair>
 #include <QStringList>
 #include <QObject>
 
+#include <utility>
 #include <vector>
 #include "lmms_export.h"
 
@@ -299,7 +299,7 @@ private:
 	unsigned int m_configVersion;
 	QStringList m_recentlyOpenedProjects;
 
-	using stringPairVector = std::vector<QPair<QString, QString>>;
+	using stringPairVector = std::vector<std::pair<QString, QString>>;
 	using settingsMap = QMap<QString, stringPairVector>;
 	settingsMap m_settings;
 
