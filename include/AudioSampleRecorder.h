@@ -27,7 +27,7 @@
 #define LMMS_AUDIO_SAMPLE_RECORDER_H
 
 #include <QList>
-#include <QPair>
+#include <utility>
 
 #include "AudioDevice.h"
 
@@ -52,7 +52,7 @@ private:
 						const fpp_t _frames,
 						const float _master_gain ) override;
 
-	using BufferList = QList<QPair<sampleFrame*, fpp_t>>;
+	using BufferList = QList<std::pair<sampleFrame*, fpp_t>>;
 	BufferList m_buffers;
 
 } ;

@@ -109,7 +109,7 @@ void AudioSampleRecorder::writeBuffer( const surroundSampleFrame * _ab,
 			buf[frame][chnl] = _ab[frame][chnl];
 		}
 	}
-	m_buffers.push_back( qMakePair( buf, _frames ) );
+	m_buffers.push_back(std::make_pair(buf, _frames));
 }
 
 
