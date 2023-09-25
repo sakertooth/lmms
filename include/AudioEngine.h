@@ -36,6 +36,8 @@
 #include <samplerate.h>
 
 #include <vector>
+#include <mutex>
+#include <condition_variable>
 
 #include "lmms_basics.h"
 #include "LocklessList.h"
