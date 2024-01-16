@@ -77,8 +77,7 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 	m_framesPerPeriod( DEFAULT_BUFFER_SIZE ),
 	m_inputBufferRead( 0 ),
 	m_inputBufferWrite( 1 ),
-	m_outputBufferRead(nullptr),
-	m_outputBufferWrite(nullptr),
+	m_outputBuffer(m_framesPerPeriod * sizeof(surroundSampleFrame)),
 	m_workers(),
 	m_numWorkers( QThread::idealThreadCount()-1 ),
 	m_newPlayHandles( PlayHandle::MaxNumber ),
@@ -123,12 +122,6 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 	// now that framesPerPeriod is fixed initialize global BufferManager
 	BufferManager::init( m_framesPerPeriod );
 
-	int outputBufferSize = m_framesPerPeriod * sizeof(surroundSampleFrame);
-	m_outputBufferRead = static_cast<surroundSampleFrame *>(MemoryHelper::alignedMalloc(outputBufferSize));
-	m_outputBufferWrite = static_cast<surroundSampleFrame *>(MemoryHelper::alignedMalloc(outputBufferSize));
-
-	BufferManager::clear(m_outputBufferRead, m_framesPerPeriod);
-	BufferManager::clear(m_outputBufferWrite, m_framesPerPeriod);
 
 	for( int i = 0; i < m_numWorkers+1; ++i )
 	{
@@ -160,9 +153,6 @@ AudioEngine::~AudioEngine()
 
 	delete m_midiClient;
 	delete m_audioDev;
-
-	MemoryHelper::alignedFree(m_outputBufferRead);
-	MemoryHelper::alignedFree(m_outputBufferWrite);
 
 	for (const auto& input : m_inputBuffer)
 	{
@@ -291,7 +281,7 @@ const surroundSampleFrame *AudioEngine::renderNextBuffer()
 
 	handleMetronome();
 	Engine::getSong()->processNextBuffer();
-	Engine::mixer()->masterMix(m_outputBufferWrite);
+	Engine::mixer()->masterMix(m_outputBuffer.data());
 
 	EnvelopeAndLfoParameters::instances()->trigger();
 	Controller::triggerFrameCounter();
@@ -300,8 +290,8 @@ const surroundSampleFrame *AudioEngine::renderNextBuffer()
 	s_renderingThread = false;
 	m_profiler.finishPeriod(processingSampleRate(), m_framesPerPeriod);
 
-	emit nextAudioBuffer(m_outputBufferRead);
-	return m_outputBufferRead;
+	emit nextAudioBuffer(m_outputBuffer.data());
+	return m_outputBuffer.data();
 }
 
 void AudioEngine::handleMetronome()
