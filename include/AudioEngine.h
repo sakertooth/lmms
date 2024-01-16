@@ -376,11 +376,6 @@ private:
 	AudioDevice * tryAudioDevices();
 	MidiClient * tryMidiClients();
 
-	void renderStageNoteSetup();
-	void renderStageInstruments();
-	void renderStageEffects();
-	void renderStageMix();
-
 	void swapBuffers();
 
 	void handleMetronome();

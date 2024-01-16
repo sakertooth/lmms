@@ -282,127 +282,6 @@ void AudioEngine::pushInputFrames( sampleFrame * _ab, const f_cnt_t _frames )
 	doneChangeInModel();
 }
 
-
-
-void AudioEngine::renderStageNoteSetup()
-{
-	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::NoteSetup);
-
-	if( m_clearSignal )
-	{
-		m_clearSignal = false;
-		clearInternal();
-	}
-
-	// remove all play-handles that have to be deleted and delete
-	// them if they still exist...
-	// maybe this algorithm could be optimized...
-	ConstPlayHandleList::Iterator it_rem = m_playHandlesToRemove.begin();
-	while( it_rem != m_playHandlesToRemove.end() )
-	{
-		PlayHandleList::Iterator it = std::find( m_playHandles.begin(), m_playHandles.end(), *it_rem );
-
-		if( it != m_playHandles.end() )
-		{
-			( *it )->audioPort()->removePlayHandle( ( *it ) );
-			if( ( *it )->type() == PlayHandle::Type::NotePlayHandle )
-			{
-				NotePlayHandleManager::release( (NotePlayHandle*) *it );
-			}
-			else delete *it;
-			m_playHandles.erase( it );
-		}
-
-		it_rem = m_playHandlesToRemove.erase( it_rem );
-	}
-
-	swapBuffers();
-
-	// prepare master mix (clear internal buffers etc.)
-	Mixer * mixer = Engine::mixer();
-	mixer->prepareMasterMix();
-
-	handleMetronome();
-
-	// create play-handles for new notes, samples etc.
-	Engine::getSong()->processNextBuffer();
-
-	// add all play-handles that have to be added
-	for( LocklessListElement * e = m_newPlayHandles.popList(); e; )
-	{
-		m_playHandles += e->value;
-		LocklessListElement * next = e->next;
-		m_newPlayHandles.free( e );
-		e = next;
-	}
-}
-
-
-
-void AudioEngine::renderStageInstruments()
-{
-	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::Instruments);
-
-	AudioEngineWorkerThread::fillJobQueue(m_playHandles);
-	AudioEngineWorkerThread::startAndWaitForJobs();
-}
-
-
-
-void AudioEngine::renderStageEffects()
-{
-	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::Effects);
-
-	// STAGE 2: process effects of all instrument- and sampletracks
-	AudioEngineWorkerThread::fillJobQueue(m_audioPorts);
-	AudioEngineWorkerThread::startAndWaitForJobs();
-
-	// removed all play handles which are done
-	for( PlayHandleList::Iterator it = m_playHandles.begin();
-						it != m_playHandles.end(); )
-	{
-		if( ( *it )->affinityMatters() &&
-			( *it )->affinity() != QThread::currentThread() )
-		{
-			++it;
-			continue;
-		}
-		if( ( *it )->isFinished() )
-		{
-			( *it )->audioPort()->removePlayHandle( ( *it ) );
-			if( ( *it )->type() == PlayHandle::Type::NotePlayHandle )
-			{
-				NotePlayHandleManager::release( (NotePlayHandle*) *it );
-			}
-			else delete *it;
-			it = m_playHandles.erase( it );
-		}
-		else
-		{
-			++it;
-		}
-	}
-}
-
-
-
-void AudioEngine::renderStageMix()
-{
-	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::Mixing);
-
-	Mixer *mixer = Engine::mixer();
-	mixer->masterMix(m_outputBufferWrite);
-
-	emit nextAudioBuffer(m_outputBufferRead);
-
-	// and trigger LFOs
-	EnvelopeAndLfoParameters::instances()->trigger();
-	Controller::triggerFrameCounter();
-	AutomatableModel::incrementPeriodCounter();
-}
-
-
-
 const surroundSampleFrame *AudioEngine::renderNextBuffer()
 {
 	const auto lock = std::lock_guard{m_changeMutex};
@@ -410,32 +289,20 @@ const surroundSampleFrame *AudioEngine::renderNextBuffer()
 	m_profiler.startPeriod();
 	s_renderingThread = true;
 
-	renderStageNoteSetup();     // STAGE 0: clear old play handles and buffers, setup new play handles
-	renderStageInstruments();   // STAGE 1: run and render all play handles
-	renderStageEffects();       // STAGE 2: process effects of all instrument- and sampletracks
-	renderStageMix();           // STAGE 3: do master mix in mixer
+	handleMetronome();
+	Engine::getSong()->processNextBuffer();
+	Engine::mixer()->masterMix(m_outputBufferWrite);
+
+	EnvelopeAndLfoParameters::instances()->trigger();
+	Controller::triggerFrameCounter();
+	AutomatableModel::incrementPeriodCounter();
 
 	s_renderingThread = false;
 	m_profiler.finishPeriod(processingSampleRate(), m_framesPerPeriod);
 
+	emit nextAudioBuffer(m_outputBufferRead);
 	return m_outputBufferRead;
 }
-
-
-
-
-void AudioEngine::swapBuffers()
-{
-	m_inputBufferWrite = (m_inputBufferWrite + 1) % 2;
-	m_inputBufferRead = (m_inputBufferRead + 1) % 2;
-	m_inputBufferFrames[m_inputBufferWrite] = 0;
-
-	std::swap(m_outputBufferRead, m_outputBufferWrite);
-	BufferManager::clear(m_outputBufferWrite, m_framesPerPeriod);
-}
-
-
-
 
 void AudioEngine::handleMetronome()
 {
