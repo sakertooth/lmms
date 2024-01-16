@@ -328,11 +328,6 @@ public:
 
 	bool criticalXRuns() const;
 
-	inline bool hasFifoWriter() const
-	{
-		return m_fifoWriter != nullptr;
-	}
-
 	void pushInputFrames( sampleFrame * _ab, const f_cnt_t _frames );
 
 	inline const sampleFrame * inputBuffer()
@@ -372,33 +367,11 @@ signals:
 
 
 private:
-	using Fifo = FifoBuffer<surroundSampleFrame*>;
-
-	class fifoWriter : public QThread
-	{
-	public:
-		fifoWriter( AudioEngine * audioEngine, Fifo * fifo );
-
-		void finish();
-
-
-	private:
-		AudioEngine * m_audioEngine;
-		Fifo * m_fifo;
-		volatile bool m_writing;
-
-		void run() override;
-
-		void write( surroundSampleFrame * buffer );
-	} ;
-
-
 	AudioEngine( bool renderOnly );
 	~AudioEngine() override;
 
-	void startProcessing(bool needsFifo = true);
+	void startProcessing();
 	void stopProcessing();
-
 
 	AudioDevice * tryAudioDevices();
 	MidiClient * tryMidiClients();
@@ -453,10 +426,6 @@ private:
 	// MIDI device stuff
 	MidiClient * m_midiClient;
 	QString m_midiClientName;
-
-	// FIFO stuff
-	Fifo * m_fifo;
-	fifoWriter * m_fifoWriter;
 
 	AudioEngineProfiler m_profiler;
 

@@ -99,9 +99,6 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 		BufferManager::clear( m_inputBuffer[i], m_inputBufferSize[i] );
 	}
 
-	// determine FIFO size and number of frames per period
-	int fifoSize = 1;
-
 	// if not only rendering (that is, using the GUI), load the buffer
 	// size from user configuration
 	if( renderOnly == false )
@@ -120,18 +117,8 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 
 			m_framesPerPeriod = DEFAULT_BUFFER_SIZE;
 		}
-		// lmms works with chunks of size DEFAULT_BUFFER_SIZE (256) and only the final mix will use the actual
-		// buffer size. Plugins don't see a larger buffer size than 256. If m_framesPerPeriod is larger than
-		// DEFAULT_BUFFER_SIZE, it's set to DEFAULT_BUFFER_SIZE and the rest is handled by an increased fifoSize.
-		else if( m_framesPerPeriod > DEFAULT_BUFFER_SIZE )
-		{
-			fifoSize = m_framesPerPeriod / DEFAULT_BUFFER_SIZE;
-			m_framesPerPeriod = DEFAULT_BUFFER_SIZE;
-		}
+		else if (m_framesPerPeriod > DEFAULT_BUFFER_SIZE) { m_framesPerPeriod = DEFAULT_BUFFER_SIZE; }
 	}
-
-	// allocte the FIFO from the determined size
-	m_fifo = new Fifo( fifoSize );
 
 	// now that framesPerPeriod is fixed initialize global BufferManager
 	BufferManager::init( m_framesPerPeriod );
@@ -171,12 +158,6 @@ AudioEngine::~AudioEngine()
 		m_workers[w]->wait( 500 );
 	}
 
-	while( m_fifo->available() )
-	{
-		delete[] m_fifo->read();
-	}
-	delete m_fifo;
-
 	delete m_midiClient;
 	delete m_audioDev;
 
@@ -211,18 +192,8 @@ void AudioEngine::initDevices()
 
 
 
-void AudioEngine::startProcessing(bool needsFifo)
+void AudioEngine::startProcessing()
 {
-	if (needsFifo)
-	{
-		m_fifoWriter = new fifoWriter( this, m_fifo );
-		m_fifoWriter->start( QThread::HighPriority );
-	}
-	else
-	{
-		m_fifoWriter = nullptr;
-	}
-
 	m_audioDev->startProcessing();
 }
 
@@ -231,18 +202,7 @@ void AudioEngine::startProcessing(bool needsFifo)
 
 void AudioEngine::stopProcessing()
 {
-	if( m_fifoWriter != nullptr )
-	{
-		m_fifoWriter->finish();
-		m_fifoWriter->wait();
-		m_audioDev->stopProcessing();
-		delete m_fifoWriter;
-		m_fifoWriter = nullptr;
-	}
-	else
-	{
-		m_audioDev->stopProcessing();
-	}
+	m_audioDev->stopProcessing();
 }
 
 
@@ -642,7 +602,7 @@ void AudioEngine::setAudioDevice(AudioDevice * _dev,
 	emit qualitySettingsChanged();
 	emit sampleRateChanged();
 
-	if (startNow) {startProcessing( _needs_fifo );}
+	if (startNow) { startProcessing(); }
 }
 
 
@@ -1194,62 +1154,6 @@ MidiClient * AudioEngine::tryMidiClients()
 	m_midiClientName = MidiDummy::name();
 
 	return new MidiDummy;
-}
-
-
-
-
-
-
-
-
-
-AudioEngine::fifoWriter::fifoWriter( AudioEngine* audioEngine, Fifo * fifo ) :
-	m_audioEngine( audioEngine ),
-	m_fifo( fifo ),
-	m_writing( true )
-{
-	setObjectName("AudioEngine::fifoWriter");
-}
-
-
-
-
-void AudioEngine::fifoWriter::finish()
-{
-	m_writing = false;
-}
-
-
-
-
-void AudioEngine::fifoWriter::run()
-{
-	disable_denormals();
-
-#if 0
-#if defined(LMMS_BUILD_LINUX) || defined(LMMS_BUILD_FREEBSD)
-#ifdef LMMS_HAVE_SCHED_H
-	cpu_set_t mask;
-	CPU_ZERO( &mask );
-	CPU_SET( 0, &mask );
-	sched_setaffinity( 0, sizeof( mask ), &mask );
-#endif
-#endif
-#endif
-
-	const fpp_t frames = m_audioEngine->framesPerPeriod();
-	while( m_writing )
-	{
-		auto buffer = new surroundSampleFrame[frames];
-		const surroundSampleFrame * b = m_audioEngine->renderNextBuffer();
-		memcpy( buffer, b, frames * sizeof( surroundSampleFrame ) );
-		m_fifo->write(buffer);
-	}
-
-	// Let audio backend stop processing
-	m_fifo->write(nullptr);
-	m_fifo->waitUntilRead();
 }
 
 } // namespace lmms

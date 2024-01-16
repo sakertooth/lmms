@@ -99,10 +99,6 @@ private:
 			{
 				break;
 			}
-			if( audioEngine()->hasFifoWriter() )
-			{
-				delete[] b;
-			}
 
 			const int microseconds = static_cast<int>( audioEngine()->framesPerPeriod() * 1000000.0f / audioEngine()->processingSampleRate() - timer.elapsed() );
 			if( microseconds > 0 )

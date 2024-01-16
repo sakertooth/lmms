@@ -180,7 +180,7 @@ void ProjectRenderer::run()
 	m_progress = 0;
 
 	// Now start processing
-	Engine::audioEngine()->startProcessing(false);
+	Engine::audioEngine()->startProcessing();
 
 	// Continually track and emit progress percentage to listeners.
 	while (!Engine::getSong()->isExportDone() && !m_abort)
