@@ -345,10 +345,7 @@ public:
 		return m_inputBufferFrames[ m_inputBufferRead ];
 	}
 
-	inline const surroundSampleFrame * nextBuffer()
-	{
-		return hasFifoWriter() ? m_fifo->read() : renderNextBuffer();
-	}
+	const surroundSampleFrame * renderNextBuffer();
 
 	void changeQuality(const struct qualitySettings & qs);
 
@@ -410,8 +407,6 @@ private:
 	void renderStageInstruments();
 	void renderStageEffects();
 	void renderStageMix();
-
-	const surroundSampleFrame * renderNextBuffer();
 
 	void swapBuffers();
 

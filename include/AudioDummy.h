@@ -94,7 +94,7 @@ private:
 		while( true )
 		{
 			timer.reset();
-			const surroundSampleFrame* b = audioEngine()->nextBuffer();
+			const surroundSampleFrame* b = audioEngine()->renderNextBuffer();
 			if( !b )
 			{
 				break;

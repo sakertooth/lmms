@@ -82,7 +82,7 @@ void AudioDevice::processNextBuffer()
 fpp_t AudioDevice::getNextBuffer( surroundSampleFrame * _ab )
 {
 	fpp_t frames = audioEngine()->framesPerPeriod();
-	const surroundSampleFrame * b = audioEngine()->nextBuffer();
+	const surroundSampleFrame * b = audioEngine()->renderNextBuffer();
 	if( !b )
 	{
 		return 0;

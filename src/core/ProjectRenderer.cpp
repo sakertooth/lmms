@@ -175,7 +175,7 @@ void ProjectRenderer::run()
 
 	Engine::getSong()->startExport();
 	// Skip first empty buffer.
-	Engine::audioEngine()->nextBuffer();
+	Engine::audioEngine()->renderNextBuffer();
 
 	m_progress = 0;
 
