@@ -28,7 +28,6 @@
 
 #include "lmmsconfig.h"
 
-#include "AudioEngineWorkerThread.h"
 #include "AudioPort.h"
 #include "Mixer.h"
 #include "Song.h"
@@ -79,8 +78,6 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 	m_inputBufferWrite( 1 ),
 	m_outputBufferRead(nullptr),
 	m_outputBufferWrite(nullptr),
-	m_workers(),
-	m_numWorkers( QThread::idealThreadCount()-1 ),
 	m_newPlayHandles( PlayHandle::MaxNumber ),
 	m_qualitySettings( qualitySettings::Mode::Draft ),
 	m_masterGain( 1.0f ),
@@ -108,16 +105,6 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 
 	BufferManager::clear(m_outputBufferRead, m_framesPerPeriod);
 	BufferManager::clear(m_outputBufferWrite, m_framesPerPeriod);
-
-	for( int i = 0; i < m_numWorkers+1; ++i )
-	{
-		auto wt = new AudioEngineWorkerThread(this);
-		if( i < m_numWorkers )
-		{
-			wt->start( QThread::TimeCriticalPriority );
-		}
-		m_workers.push_back( wt );
-	}
 }
 
 
@@ -125,18 +112,6 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 
 AudioEngine::~AudioEngine()
 {
-	for( int w = 0; w < m_numWorkers; ++w )
-	{
-		m_workers[w]->quit();
-	}
-
-	AudioEngineWorkerThread::startAndWaitForJobs();
-
-	for( int w = 0; w < m_numWorkers; ++w )
-	{
-		m_workers[w]->wait( 500 );
-	}
-
 	delete m_midiClient;
 	delete m_audioDev;
 
@@ -321,9 +296,11 @@ void AudioEngine::renderStageNoteSetup()
 void AudioEngine::renderStageInstruments()
 {
 	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::Instruments);
-
-	AudioEngineWorkerThread::fillJobQueue(m_playHandles);
-	AudioEngineWorkerThread::startAndWaitForJobs();
+	for (const auto& handle : m_playHandles)
+	{
+		handle->queue();
+		handle->process();
+	}
 }
 
 
@@ -333,8 +310,11 @@ void AudioEngine::renderStageEffects()
 	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::Effects);
 
 	// STAGE 2: process effects of all instrument- and sampletracks
-	AudioEngineWorkerThread::fillJobQueue(m_audioPorts);
-	AudioEngineWorkerThread::startAndWaitForJobs();
+	for (const auto& port : m_audioPorts)
+	{
+		port->queue();
+		port->process();
+	}
 
 	// removed all play handles which are done
 	for( PlayHandleList::Iterator it = m_playHandles.begin();

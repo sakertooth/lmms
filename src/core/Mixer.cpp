@@ -25,7 +25,6 @@
 #include <QDomElement>
 
 #include "AudioEngine.h"
-#include "AudioEngineWorkerThread.h"
 #include "BufferManager.h"
 #include "Mixer.h"
 #include "MixHelpers.h"
@@ -103,7 +102,8 @@ void MixerChannel::incrementDeps()
 	if( i >= m_receives.size() && ! m_queued )
 	{
 		m_queued = true;
-		AudioEngineWorkerThread::addJob( this );
+		queue();
+		process();
 	}
 }
 
@@ -629,7 +629,6 @@ void Mixer::masterMix( sampleFrame * _buf )
 	// also instantly add all muted channels as they don't need to care
 	// about their senders, and can just increment the deps of their
 	// recipients right away.
-	AudioEngineWorkerThread::resetJobQueue( AudioEngineWorkerThread::JobQueue::OperationMode::Dynamic );
 	for( MixerChannel * ch : m_mixerChannels )
 	{
 		ch->m_muted = ch->m_muteModel.value();
@@ -641,27 +640,9 @@ void Mixer::masterMix( sampleFrame * _buf )
 		else if( ch->m_receives.size() == 0 )
 		{
 			ch->m_queued = true;
-			AudioEngineWorkerThread::addJob( ch );
+			ch->queue();
+			ch->process();
 		}
-	}
-	while (m_mixerChannels[0]->state() != ThreadableJob::ProcessingState::Done)
-	{
-		bool found = false;
-		for( MixerChannel * ch : m_mixerChannels )
-		{
-			const auto s = ch->state();
-			if (s == ThreadableJob::ProcessingState::Queued
-				|| s == ThreadableJob::ProcessingState::InProgress)
-			{
-				found = true;
-				break;
-			}
-		}
-		if( !found )
-		{
-			break;
-		}
-		AudioEngineWorkerThread::startAndWaitForJobs();
 	}
 
 	// handle sample-exact data in master volume fader

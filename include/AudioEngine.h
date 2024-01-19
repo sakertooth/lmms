@@ -48,8 +48,6 @@ namespace lmms
 class AudioDevice;
 class MidiClient;
 class AudioPort;
-class AudioEngineWorkerThread;
-
 
 const fpp_t MINIMUM_BUFFER_SIZE = 32;
 const fpp_t DEFAULT_BUFFER_SIZE = 256;
@@ -401,10 +399,6 @@ private:
 	surroundSampleFrame * m_outputBufferRead;
 	surroundSampleFrame * m_outputBufferWrite;
 
-	// worker thread stuff
-	std::vector<AudioEngineWorkerThread *> m_workers;
-	int m_numWorkers;
-
 	// playhandle stuff
 	PlayHandleList m_playHandles;
 	// place where new playhandles are added temporarily
@@ -435,7 +429,6 @@ private:
 	std::mutex m_changeMutex;
 
 	friend class Engine;
-	friend class AudioEngineWorkerThread;
 	friend class ProjectRenderer;
 } ;
 

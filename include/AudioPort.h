@@ -132,9 +132,7 @@ private:
 	BoolModel * m_mutedModel;
 
 	friend class AudioEngine;
-	friend class AudioEngineWorkerThread;
-
-} ;
+};
 
 } // namespace lmms
 
