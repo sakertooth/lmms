@@ -38,7 +38,6 @@
 
 #include "lmms_basics.h"
 #include "LocklessList.h"
-#include "FifoBuffer.h"
 #include "AudioEngineProfiler.h"
 #include "PlayHandle.h"
 
@@ -210,10 +209,7 @@ public:
 
 	//! Set new audio device. Old device will be deleted,
 	//! unless it's stored using storeAudioDevice
-	void setAudioDevice( AudioDevice * _dev,
-				const struct qualitySettings & _qs,
-				bool _needs_fifo,
-				bool startNow );
+	void setAudioDevice(AudioDevice* _dev, const struct qualitySettings& _qs, bool startNow);
 	void storeAudioDevice();
 	void restoreAudioDevice();
 	inline AudioDevice * audioDev()
@@ -328,11 +324,6 @@ public:
 
 	bool criticalXRuns() const;
 
-	inline bool hasFifoWriter() const
-	{
-		return m_fifoWriter != nullptr;
-	}
-
 	void pushInputFrames( sampleFrame * _ab, const f_cnt_t _frames );
 
 	inline const sampleFrame * inputBuffer()
@@ -340,14 +331,11 @@ public:
 		return m_inputBuffer[ m_inputBufferRead ];
 	}
 
+	const surroundSampleFrame * renderNextBuffer();
+
 	inline f_cnt_t inputBufferFrames() const
 	{
 		return m_inputBufferFrames[ m_inputBufferRead ];
-	}
-
-	inline const surroundSampleFrame * nextBuffer()
-	{
-		return hasFifoWriter() ? m_fifo->read() : renderNextBuffer();
 	}
 
 	void changeQuality(const struct qualitySettings & qs);
@@ -375,31 +363,10 @@ signals:
 
 
 private:
-	using Fifo = FifoBuffer<surroundSampleFrame*>;
-
-	class fifoWriter : public QThread
-	{
-	public:
-		fifoWriter( AudioEngine * audioEngine, Fifo * fifo );
-
-		void finish();
-
-
-	private:
-		AudioEngine * m_audioEngine;
-		Fifo * m_fifo;
-		volatile bool m_writing;
-
-		void run() override;
-
-		void write( surroundSampleFrame * buffer );
-	} ;
-
-
 	AudioEngine( bool renderOnly );
 	~AudioEngine() override;
 
-	void startProcessing(bool needsFifo = true);
+	void startProcessing();
 	void stopProcessing();
 
 
@@ -411,8 +378,6 @@ private:
 	void renderStageEffects();
 	void renderStageMix();
 
-	const surroundSampleFrame * renderNextBuffer();
-
 	void swapBuffers();
 
 	void handleMetronome();
@@ -423,6 +388,8 @@ private:
 
 	std::vector<AudioPort *> m_audioPorts;
 
+	// TODO: Read frames per period from config and try to create a device from that configuration.
+	// As of right now, it will always equal DEFAULT_BUFFER_SIZE.
 	fpp_t m_framesPerPeriod;
 
 	sampleFrame * m_inputBuffer[2];
@@ -458,10 +425,6 @@ private:
 	// MIDI device stuff
 	MidiClient * m_midiClient;
 	QString m_midiClientName;
-
-	// FIFO stuff
-	Fifo * m_fifo;
-	fifoWriter * m_fifoWriter;
 
 	AudioEngineProfiler m_profiler;
 

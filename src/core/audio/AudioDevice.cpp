@@ -82,7 +82,7 @@ void AudioDevice::processNextBuffer()
 fpp_t AudioDevice::getNextBuffer( surroundSampleFrame * _ab )
 {
 	fpp_t frames = audioEngine()->framesPerPeriod();
-	const surroundSampleFrame * b = audioEngine()->nextBuffer();
+	const surroundSampleFrame * b = audioEngine()->renderNextBuffer();
 	if( !b )
 	{
 		return 0;
@@ -104,11 +104,6 @@ fpp_t AudioDevice::getNextBuffer( surroundSampleFrame * _ab )
 	// release lock
 	unlock();
 
-	if( audioEngine()->hasFifoWriter() )
-	{
-		delete[] b;
-	}
-
 	return frames;
 }
 
@@ -117,13 +112,6 @@ fpp_t AudioDevice::getNextBuffer( surroundSampleFrame * _ab )
 
 void AudioDevice::stopProcessing()
 {
-	if( audioEngine()->hasFifoWriter() )
-	{
-		while( m_inProcess )
-		{
-			processNextBuffer();
-		}
-	}
 }
 
 

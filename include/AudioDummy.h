@@ -94,14 +94,10 @@ private:
 		while( true )
 		{
 			timer.reset();
-			const surroundSampleFrame* b = audioEngine()->nextBuffer();
+			const surroundSampleFrame* b = audioEngine()->renderNextBuffer();
 			if( !b )
 			{
 				break;
-			}
-			if( audioEngine()->hasFifoWriter() )
-			{
-				delete[] b;
 			}
 
 			const int microseconds = static_cast<int>( audioEngine()->framesPerPeriod() * 1000000.0f / audioEngine()->processingSampleRate() - timer.elapsed() );
