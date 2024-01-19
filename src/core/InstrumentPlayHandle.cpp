@@ -58,6 +58,7 @@ void InstrumentPlayHandle::play(sampleFrame * working_buffer)
 			{
 				nphsLeft = true;
 				NotePlayHandle * notePlayHandle = const_cast<NotePlayHandle *>(constNotePlayHandle);
+				notePlayHandle->queue();
 				notePlayHandle->process();
 			}
 		}
