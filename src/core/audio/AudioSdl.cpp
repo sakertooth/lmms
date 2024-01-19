@@ -98,29 +98,8 @@ AudioSdl::AudioSdl( bool & _success_ful, AudioEngine*  _audioEngine ) :
 	m_outConvertEndian = ( m_audioHandle.format != actual.format );
 #endif
 
-
 	_success_ful = true;
 
-#ifdef LMMS_HAVE_SDL2
-	// Workaround for a race condition that causes SDL to segfault
-	SDL_Delay(50);
-
-	m_inputAudioHandle = m_audioHandle;
-	m_inputAudioHandle.callback = sdlInputAudioCallback;
-
-	m_inputDevice = SDL_OpenAudioDevice (nullptr,
-										 1,
-										 &m_inputAudioHandle,
-										 &actual,
-										 0);
-	if (m_inputDevice != 0) {
-		m_supportsCapture = true;
-	} else {
-		m_supportsCapture = false;
-		qWarning ( "Couldn't open SDL capture device: %s\n", SDL_GetError ());
-	}
-
-#endif
 }
 
 
@@ -131,10 +110,7 @@ AudioSdl::~AudioSdl()
 	stopProcessing();
 
 #ifdef LMMS_HAVE_SDL2
-	if (m_inputDevice != 0)
-		SDL_CloseAudioDevice(m_inputDevice);
-	if (m_outputDevice != 0)
-		SDL_CloseAudioDevice(m_outputDevice);
+	if (m_outputDevice != 0) { SDL_CloseAudioDevice(m_outputDevice); }
 #else
 	SDL_CloseAudio();
 	delete[] m_convertedBuf;
@@ -154,7 +130,6 @@ void AudioSdl::startProcessing()
 
 #ifdef LMMS_HAVE_SDL2
 	SDL_PauseAudioDevice (m_outputDevice, 0);
-	SDL_PauseAudioDevice (m_inputDevice, 0);
 #else
 	SDL_PauseAudio( 0 );
 #endif
@@ -172,15 +147,9 @@ void AudioSdl::stopProcessing()
 #endif
 	{
 #ifdef LMMS_HAVE_SDL2
-		SDL_LockAudioDevice (m_inputDevice);
 		SDL_LockAudioDevice (m_outputDevice);
-
 		m_stopped = true;
-
-		SDL_PauseAudioDevice (m_inputDevice,	1);
 		SDL_PauseAudioDevice (m_outputDevice,	1);
-
-		SDL_UnlockAudioDevice (m_inputDevice);
 		SDL_UnlockAudioDevice (m_outputDevice);
 #else
 		SDL_LockAudio();
@@ -306,23 +275,6 @@ void AudioSdl::sdlAudioCallback( Uint8 * _buf, int _len )
 	}
 #endif // LMMS_HAVE_SDL2
 }
-
-#ifdef LMMS_HAVE_SDL2
-
-void AudioSdl::sdlInputAudioCallback(void *_udata, Uint8 *_buf, int _len) {
-	auto _this = static_cast<AudioSdl*>(_udata);
-
-	_this->sdlInputAudioCallback( _buf, _len );
-}
-
-void AudioSdl::sdlInputAudioCallback(Uint8 *_buf, int _len) {
-	auto samples_buffer = (sampleFrame*)_buf;
-	fpp_t frames = _len / sizeof ( sampleFrame );
-
-	audioEngine()->pushInputFrames (samples_buffer, frames);
-}
-
-#endif
 
 AudioSdl::setupWidget::setupWidget( QWidget * _parent ) :
 	AudioDeviceSetupWidget( AudioSdl::name(), _parent )

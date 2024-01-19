@@ -322,8 +322,6 @@ public:
 
 	bool criticalXRuns() const;
 
-	void pushInputFrames( sampleFrame * _ab, const f_cnt_t _frames );
-
 	inline const sampleFrame * inputBuffer()
 	{
 		return m_inputBuffer[ m_inputBufferRead ];

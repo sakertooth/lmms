@@ -207,37 +207,6 @@ bool AudioEngine::criticalXRuns() const
 }
 
 
-
-
-void AudioEngine::pushInputFrames( sampleFrame * _ab, const f_cnt_t _frames )
-{
-	requestChangeInModel();
-
-	f_cnt_t frames = m_inputBufferFrames[ m_inputBufferWrite ];
-	int size = m_inputBufferSize[ m_inputBufferWrite ];
-	sampleFrame * buf = m_inputBuffer[ m_inputBufferWrite ];
-
-	if( frames + _frames > size )
-	{
-		size = std::max(size * 2, frames + _frames);
-		auto ab = new sampleFrame[size];
-		memcpy( ab, buf, frames * sizeof( sampleFrame ) );
-		delete [] buf;
-
-		m_inputBufferSize[ m_inputBufferWrite ] = size;
-		m_inputBuffer[ m_inputBufferWrite ] = ab;
-
-		buf = ab;
-	}
-
-	memcpy( &buf[ frames ], _ab, _frames * sizeof( sampleFrame ) );
-	m_inputBufferFrames[ m_inputBufferWrite ] += _frames;
-
-	doneChangeInModel();
-}
-
-
-
 void AudioEngine::renderStageNoteSetup()
 {
 	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::NoteSetup);
