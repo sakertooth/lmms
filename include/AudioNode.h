@@ -110,7 +110,7 @@ public:
 
 		Audio sent should be mixed into output and not overwritten.
 	*/
-	virtual void render(const Buffer input, Buffer output, const AudioNode& dest) = 0;
+	virtual void render(const Buffer input, Buffer output, AudioNode& dest) = 0;
 
 	//! Returns `true` if this node is not meant to have any dependencies and input.
 	virtual auto isSource() -> bool = 0;
