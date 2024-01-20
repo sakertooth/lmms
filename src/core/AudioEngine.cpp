@@ -206,131 +206,6 @@ bool AudioEngine::criticalXRuns() const
 	return cpuLoad() >= 99 && Engine::getSong()->isExporting() == false;
 }
 
-
-void AudioEngine::renderStageNoteSetup()
-{
-	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::NoteSetup);
-
-	if( m_clearSignal )
-	{
-		m_clearSignal = false;
-		clearInternal();
-	}
-
-	// remove all play-handles that have to be deleted and delete
-	// them if they still exist...
-	// maybe this algorithm could be optimized...
-	ConstPlayHandleList::Iterator it_rem = m_playHandlesToRemove.begin();
-	while( it_rem != m_playHandlesToRemove.end() )
-	{
-		PlayHandleList::Iterator it = std::find( m_playHandles.begin(), m_playHandles.end(), *it_rem );
-
-		if( it != m_playHandles.end() )
-		{
-			( *it )->audioPort()->removePlayHandle( ( *it ) );
-			if( ( *it )->type() == PlayHandle::Type::NotePlayHandle )
-			{
-				NotePlayHandleManager::release( (NotePlayHandle*) *it );
-			}
-			else delete *it;
-			m_playHandles.erase( it );
-		}
-
-		it_rem = m_playHandlesToRemove.erase( it_rem );
-	}
-
-	swapBuffers();
-
-	// prepare master mix (clear internal buffers etc.)
-	Mixer * mixer = Engine::mixer();
-	mixer->prepareMasterMix();
-
-	handleMetronome();
-
-	// create play-handles for new notes, samples etc.
-	Engine::getSong()->processNextBuffer();
-
-	// add all play-handles that have to be added
-	for( LocklessListElement * e = m_newPlayHandles.popList(); e; )
-	{
-		m_playHandles += e->value;
-		LocklessListElement * next = e->next;
-		m_newPlayHandles.free( e );
-		e = next;
-	}
-}
-
-
-
-void AudioEngine::renderStageInstruments()
-{
-	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::Instruments);
-	for (const auto& handle : m_playHandles)
-	{
-		handle->queue();
-		handle->process();
-	}
-}
-
-
-
-void AudioEngine::renderStageEffects()
-{
-	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::Effects);
-
-	// STAGE 2: process effects of all instrument- and sampletracks
-	for (const auto& port : m_audioPorts)
-	{
-		port->queue();
-		port->process();
-	}
-
-	// removed all play handles which are done
-	for( PlayHandleList::Iterator it = m_playHandles.begin();
-						it != m_playHandles.end(); )
-	{
-		if( ( *it )->affinityMatters() &&
-			( *it )->affinity() != QThread::currentThread() )
-		{
-			++it;
-			continue;
-		}
-		if( ( *it )->isFinished() )
-		{
-			( *it )->audioPort()->removePlayHandle( ( *it ) );
-			if( ( *it )->type() == PlayHandle::Type::NotePlayHandle )
-			{
-				NotePlayHandleManager::release( (NotePlayHandle*) *it );
-			}
-			else delete *it;
-			it = m_playHandles.erase( it );
-		}
-		else
-		{
-			++it;
-		}
-	}
-}
-
-
-
-void AudioEngine::renderStageMix()
-{
-	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::Mixing);
-
-	Mixer *mixer = Engine::mixer();
-	mixer->masterMix(m_outputBufferWrite);
-
-	emit nextAudioBuffer(m_outputBufferRead);
-
-	// and trigger LFOs
-	EnvelopeAndLfoParameters::instances()->trigger();
-	Controller::triggerFrameCounter();
-	AutomatableModel::incrementPeriodCounter();
-}
-
-
-
 const surroundSampleFrame *AudioEngine::renderNextBuffer()
 {
 	const auto lock = std::lock_guard{m_changeMutex};
@@ -338,10 +213,11 @@ const surroundSampleFrame *AudioEngine::renderNextBuffer()
 	m_profiler.startPeriod();
 	s_renderingThread = true;
 
-	renderStageNoteSetup();     // STAGE 0: clear old play handles and buffers, setup new play handles
-	renderStageInstruments();   // STAGE 1: run and render all play handles
-	renderStageEffects();       // STAGE 2: process effects of all instrument- and sampletracks
-	renderStageMix();           // STAGE 3: do master mix in mixer
+	// TODO: Use new audio processing system
+
+	EnvelopeAndLfoParameters::instances()->trigger();
+	Controller::triggerFrameCounter();
+	AutomatableModel::incrementPeriodCounter();
 
 	s_renderingThread = false;
 	m_profiler.finishPeriod(processingSampleRate(), m_framesPerPeriod);
@@ -421,33 +297,8 @@ void AudioEngine::clear()
 
 void AudioEngine::clearNewPlayHandles()
 {
-	requestChangeInModel();
-	for( LocklessListElement * e = m_newPlayHandles.popList(); e; )
-	{
-		LocklessListElement * next = e->next;
-		m_newPlayHandles.free( e );
-		e = next;
-	}
-	doneChangeInModel();
+	// TODO: Remove function when new system is used
 }
-
-
-
-// removes all play-handles. this is necessary, when the song is stopped ->
-// all remaining notes etc. would be played until their end
-void AudioEngine::clearInternal()
-{
-	// TODO: m_midiClient->noteOffAll();
-	for (auto ph : m_playHandles)
-	{
-		if (ph->type() != PlayHandle::Type::InstrumentPlayHandle)
-		{
-			m_playHandlesToRemove.push_back(ph);
-		}
-	}
-}
-
-
 
 
 AudioEngine::StereoSample AudioEngine::getPeakValues(sampleFrame * ab, const f_cnt_t frames) const
@@ -561,92 +412,20 @@ void AudioEngine::restoreAudioDevice()
 
 void AudioEngine::removeAudioPort(AudioPort * port)
 {
-	requestChangeInModel();
-
-	auto it = std::find(m_audioPorts.begin(), m_audioPorts.end(), port);
-	if (it != m_audioPorts.end())
-	{
-		m_audioPorts.erase(it);
-	}
-	doneChangeInModel();
+	// TODO: Remove function when new system is used
 }
 
 
 bool AudioEngine::addPlayHandle( PlayHandle* handle )
 {
-	// Only add play handles if we have the CPU capacity to process them.
-	// Instrument play handles are not added during playback, but when the
-	// associated instrument is created, so add those unconditionally.
-	if (handle->type() == PlayHandle::Type::InstrumentPlayHandle || !criticalXRuns())
-	{
-		m_newPlayHandles.push( handle );
-		handle->audioPort()->addPlayHandle( handle );
-		return true;
-	}
-
-	if( handle->type() == PlayHandle::Type::NotePlayHandle )
-	{
-		NotePlayHandleManager::release( (NotePlayHandle*)handle );
-	}
-	else delete handle;
-
+	// TODO: Remove function when new system is used
 	return false;
 }
 
 
 void AudioEngine::removePlayHandle(PlayHandle * ph)
 {
-	requestChangeInModel();
-	// check thread affinity as we must not delete play-handles
-	// which were created in a thread different than the audio engine thread
-	if (ph->affinityMatters() && ph->affinity() == QThread::currentThread())
-	{
-		ph->audioPort()->removePlayHandle(ph);
-		bool removedFromList = false;
-		// Check m_newPlayHandles first because doing it the other way around
-		// creates a race condition
-		for( LocklessListElement * e = m_newPlayHandles.first(),
-				* ePrev = nullptr; e; ePrev = e, e = e->next )
-		{
-			if (e->value == ph)
-			{
-				if( ePrev )
-				{
-					ePrev->next = e->next;
-				}
-				else
-				{
-					m_newPlayHandles.setFirst( e->next );
-				}
-				m_newPlayHandles.free( e );
-				removedFromList = true;
-				break;
-			}
-		}
-		// Now check m_playHandles
-		PlayHandleList::Iterator it = std::find(m_playHandles.begin(), m_playHandles.end(), ph);
-		if (it != m_playHandles.end())
-		{
-			m_playHandles.erase(it);
-			removedFromList = true;
-		}
-		// Only deleting PlayHandles that were actually found in the list
-		// "fixes crash when previewing a preset under high load"
-		// (See tobydox's 2008 commit 4583e48)
-		if ( removedFromList )
-		{
-			if (ph->type() == PlayHandle::Type::NotePlayHandle)
-			{
-				NotePlayHandleManager::release(dynamic_cast<NotePlayHandle*>(ph));
-			}
-			else { delete ph; }
-		}
-	}
-	else
-	{
-		m_playHandlesToRemove.push_back(ph);
-	}
-	doneChangeInModel();
+	// TODO: Remove function when new system is used
 }
 
 
@@ -654,26 +433,7 @@ void AudioEngine::removePlayHandle(PlayHandle * ph)
 
 void AudioEngine::removePlayHandlesOfTypes(Track * track, PlayHandle::Types types)
 {
-	requestChangeInModel();
-	PlayHandleList::Iterator it = m_playHandles.begin();
-	while( it != m_playHandles.end() )
-	{
-		if ((*it)->isFromTrack(track) && ((*it)->type() & types))
-		{
-			( *it )->audioPort()->removePlayHandle( ( *it ) );
-			if( ( *it )->type() == PlayHandle::Type::NotePlayHandle )
-			{
-				NotePlayHandleManager::release( (NotePlayHandle*) *it );
-			}
-			else delete *it;
-			it = m_playHandles.erase( it );
-		}
-		else
-		{
-			++it;
-		}
-	}
-	doneChangeInModel();
+	// TODO: Remove function when new system is used
 }
 
 
