@@ -144,7 +144,6 @@ void AudioNode::Processor::processNode(AudioNode& node)
 
 	if (!node.isSource())
 	{
-		if (node.m_dependencies.empty()) { return; }
 		while (node.m_numInputs < node.m_dependencies.size())
 		{
 			_mm_pause();
@@ -156,7 +155,12 @@ void AudioNode::Processor::processNode(AudioNode& node)
 	{
 		const auto lock = std::scoped_lock{node.m_renderingMutex, dest->m_renderingMutex};
 		const auto output = Buffer{dest->m_buffer.data(), dest->m_buffer.size()};
-		node.render(input, output, *dest);
+
+		if ((!node.isSource() && !node.m_dependencies.empty()) || node.isSource())
+		{
+			node.render(input, output, *dest);
+		} 
+
 		dest->m_numInputs.fetch_add(1, std::memory_order_relaxed);
 	}
 
