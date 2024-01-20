@@ -40,7 +40,7 @@ class AudioNode
 public:
 	struct Buffer
 	{
-		const sampleFrame* buffer;
+		sampleFrame* buffer;
 		size_t size;
 	};
 
@@ -99,7 +99,7 @@ public:
 	//! `input` is the input that was sent to this node by other nodes.
 	//! `output` is the place where `output` should be sent to.
 	//! Audio sent should be mixed into output, *not* overwritten.
-	virtual void render(Buffer input, Buffer output, const AudioNode& dest) = 0;
+	virtual void render(const Buffer input, Buffer output, const AudioNode& dest) = 0;
 
 	//! Connect output from this node to the input of `dest`.
 	void connect(AudioNode& dest);
