@@ -52,14 +52,14 @@ AudioNode::~AudioNode()
 	}
 }
 
-auto AudioNode::process() -> Buffer
+auto AudioNode::run() -> Buffer
 {
 	const auto lock = std::lock_guard{m_processMutex};
 	render(m_buffer.data(), m_buffer.size());
 	return {m_buffer.data(), m_buffer.size()};
 }
 
-void AudioNode::push(const sampleFrame* src, size_t size)
+void AudioNode::mix(const sampleFrame* src, size_t size)
 {
 	const auto lock = std::lock_guard{m_processMutex};
 	MixHelpers::add(m_buffer.data(), src, m_buffer.size());
@@ -99,7 +99,7 @@ AudioNode::Processor::~Processor()
 	}
 }
 
-void AudioNode::Processor::process(AudioNode& target)
+auto AudioNode::Processor::process(AudioNode& target) -> Buffer
 {
 	m_target = &target;
 
@@ -118,7 +118,9 @@ void AudioNode::Processor::process(AudioNode& target)
 
 	m_target = nullptr;
 	m_targetComplete.store(false, std::memory_order_relaxed);
-    m_queue.clear();
+	m_queue.clear();
+
+	return {m_target->m_buffer.data(), m_target->m_buffer.size()};
 }
 
 void AudioNode::Processor::populateQueue(AudioNode& target)
@@ -163,13 +165,13 @@ void AudioNode::Processor::run()
 			_mm_pause();
 		}
 
-		const auto buffer = nodeToProcess->process();
+		const auto output = nodeToProcess->run();
 		for (const auto& dest : nodeToProcess->m_destinations)
 		{
-			dest->push(buffer.buffer, buffer.size);
+			dest->mix(output.buffer, output.size);
 		}
 
-		nodeToProcess->m_numInputs = 0;
+		nodeToProcess->m_numInputs.store(0, std::memory_order_relaxed);
 		if (nodeToProcess == m_target) { m_targetComplete.store(true, std::memory_order_relaxed); }
 	}
 }

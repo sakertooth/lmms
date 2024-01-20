@@ -46,15 +46,16 @@ public:
 
 	class Processor
 	{
+	public:
 		Processor(unsigned int numWorkers = std::thread::hardware_concurrency());
 		~Processor();
-		void process(AudioNode& target);
+		auto process(AudioNode& target) -> Buffer;
 
 	private:
 		void populateQueue(AudioNode& target);
 		void run();
 
-		AudioNode* m_target;
+		AudioNode* m_target = nullptr;
 		std::list<AudioNode*> m_queue;
 		std::vector<std::thread> m_workers;
 
@@ -69,11 +70,7 @@ public:
 	~AudioNode();
 
 	//! Render audio for an audio period and store results in `dest` of size `size`.
-	virtual void render(const sampleFrame* dest, size_t size) = 0;
-
-	//! Mix in `src` of size `size` as input to this node's buffer.
-	//! Mixes only up to the size of the node.
-	void push(const sampleFrame* src, size_t size);
+	virtual void render(sampleFrame* dest, size_t size) = 0;
 
 	//! Connect output from this node to the input of `dest`.
 	void connect(AudioNode* dest);
@@ -82,7 +79,8 @@ public:
 	void disconnect(AudioNode* dest);
 
 private:
-	auto process() -> Buffer;
+	auto run() -> Buffer;
+	void mix(const sampleFrame* src, size_t size);
 	std::vector<sampleFrame> m_buffer;
 	std::vector<AudioNode*> m_dependencies;
 	std::vector<AudioNode*> m_destinations;
