@@ -96,6 +96,7 @@ set(LMMS_SRCS
 	core/audio/AudioFileFlac.cpp
 	core/audio/AudioFileWave.cpp
 	core/audio/AudioJack.cpp
+	core/audio/AudioNode.cpp
 	core/audio/AudioOss.cpp
 	core/audio/AudioSndio.cpp
 	core/audio/AudioPort.cpp

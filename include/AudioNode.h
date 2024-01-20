@@ -25,6 +25,13 @@
 #ifndef LMMS_AUDIO_NODE_H
 #define LMMS_AUDIO_NODE_H
 
+#include <atomic>
+#include <condition_variable>
+#include <list>
+#include <mutex>
+#include <thread>
+#include <vector>
+
 #include "lmms_basics.h"
 
 namespace lmms {
@@ -33,18 +40,55 @@ class AudioNode
 public:
 	struct Buffer
 	{
-		const sampleFrame* dest;
+		const sampleFrame* buffer;
 		size_t size;
 	};
 
-	virtual ~AudioNode() = default;
+	class Processor
+	{
+		Processor(unsigned int numWorkers = std::thread::hardware_concurrency());
+		~Processor();
+		void process(AudioNode& target);
 
-	//! Push a buffer as input to this node.
-	virtual void push(Buffer buffer) = 0;
+	private:
+		void populateQueue(AudioNode& target);
+		void run();
 
-	//! Run audio processing logic for the current audio period.
-	//! Returns the result of the audio processing as a buffer.
-	virtual auto pull() -> Buffer = 0;
+		AudioNode* m_target;
+		std::list<AudioNode*> m_queue;
+		std::vector<std::thread> m_workers;
+
+		std::condition_variable m_runCond;
+		std::mutex m_runMutex;
+
+		std::atomic<bool> m_done = false;
+		std::atomic<bool> m_targetComplete = false;
+	};
+
+	AudioNode(size_t size);
+	~AudioNode();
+
+	//! Render audio for an audio period and store results in `dest` of size `size`.
+	virtual void render(const sampleFrame* dest, size_t size) = 0;
+
+	//! Mix in `src` of size `size` as input to this node's buffer.
+	//! Mixes only up to the size of the node.
+	void push(const sampleFrame* src, size_t size);
+
+	//! Connect output from this node to the input of `dest`.
+	void connect(AudioNode* dest);
+
+	//! Disconnect output from this node from the input of `dest`. 
+	void disconnect(AudioNode* dest);
+
+private:
+	auto process() -> Buffer;
+	std::vector<sampleFrame> m_buffer;
+	std::vector<AudioNode*> m_dependencies;
+	std::vector<AudioNode*> m_destinations;
+	std::atomic<int> m_numInputs = 0;
+	std::atomic<int> m_numDependencies = 0;
+	std::mutex m_connectionMutex, m_processMutex;
 };
 } // namespace lmms
 
