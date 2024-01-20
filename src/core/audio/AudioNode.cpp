@@ -150,20 +150,21 @@ void AudioNode::Processor::processNode(AudioNode& node)
 		}
 	}
 
-	const auto input = Buffer{node.m_buffer.data(), node.m_buffer.size()};
+	if ((!node.isSource() && !node.m_dependencies.empty()) || node.isSource())
+	{
+		node.render(node.m_buffer.data(), node.m_buffer.size());
+	}
+
 	for (const auto& dest : node.m_destinations)
 	{
 		const auto lock = std::scoped_lock{node.m_renderingMutex, dest->m_renderingMutex};
+		const auto input = Buffer{node.m_buffer.data(), node.m_buffer.size()};
 		const auto output = Buffer{dest->m_buffer.data(), dest->m_buffer.size()};
-
-		if ((!node.isSource() && !node.m_dependencies.empty()) || node.isSource())
-		{
-			node.render(input, output, *dest);
-		} 
-
+		node.send(input, output, *dest);
 		dest->m_numInputs.fetch_add(1, std::memory_order_relaxed);
 	}
 
+	std::fill(node.m_buffer.begin(), node.m_buffer.end(), sampleFrame{});
 	node.m_numInputs.store(0, std::memory_order_relaxed);
 }
 

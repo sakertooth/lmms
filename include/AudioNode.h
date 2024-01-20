@@ -103,14 +103,19 @@ public:
 	//! Removes connections from all neighboring nodes before deletion.
 	virtual ~AudioNode();
 
+	//! Render audio for a single audio period.
+	//! Nodes can choose to either generate data into `buffer`
+	//! or transform the input stored in `buffer`.
+	virtual void render(sampleFrame* buffer, size_t size) = 0;
+
 	/*
-		Render and send audio intended for the destination node `dest`.
+		Send rendered audio intended for the destination node `dest`.
 		`input` is the input that was sent to this node by other nodes.
 		`output` is the place where `output` should be sent to.
 
-		Audio sent should be mixed into output and not overwritten.
+		The audio should be mixed with `output` and not overwritten.
 	*/
-	virtual void render(const Buffer input, Buffer output, AudioNode& dest) = 0;
+	virtual void send(Buffer input, Buffer output, AudioNode& dest) = 0;
 
 	//! Returns `true` if this node is not meant to have any dependencies and input.
 	virtual auto isSource() -> bool = 0;
