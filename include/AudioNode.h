@@ -47,13 +47,13 @@ public:
 	class Processor
 	{
 	public:
-		//! Create a processor containing `numWorkers` worker threads.
+		//! Create a `Processor` containing `numWorkers` worker threads.
 		Processor(unsigned int numWorkers = std::thread::hardware_concurrency());
 
-		//! Signals to the workers that any processing must cease, and joins all the workers threads.
+		//! Signals to the workers that any processing must cease, and joins all the workers threads before deletion.
 		~Processor();
 
-		//! Run the processing for `target` and return its output.
+		//! Run the processing for `target` and return its output after waiting for `target` to complete.
 		auto process(AudioNode& target) -> Buffer;
 
 	private:
@@ -66,9 +66,15 @@ public:
 		//! The worker stops if no node could be retrieved.
 		auto retrieveNode() -> AudioNode*;
 
-		//! For each destination of the given node, render output for each.
-		//! Returns `true` if the target assigned to the processor was the node that was processed.
-		//! Returns `false` otherwise.
+		/*
+			For each destination paired with the given node, renders output for each and sends it to them.
+
+			If `node.isSource()` returns `true`, the target is immediately processed and no
+			fake dependencies are waited for completion (if any).
+
+			Otherwise, dependencies are waited upon for completion, but if there are no dependencies for the node,
+			processing will be skipped.
+		*/
 		void processNode(AudioNode& node);
 
 		//! Run loop for worker thread(s).
@@ -85,6 +91,7 @@ public:
 		std::atomic<bool> m_complete = false;
 	};
 
+	//! Creates a node that contains `size` sample frames.
 	AudioNode(size_t size);
 
 	AudioNode(const AudioNode&) = delete;
@@ -93,13 +100,20 @@ public:
 	AudioNode& operator=(const AudioNode&) = delete;
 	AudioNode& operator=(AudioNode&&) = delete;
 
+	//! Removes connections from all neighboring nodes before deletion.
 	virtual ~AudioNode();
 
-	//! Render and send audio intended for the destination node `dest`.
-	//! `input` is the input that was sent to this node by other nodes.
-	//! `output` is the place where `output` should be sent to.
-	//! Audio sent should be mixed into output, *not* overwritten.
+	/*
+		Render and send audio intended for the destination node `dest`.
+		`input` is the input that was sent to this node by other nodes.
+		`output` is the place where `output` should be sent to.
+
+		Audio sent should be mixed into output and not overwritten.
+	*/
 	virtual void render(const Buffer input, Buffer output, const AudioNode& dest) = 0;
+
+	//! Returns `true` if this node is not meant to have any dependencies and input.
+	virtual auto isSource() -> bool = 0;
 
 	//! Connect output from this node to the input of `dest`.
 	void connect(AudioNode& dest);
@@ -109,9 +123,9 @@ public:
 
 private:
 	std::vector<sampleFrame> m_buffer;
+	std::atomic<int> m_numInputs = 0;
 	std::vector<AudioNode*> m_dependencies;
 	std::vector<AudioNode*> m_destinations;
-	std::atomic<int> m_numInputs = 0;
 	std::mutex m_renderingMutex, m_connectionMutex;
 };
 } // namespace lmms

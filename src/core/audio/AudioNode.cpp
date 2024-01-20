@@ -34,6 +34,11 @@
 
 namespace lmms {
 
+AudioNode::AudioNode(size_t size)
+	: m_buffer(size)
+{
+}
+
 AudioNode::~AudioNode()
 {
 	for (const auto& dest : m_destinations)
@@ -137,9 +142,13 @@ void AudioNode::Processor::processNode(AudioNode& node)
 {
 	const auto lock = std::unique_lock{node.m_connectionMutex};
 
-	while (node.m_numInputs < node.m_dependencies.size())
+	if (!node.isSource())
 	{
-		_mm_pause();
+		if (node.m_dependencies.empty()) { return; }
+		while (node.m_numInputs < node.m_dependencies.size())
+		{
+			_mm_pause();
+		}
 	}
 
 	const auto input = Buffer{node.m_buffer.data(), node.m_buffer.size()};
