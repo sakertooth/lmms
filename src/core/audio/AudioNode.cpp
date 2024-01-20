@@ -34,59 +34,33 @@
 
 namespace lmms {
 
-AudioNode::AudioNode(size_t size)
-	: m_buffer(size)
-{
-}
-
 AudioNode::~AudioNode()
 {
 	for (const auto& dest : m_destinations)
 	{
-		disconnect(dest);
-	}
-
-	for (const auto& dependency : m_dependencies)
-	{
-		dependency->disconnect(this);
+		disconnect(*dest);
 	}
 }
 
-auto AudioNode::run() -> Buffer
+void AudioNode::connect(AudioNode& dest)
 {
-	const auto lock = std::lock_guard{m_processMutex};
-	render(m_buffer.data(), m_buffer.size());
-	return {m_buffer.data(), m_buffer.size()};
+	const auto lock = std::scoped_lock{m_connectionMutex, dest.m_connectionMutex};
+	m_destinations.push_back(&dest);
+	dest.m_dependencies.push_back(this);
 }
 
-void AudioNode::mix(const sampleFrame* src, size_t size)
+void AudioNode::disconnect(AudioNode& dest)
 {
-	const auto lock = std::lock_guard{m_processMutex};
-	MixHelpers::add(m_buffer.data(), src, m_buffer.size());
-	m_numInputs.fetch_add(1, std::memory_order_relaxed);
-}
-
-void AudioNode::connect(AudioNode* dest)
-{
-	const auto lock = std::scoped_lock{m_connectionMutex, dest->m_connectionMutex};
-	m_destinations.push_back(dest);
-	dest->m_dependencies.push_back(this);
-	dest->m_numDependencies.fetch_add(1, std::memory_order_relaxed);
-}
-
-void AudioNode::disconnect(AudioNode* dest)
-{
-	const auto lock = std::scoped_lock{m_connectionMutex, dest->m_connectionMutex};
-	m_destinations.erase(std::find(m_destinations.begin(), m_destinations.end(), dest));
-	dest->m_dependencies.erase(std::find(dest->m_dependencies.begin(), dest->m_dependencies.end(), this));
-	dest->m_numDependencies.fetch_sub(1, std::memory_order_relaxed);
+	const auto lock = std::scoped_lock{m_connectionMutex, dest.m_connectionMutex};
+	m_destinations.erase(std::find(m_destinations.begin(), m_destinations.end(), &dest));
+	dest.m_dependencies.erase(std::find(dest.m_dependencies.begin(), dest.m_dependencies.end(), this));
 }
 
 AudioNode::Processor::Processor(unsigned int numWorkers)
 {
 	for (unsigned int i = 0; i < numWorkers; ++i)
 	{
-		m_workers.emplace_back([this] { run(); });
+		m_workers.emplace_back([this] { runWorker(); });
 	}
 }
 
@@ -111,13 +85,13 @@ auto AudioNode::Processor::process(AudioNode& target) -> Buffer
 	m_runCond.notify_all();
 
 	// TODO C++20: Use std::atomic::wait
-	while (!m_targetComplete)
+	while (!m_complete.load(std::memory_order_relaxed))
 	{
 		_mm_pause();
 	}
 
 	m_target = nullptr;
-	m_targetComplete.store(false, std::memory_order_relaxed);
+	m_complete.store(false, std::memory_order_relaxed);
 	m_queue.clear();
 
 	return {m_target->m_buffer.data(), m_target->m_buffer.size()};
@@ -146,33 +120,49 @@ void AudioNode::Processor::populateQueue(AudioNode& target)
 	visit(&target);
 }
 
-void AudioNode::Processor::run()
+auto AudioNode::Processor::retrieveNode() -> AudioNode*
+{
+	auto lock = std::unique_lock{m_runMutex};
+	auto node = static_cast<AudioNode*>(nullptr);
+
+	m_runCond.wait(lock, [this] { return !m_queue.empty() || m_done; });
+	if (m_done) { return nullptr; }
+
+	node = m_queue.front();
+	m_queue.pop_front();
+	return node;
+}
+
+void AudioNode::Processor::processNode(AudioNode& node)
+{
+	const auto lock = std::unique_lock{node.m_connectionMutex};
+
+	while (node.m_numInputs < node.m_dependencies.size())
+	{
+		_mm_pause();
+	}
+
+	const auto input = Buffer{node.m_buffer.data(), node.m_buffer.size()};
+	for (const auto& dest : node.m_destinations)
+	{
+		const auto lock = std::scoped_lock{node.m_renderingMutex, dest->m_renderingMutex};
+		const auto output = Buffer{dest->m_buffer.data(), dest->m_buffer.size()};
+		node.render(input, output, *dest);
+		dest->m_numInputs.fetch_add(1, std::memory_order_relaxed);
+	}
+
+	node.m_numInputs.store(0, std::memory_order_relaxed);
+}
+
+void AudioNode::Processor::runWorker()
 {
 	while (!m_done)
 	{
-		auto nodeToProcess = static_cast<AudioNode*>(nullptr);
-		{
-			auto lock = std::unique_lock{m_runMutex};
-			m_runCond.wait(lock, [this] { return !m_queue.empty() || m_done; });
-			if (m_done) { break; }
+		const auto node = retrieveNode();
+		if (!node) { break; }
 
-			nodeToProcess = m_queue.front();
-			m_queue.pop_front();
-		}
-
-		while (nodeToProcess->m_numInputs < nodeToProcess->m_numDependencies)
-		{
-			_mm_pause();
-		}
-
-		const auto output = nodeToProcess->run();
-		for (const auto& dest : nodeToProcess->m_destinations)
-		{
-			dest->mix(output.buffer, output.size);
-		}
-
-		nodeToProcess->m_numInputs.store(0, std::memory_order_relaxed);
-		if (nodeToProcess == m_target) { m_targetComplete.store(true, std::memory_order_relaxed); }
+		processNode(*node);
+		if (node == m_target) { m_complete.store(true, std::memory_order_relaxed); }
 	}
 }
 
