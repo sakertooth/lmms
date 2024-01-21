@@ -80,6 +80,8 @@ AudioNode::Processor::~Processor()
 
 auto AudioNode::Processor::process(AudioNode& target) -> Buffer
 {
+	if (!canProcessNode(target)) { return Buffer{target.m_buffer.data(), target.m_buffer.size()}; }
+
 	m_target = &target;
 
 	{
@@ -138,6 +140,11 @@ auto AudioNode::Processor::retrieveNode() -> AudioNode*
 	return node;
 }
 
+auto AudioNode::Processor::canProcessNode(AudioNode& node) -> bool
+{
+	return (!node.isSource() && !node.m_dependencies.empty()) || node.isSource();
+}
+
 void AudioNode::Processor::processNode(AudioNode& node)
 {
 	const auto lock = std::unique_lock{node.m_connectionMutex};
@@ -150,10 +157,7 @@ void AudioNode::Processor::processNode(AudioNode& node)
 		}
 	}
 
-	if ((!node.isSource() && !node.m_dependencies.empty()) || node.isSource())
-	{
-		node.render(node.m_buffer.data(), node.m_buffer.size());
-	}
+	if (canProcessNode(node)) { node.render(node.m_buffer.data(), node.m_buffer.size()); }
 
 	for (const auto& dest : node.m_destinations)
 	{
@@ -174,7 +178,6 @@ void AudioNode::Processor::runWorker()
 	{
 		const auto node = retrieveNode();
 		if (!node) { break; }
-
 		processNode(*node);
 		if (node == m_target) { m_complete.store(true, std::memory_order_relaxed); }
 	}

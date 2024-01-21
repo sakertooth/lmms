@@ -80,6 +80,12 @@ public:
 		//! Run loop for worker thread(s).
 		void runWorker();
 
+		//! Return `true` if the node can be processed, and `false` otherwise.
+		//! If `node.isSource()` is `true`, this returns `true`.
+		//! If `node.isSource()` is `false`, then will this function will return `true` when the node has no
+		//! dependencies.
+		auto canProcessNode(AudioNode& node) -> bool;
+
 		AudioNode* m_target = nullptr;
 		std::list<AudioNode*> m_queue;
 		std::vector<std::thread> m_workers;
