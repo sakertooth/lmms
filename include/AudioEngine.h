@@ -33,14 +33,13 @@
 
 #include <QThread>
 #include <samplerate.h>
-
 #include <vector>
 
-#include "lmms_basics.h"
-#include "LocklessList.h"
 #include "AudioEngineProfiler.h"
+#include "AudioNode.h"
+#include "LocklessList.h"
 #include "PlayHandle.h"
-
+#include "lmms_basics.h"
 
 namespace lmms
 {
@@ -244,10 +243,7 @@ public:
 
 	void removePlayHandle( PlayHandle* handle );
 
-	inline PlayHandleList& playHandles()
-	{
-		return m_playHandles;
-	}
+	PlayHandleList playHandles() { return {}; }
 
 	void removePlayHandlesOfTypes(Track * track, PlayHandle::Types types);
 
@@ -397,12 +393,7 @@ private:
 	surroundSampleFrame * m_outputBufferRead;
 	surroundSampleFrame * m_outputBufferWrite;
 
-	// playhandle stuff
-	PlayHandleList m_playHandles;
-	// place where new playhandles are added temporarily
-	LocklessList<PlayHandle *> m_newPlayHandles;
-	ConstPlayHandleList m_playHandlesToRemove;
-
+	AudioNode::Processor m_outputProcessor;
 
 	struct qualitySettings m_qualitySettings;
 	float m_masterGain;

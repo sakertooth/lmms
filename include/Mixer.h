@@ -25,6 +25,7 @@
 #ifndef LMMS_MIXER_H
 #define LMMS_MIXER_H
 
+#include "AudioNode.h"
 #include "Model.h"
 #include "EffectChain.h"
 #include "JournallingObject.h"
@@ -41,11 +42,10 @@ namespace lmms
 class MixerRoute;
 using MixerRouteVector = std::vector<MixerRoute*>;
 
-class MixerChannel : public ThreadableJob
+class MixerChannel : public AudioNode
 {
 	public:
 		MixerChannel( int idx, Model * _parent );
-		virtual ~MixerChannel();
 
 		EffectChain m_fxChain;
 
@@ -56,7 +56,6 @@ class MixerChannel : public ThreadableJob
 
 		float m_peakLeft;
 		float m_peakRight;
-		sampleFrame * m_buffer;
 		bool m_muteBeforeSolo;
 		BoolModel m_muteModel;
 		BoolModel m_soloModel;
@@ -73,19 +72,17 @@ class MixerChannel : public ThreadableJob
 		// pointers to other channels that send to this one
 		MixerRouteVector m_receives;
 
-		bool requiresProcessing() const override { return true; }
+		void render(sampleFrame* buffer, size_t size) override;
+		void send(Buffer input, Buffer output, AudioNode& dest) override;
+
+		auto isSource() -> bool override { return false; }
+
 		void unmuteForSolo();
 
 		auto color() const -> const std::optional<QColor>& { return m_color; }
 		void setColor(const std::optional<QColor>& color) { m_color = color; }
-
-		std::atomic_int m_dependenciesMet;
-		void incrementDeps();
-		void processed();
 		
 	private:
-		void doProcessing() override;
-
 		std::optional<QColor> m_color;
 };
 
@@ -138,9 +135,6 @@ public:
 	~Mixer() override;
 
 	void mixToChannel( const sampleFrame * _buf, mix_ch_t _ch );
-
-	void prepareMasterMix();
-	void masterMix( sampleFrame * _buf );
 
 	void saveSettings( QDomDocument & _doc, QDomElement & _parent ) override;
 	void loadSettings( const QDomElement & _this ) override;

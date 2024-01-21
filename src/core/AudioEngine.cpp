@@ -78,7 +78,6 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 	m_inputBufferWrite( 1 ),
 	m_outputBufferRead(nullptr),
 	m_outputBufferWrite(nullptr),
-	m_newPlayHandles( PlayHandle::MaxNumber ),
 	m_qualitySettings( qualitySettings::Mode::Draft ),
 	m_masterGain( 1.0f ),
 	m_audioDev( nullptr ),
@@ -213,7 +212,7 @@ const surroundSampleFrame *AudioEngine::renderNextBuffer()
 	m_profiler.startPeriod();
 	s_renderingThread = true;
 
-	// TODO: Use new audio processing system
+	const auto output = m_outputProcessor.process(*Engine::mixer()->mixerChannel(0));
 
 	EnvelopeAndLfoParameters::instances()->trigger();
 	Controller::triggerFrameCounter();
@@ -222,7 +221,8 @@ const surroundSampleFrame *AudioEngine::renderNextBuffer()
 	s_renderingThread = false;
 	m_profiler.finishPeriod(processingSampleRate(), m_framesPerPeriod);
 
-	return m_outputBufferRead;
+	emit nextAudioBuffer(output.buffer);
+	return output.buffer;
 }
 
 

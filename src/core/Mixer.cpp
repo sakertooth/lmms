@@ -56,55 +56,21 @@ void MixerRoute::updateName()
 			tr( "Amount to send from channel %1 to channel %2" ).arg( m_from->m_channelIndex ).arg( m_to->m_channelIndex ) );
 }
 
-
-MixerChannel::MixerChannel( int idx, Model * _parent ) :
-	m_fxChain( nullptr ),
-	m_hasInput( false ),
-	m_stillRunning( false ),
-	m_peakLeft( 0.0f ),
-	m_peakRight( 0.0f ),
-	m_buffer( new sampleFrame[Engine::audioEngine()->framesPerPeriod()] ),
-	m_muteModel( false, _parent ),
-	m_soloModel( false, _parent ),
-	m_volumeModel( 1.0, 0.0, 2.0, 0.001, _parent ),
-	m_name(),
-	m_lock(),
-	m_channelIndex( idx ),
-	m_queued( false ),
-	m_dependenciesMet(0)
+MixerChannel::MixerChannel(int idx, Model* _parent)
+	: AudioNode(Engine::audioEngine()->framesPerPeriod())
+	, m_fxChain(nullptr)
+	, m_hasInput(false)
+	, m_stillRunning(false)
+	, m_peakLeft(0.0f)
+	, m_peakRight(0.0f)
+	, m_muteModel(false, _parent)
+	, m_soloModel(false, _parent)
+	, m_volumeModel(1.0, 0.0, 2.0, 0.001, _parent)
+	, m_name()
+	, m_lock()
+	, m_channelIndex(idx)
+	, m_queued(false)
 {
-	BufferManager::clear( m_buffer, Engine::audioEngine()->framesPerPeriod() );
-}
-
-
-
-
-MixerChannel::~MixerChannel()
-{
-	delete[] m_buffer;
-}
-
-
-inline void MixerChannel::processed()
-{
-	for( const MixerRoute * receiverRoute : m_sends )
-	{
-		if( receiverRoute->receiver()->m_muted == false )
-		{
-			receiverRoute->receiver()->incrementDeps();
-		}
-	}
-}
-
-void MixerChannel::incrementDeps()
-{
-	int i = m_dependenciesMet++ + 1;
-	if( i >= m_receives.size() && ! m_queued )
-	{
-		m_queued = true;
-		queue();
-		process();
-	}
 }
 
 void MixerChannel::unmuteForSolo()
@@ -115,76 +81,57 @@ void MixerChannel::unmuteForSolo()
 
 
 
-void MixerChannel::doProcessing()
+void MixerChannel::render(sampleFrame* buffer, size_t size)
 {
-	const fpp_t fpp = Engine::audioEngine()->framesPerPeriod();
+	m_fxChain.startRunning();
+	m_fxChain.processAudioBuffer(buffer, size, true);
 
-	if( m_muted == false )
+	// TODO: Peak calculations should be handled in `MixerChannelView`
+	AudioEngine::StereoSample peakSamples = Engine::audioEngine()->getPeakValues(buffer, size);
+	const auto channelVol = m_volumeModel.value();
+	m_peakLeft = std::max(m_peakLeft, peakSamples.left * channelVol);
+	m_peakRight = std::max(m_peakRight, peakSamples.right * channelVol);
+}
+
+void MixerChannel::send(Buffer input, Buffer output, AudioNode& dest)
+{
+	if (m_muted)
 	{
-		for( MixerRoute * senderRoute : m_receives )
-		{
-			MixerChannel * sender = senderRoute->sender();
-			FloatModel * sendModel = senderRoute->amount();
-			if( ! sendModel ) qFatal( "Error: no send model found from %d to %d", senderRoute->senderIndex(), m_channelIndex );
+		m_peakLeft = 0.0f;
+		m_peakRight = 0.0f;
+		return;
+	}
 
-			if( sender->m_hasInput || sender->m_stillRunning )
-			{
-				// figure out if we're getting sample-exact input
-				ValueBuffer * sendBuf = sendModel->valueBuffer();
-				ValueBuffer * volBuf = sender->m_volumeModel.valueBuffer();
+	auto receiver = dynamic_cast<MixerChannel*>(&dest);
+	if (!receiver) { return; }
 
-				// mix it's output with this one's output
-				sampleFrame * ch_buf = sender->m_buffer;
+	const auto routeIt = std::find_if(
+		m_sends.begin(), m_sends.end(), [&receiver](const MixerRoute* route) { return route->receiver() == receiver; });
 
-				// use sample-exact mixing if sample-exact values are available
-				if( ! volBuf && ! sendBuf ) // neither volume nor send has sample-exact data...
-				{
-					const float v = sender->m_volumeModel.value() * sendModel->value();
-					MixHelpers::addSanitizedMultiplied( m_buffer, ch_buf, v, fpp );
-				}
-				else if( volBuf && sendBuf ) // both volume and send have sample-exact data
-				{
-					MixHelpers::addSanitizedMultipliedByBuffers( m_buffer, ch_buf, volBuf, sendBuf, fpp );
-				}
-				else if( volBuf ) // volume has sample-exact data but send does not
-				{
-					const float v = sendModel->value();
-					MixHelpers::addSanitizedMultipliedByBuffer( m_buffer, ch_buf, v, volBuf, fpp );
-				}
-				else // vice versa
-				{
-					const float v = sender->m_volumeModel.value();
-					MixHelpers::addSanitizedMultipliedByBuffer( m_buffer, ch_buf, v, sendBuf, fpp );
-				}
-				m_hasInput = true;
-			}
-		}
+	const auto channelVol = m_volumeModel.value(); 
+	const auto channelVolBuf = m_volumeModel.valueBuffer();
 
+	const auto routeVol = (*routeIt)->amount()->value();
+	const auto routeVolBuf = (*routeIt)->amount()->valueBuffer();
 
-		const float v = m_volumeModel.value();
-
-		if( m_hasInput )
-		{
-			// only start fxchain when we have input...
-			m_fxChain.startRunning();
-		}
-
-		m_stillRunning = m_fxChain.processAudioBuffer( m_buffer, fpp, m_hasInput );
-
-		AudioEngine::StereoSample peakSamples = Engine::audioEngine()->getPeakValues(m_buffer, fpp);
-		m_peakLeft = std::max(m_peakLeft, peakSamples.left * v);
-		m_peakRight = std::max(m_peakRight, peakSamples.right * v);
+	// Use sample-exact mixing if sample-exact values are available
+	if (!channelVolBuf && !routeVolBuf)
+	{
+		MixHelpers::addSanitizedMultiplied(output.buffer, input.buffer, channelVol * routeVol, output.size);
+	}
+	else if (channelVolBuf && routeVolBuf)
+	{
+		MixHelpers::addSanitizedMultipliedByBuffers(output.buffer, input.buffer, channelVolBuf, routeVolBuf, output.size);
+	}
+	else if (channelVolBuf)
+	{
+		MixHelpers::addSanitizedMultipliedByBuffer(output.buffer, input.buffer, routeVol, channelVolBuf, output.size);
 	}
 	else
 	{
-		m_peakLeft = m_peakRight = 0.0f;
+		MixHelpers::addSanitizedMultipliedByBuffer(output.buffer, input.buffer, channelVol, routeVolBuf, output.size);
 	}
-
-	// increment dependency counter of all receivers
-	processed();
 }
-
-
 
 Mixer::Mixer() :
 	Model( nullptr ),
@@ -598,84 +545,8 @@ FloatModel * Mixer::channelSendModel( mix_ch_t fromChannel, mix_ch_t toChannel )
 
 void Mixer::mixToChannel( const sampleFrame * _buf, mix_ch_t _ch )
 {
-	if( m_mixerChannels[_ch]->m_muteModel.value() == false )
-	{
-		m_mixerChannels[_ch]->m_lock.lock();
-		MixHelpers::add( m_mixerChannels[_ch]->m_buffer, _buf, Engine::audioEngine()->framesPerPeriod() );
-		m_mixerChannels[_ch]->m_hasInput = true;
-		m_mixerChannels[_ch]->m_lock.unlock();
-	}
+	// TODO: Remove function after refactoring/replacing `AudioPort`
 }
-
-
-
-
-void Mixer::prepareMasterMix()
-{
-	BufferManager::clear( m_mixerChannels[0]->m_buffer,
-					Engine::audioEngine()->framesPerPeriod() );
-}
-
-
-
-void Mixer::masterMix( sampleFrame * _buf )
-{
-	const int fpp = Engine::audioEngine()->framesPerPeriod();
-
-	// add the channels that have no dependencies (no incoming senders, ie.
-	// no receives) to the jobqueue. The channels that have receives get
-	// added when their senders get processed, which is detected by
-	// dependency counting.
-	// also instantly add all muted channels as they don't need to care
-	// about their senders, and can just increment the deps of their
-	// recipients right away.
-	for( MixerChannel * ch : m_mixerChannels )
-	{
-		ch->m_muted = ch->m_muteModel.value();
-		if( ch->m_muted ) // instantly "process" muted channels
-		{
-			ch->processed();
-			ch->done();
-		}
-		else if( ch->m_receives.size() == 0 )
-		{
-			ch->m_queued = true;
-			ch->queue();
-			ch->process();
-		}
-	}
-
-	// handle sample-exact data in master volume fader
-	ValueBuffer * volBuf = m_mixerChannels[0]->m_volumeModel.valueBuffer();
-
-	if( volBuf )
-	{
-		for( int f = 0; f < fpp; f++ )
-		{
-			m_mixerChannels[0]->m_buffer[f][0] *= volBuf->values()[f];
-			m_mixerChannels[0]->m_buffer[f][1] *= volBuf->values()[f];
-		}
-	}
-
-	const float v = volBuf
-		? 1.0f
-		: m_mixerChannels[0]->m_volumeModel.value();
-	MixHelpers::addSanitizedMultiplied( _buf, m_mixerChannels[0]->m_buffer, v, fpp );
-
-	// clear all channel buffers and
-	// reset channel process state
-	for( int i = 0; i < numChannels(); ++i)
-	{
-		BufferManager::clear( m_mixerChannels[i]->m_buffer,
-				Engine::audioEngine()->framesPerPeriod() );
-		m_mixerChannels[i]->reset();
-		m_mixerChannels[i]->m_queued = false;
-		// also reset hasInput
-		m_mixerChannels[i]->m_hasInput = false;
-		m_mixerChannels[i]->m_dependenciesMet = 0;
-	}
-}
-
 
 
 
