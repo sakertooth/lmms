@@ -45,6 +45,11 @@ AudioNode::~AudioNode()
 	{
 		disconnect(*dest);
 	}
+
+	for (const auto& dependency : m_dependencies)
+	{
+		dependency->disconnect(*this);
+	}
 }
 
 void AudioNode::connect(AudioNode& dest)
