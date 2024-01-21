@@ -77,6 +77,7 @@ AudioNode::Processor::Processor(unsigned int numWorkers)
 AudioNode::Processor::~Processor()
 {
 	m_done = true;
+	m_runCond.notify_all();	
 	for (auto& worker : m_workers)
 	{
 		worker.join();
