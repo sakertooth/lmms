@@ -63,7 +63,6 @@ class MixerChannel : public AudioNode
 		QString m_name;
 		QMutex m_lock;
 		int m_channelIndex; // what channel index are we
-		bool m_queued; // are we queued up for rendering yet?
 		bool m_muted = false; // are we muted? updated per period so we don't have to call m_muteModel.value() twice
 
 		// pointers to other channels that this one sends to

@@ -69,7 +69,6 @@ MixerChannel::MixerChannel(int idx, Model* _parent)
 	, m_name()
 	, m_lock()
 	, m_channelIndex(idx)
-	, m_queued(false)
 {
 }
 
