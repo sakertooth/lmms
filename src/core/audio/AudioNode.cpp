@@ -99,7 +99,7 @@ auto AudioNode::Processor::process(AudioNode& target) -> Buffer
 	m_complete.store(false, std::memory_order_relaxed);
 	m_queue.clear();
 
-	return {m_target->m_buffer.data(), m_target->m_buffer.size()};
+	return Buffer{target.m_buffer.data(), target.m_buffer.size()};
 }
 
 void AudioNode::Processor::populateQueue(AudioNode& target)
