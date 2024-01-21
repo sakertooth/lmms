@@ -79,7 +79,10 @@ void MixerChannel::unmuteForSolo()
 	m_muteModel.setValue(false);
 }
 
-
+bool MixerChannel::canRender()
+{
+	return !m_muted;
+}
 
 void MixerChannel::render(sampleFrame* buffer, size_t size)
 {

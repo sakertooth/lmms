@@ -74,8 +74,7 @@ class MixerChannel : public AudioNode
 
 		void render(sampleFrame* buffer, size_t size) override;
 		void send(Buffer input, Buffer output, AudioNode& dest) override;
-
-		auto isSource() -> bool override { return false; }
+		auto canRender() -> bool override;
 
 		void unmuteForSolo();
 

@@ -66,25 +66,11 @@ public:
 		//! The worker stops if no node could be retrieved.
 		auto retrieveNode() -> AudioNode*;
 
-		/*
-			For each destination paired with the given node, renders output for each and sends it to them.
-
-			If `node.isSource()` returns `true`, the target is immediately processed and no
-			fake dependencies are waited for completion (if any).
-
-			Otherwise, dependencies are waited upon for completion, but if there are no dependencies for the node,
-			processing will be skipped.
-		*/
+		//! For each destination paired with the given node, renders output for each and sends it to them.
 		void processNode(AudioNode& node);
 
 		//! Run loop for worker thread(s).
 		void runWorker();
-
-		//! Return `true` if the node can be processed, and `false` otherwise.
-		//! If `node.isSource()` is `true`, this returns `true`.
-		//! If `node.isSource()` is `false`, then will this function will return `true` when the node has no
-		//! dependencies.
-		auto canProcessNode(AudioNode& node) -> bool;
 
 		AudioNode* m_target = nullptr;
 		std::list<AudioNode*> m_queue;
@@ -123,8 +109,8 @@ public:
 	*/
 	virtual void send(Buffer input, Buffer output, AudioNode& dest) = 0;
 
-	//! Returns `true` if this node is not meant to have any dependencies and input.
-	virtual auto isSource() -> bool = 0;
+	//! Returns `true` if this node should be rendered for the current audio period.
+	virtual auto canRender() -> bool = 0;
 
 	//! Connect output from this node to the input of `dest`.
 	void connect(AudioNode& dest);
