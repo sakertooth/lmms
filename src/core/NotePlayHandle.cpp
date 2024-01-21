@@ -117,6 +117,8 @@ NotePlayHandle::NotePlayHandle( InstrumentTrack* instrumentTrack,
 	setAudioPort( instrumentTrack->audioPort() );
 
 	unlock();
+
+	QObject::connect(Engine::getSong(), &Song::tempoChanged, [this](bpm_t tempo) { return onTempoChanged(tempo); });
 }
 
 
@@ -623,6 +625,12 @@ void NotePlayHandleManager::init()
 	s_size = INITIAL_NPH_CACHE;
 }
 
+void NotePlayHandle::onTempoChanged(bpm_t tempo)
+{
+	if (isReleased()) { return; }
+	const auto lock = std::lock_guard{*this};
+	resize(tempo);
+}
 
 NotePlayHandle * NotePlayHandleManager::acquire( InstrumentTrack* instrumentTrack,
 				const f_cnt_t offset,

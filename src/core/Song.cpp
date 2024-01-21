@@ -145,26 +145,11 @@ void Song::masterVolumeChanged()
 
 void Song::setTempo()
 {
-	Engine::audioEngine()->requestChangeInModel();
-	const auto tempo = (bpm_t)m_tempoModel.value();
-	PlayHandleList & playHandles = Engine::audioEngine()->playHandles();
-	for (const auto& playHandle : playHandles)
-	{
-		auto nph = dynamic_cast<NotePlayHandle*>(playHandle);
-		if( nph && !nph->isReleased() )
-		{
-			nph->lock();
-			nph->resize( tempo );
-			nph->unlock();
-		}
-	}
-	Engine::audioEngine()->doneChangeInModel();
-
+	const auto lock = Engine::audioEngine()->requestChangesGuard();
+	const auto tempo = static_cast<bpm_t>(m_tempoModel.value());
+	emit tempoChanged(tempo);
+	m_vstSyncController.setTempo(tempo);
 	Engine::updateFramesPerTick();
-
-	m_vstSyncController.setTempo( tempo );
-
-	emit tempoChanged( tempo );
 }
 
 

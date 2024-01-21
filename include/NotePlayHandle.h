@@ -253,6 +253,9 @@ public:
 	/*! Updates total length (m_frames) depending on a new tempo */
 	void resize( const bpm_t newTempo );
 
+	//! Update tempo of handle
+	void onTempoChanged(bpm_t tempo);
+
 	/*! Set song-global offset (relative to containing MIDI clip) in order to properly perform the note detuning */
 	void setSongGlobalParentOffset( const TimePos& offset )
 	{
