@@ -87,6 +87,12 @@ auto AudioNode::Processor::process(AudioNode& target) -> Buffer
 	{
 		auto lock = std::lock_guard{m_runMutex};
 		populateQueue(target);
+
+		for (auto& node : m_queue)
+		{
+			std::fill(node->m_buffer.begin(), node->m_buffer.end(), sampleFrame{});
+			node->m_numInputs.store(0, std::memory_order_relaxed);
+		}
 	}
 
 	m_runCond.notify_all();
@@ -159,9 +165,6 @@ void AudioNode::Processor::processNode(AudioNode& node)
 		node.send(input, output, *dest);
 		dest->m_numInputs.fetch_add(1, std::memory_order_relaxed);
 	}
-
-	std::fill(node.m_buffer.begin(), node.m_buffer.end(), sampleFrame{});
-	node.m_numInputs.store(0, std::memory_order_relaxed);
 }
 
 void AudioNode::Processor::runWorker()
