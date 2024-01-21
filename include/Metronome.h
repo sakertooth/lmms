@@ -47,7 +47,6 @@ private:
 		Sample sample;
 		Sample::PlaybackState state;
 		bool enabled = false;
-		bool reset = false;
 	};
 	Handle m_strongBeat, m_weakBeat;
 	tick_t m_prevTicks = -1;
