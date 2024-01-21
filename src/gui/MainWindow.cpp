@@ -38,6 +38,7 @@
 #include "AboutDialog.h"
 #include "AutomationEditor.h"
 #include "ControllerRackView.h"
+#include "Mixer.h"
 #include "embed.h"
 #include "Engine.h"
 #include "ExportProjectDialog.h"
@@ -84,6 +85,7 @@ MainWindow::MainWindow() :
 	m_autoSaveTimer( this ),
 	m_viewMenu( nullptr ),
 	m_metronomeToggle( 0 ),
+	m_metronome(Engine::audioEngine()->framesPerPeriod()),
 	m_session( SessionState::Normal )
 {
 	setAttribute( Qt::WA_DeleteOnClose );
@@ -436,7 +438,7 @@ void MainWindow::finalize()
 				this, SLOT(onToggleMetronome()),
 							m_toolBar );
 	m_metronomeToggle->setCheckable(true);
-	m_metronomeToggle->setChecked(Engine::audioEngine()->isMetronomeActive());
+	m_metronomeToggle->setChecked(m_metronome.active());
 
 	m_toolBarLayout->setColumnMinimumWidth( 0, 5 );
 	m_toolBarLayout->addWidget( project_new, 0, 1 );
@@ -1180,7 +1182,7 @@ void MainWindow::updateConfig( QAction * _who )
 
 void MainWindow::onToggleMetronome()
 {
-	Engine::audioEngine()->setMetronomeActive( m_metronomeToggle->isChecked() );
+	m_metronome.setActive(m_metronomeToggle->isChecked());
 }
 
 

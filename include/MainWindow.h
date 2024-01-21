@@ -31,6 +31,7 @@
 #include <QMainWindow>
 
 #include "ConfigManager.h"
+#include "Metronome.h"
 
 class QAction;
 class QDomElement;
@@ -233,7 +234,8 @@ private:
 
 	QMenu * m_viewMenu;
 
-	ToolButton * m_metronomeToggle;
+	ToolButton* m_metronomeToggle;
+	Metronome m_metronome;
 
 	SessionState m_session;
 	

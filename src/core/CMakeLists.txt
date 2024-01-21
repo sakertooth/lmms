@@ -40,6 +40,7 @@ set(LMMS_SRCS
 	core/MemoryHelper.cpp
 	core/MemoryManager.cpp
 	core/MeterModel.cpp
+	core/Metronome.cpp
 	core/MicroTimer.cpp
 	core/Microtuner.cpp
 	core/MixHelpers.cpp
