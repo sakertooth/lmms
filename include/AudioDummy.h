@@ -94,11 +94,7 @@ private:
 		while( true )
 		{
 			timer.reset();
-			const surroundSampleFrame* b = audioEngine()->renderNextBuffer();
-			if( !b )
-			{
-				break;
-			}
+			const auto buffer = audioEngine()->renderNextBuffer();
 
 			const int microseconds = static_cast<int>( audioEngine()->framesPerPeriod() * 1000000.0f / audioEngine()->processingSampleRate() - timer.elapsed() );
 			if( microseconds > 0 )

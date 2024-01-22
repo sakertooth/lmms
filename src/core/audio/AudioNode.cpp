@@ -30,6 +30,8 @@
 #include <functional>
 #include <unordered_map>
 
+#include "ArrayVector.h"
+#include "AudioEngine.h"
 #include "MixHelpers.h"
 
 namespace lmms {
@@ -77,23 +79,19 @@ AudioNode::Processor::Processor(unsigned int numWorkers)
 AudioNode::Processor::~Processor()
 {
 	m_done = true;
-	m_runCond.notify_all();	
+	m_runCond.notify_all();
 	for (auto& worker : m_workers)
 	{
 		worker.join();
 	}
 }
 
-auto AudioNode::Processor::process(AudioNode& target) -> Buffer
+auto AudioNode::Processor::process(AudioNode& target) -> Processor::Buffer
 {
-	if (!target.canRender()) { return Buffer{target.m_buffer.data(), target.m_buffer.size()}; }
-
 	m_target = &target;
-
 	{
 		auto lock = std::lock_guard{m_runMutex};
 		populateQueue(target);
-
 		for (auto& node : m_queue)
 		{
 			std::fill(node->m_buffer.begin(), node->m_buffer.end(), sampleFrame{});
@@ -113,7 +111,9 @@ auto AudioNode::Processor::process(AudioNode& target) -> Buffer
 	m_complete.store(false, std::memory_order_relaxed);
 	m_queue.clear();
 
-	return Buffer{target.m_buffer.data(), target.m_buffer.size()};
+	auto buffer = Processor::Buffer{};
+	std::copy(target.m_buffer.begin(), target.m_buffer.end(), buffer.begin());
+	return buffer;
 }
 
 void AudioNode::Processor::populateQueue(AudioNode& target)
@@ -161,14 +161,11 @@ void AudioNode::Processor::processNode(AudioNode& node)
 		_mm_pause();
 	}
 
-	if (node.canRender()) { node.render(node.m_buffer.data(), node.m_buffer.size()); }
-
+	node.render(node.m_buffer.data(), node.m_buffer.size());
 	for (const auto& dest : node.m_destinations)
 	{
 		const auto lock = std::scoped_lock{node.m_renderingMutex, dest->m_renderingMutex};
-		const auto input = Buffer{node.m_buffer.data(), node.m_buffer.size()};
-		const auto output = Buffer{dest->m_buffer.data(), dest->m_buffer.size()};
-		node.send(input, output, *dest);
+		node.send(dest->m_buffer.data(), node.m_buffer.data(), node.m_buffer.size(), *dest);
 		dest->m_numInputs.fetch_add(1, std::memory_order_relaxed);
 	}
 }

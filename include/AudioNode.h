@@ -32,21 +32,19 @@
 #include <thread>
 #include <vector>
 
+#include "ArrayVector.h"
 #include "lmms_basics.h"
 
 namespace lmms {
 class AudioNode
 {
 public:
-	struct Buffer
-	{
-		sampleFrame* buffer;
-		size_t size;
-	};
-
 	class Processor
 	{
 	public:
+		static constexpr auto DefaultBufferSize = 256;
+		using Buffer = ArrayVector<sampleFrame, DefaultBufferSize>;
+
 		//! Create a `Processor` containing `numWorkers` worker threads.
 		Processor(unsigned int numWorkers = std::thread::hardware_concurrency());
 
@@ -95,22 +93,19 @@ public:
 	//! Removes connections from all neighboring nodes before deletion.
 	virtual ~AudioNode();
 
-	//! Render audio for a single audio period.
-	//! Nodes can choose to either generate data into `buffer`
-	//! or transform the input stored in `buffer`.
-	virtual void render(sampleFrame* buffer, size_t size) = 0;
+	//!	Render audio and store it in `dest`.
+	virtual void render(sampleFrame* dest, size_t numFrames) = 0;
 
 	/*
-		Send rendered audio intended for the destination node `dest`.
-		`input` is the input that was sent to this node by other nodes.
-		`output` is the place where `output` should be sent to.
-
+		Send rendered audio intended for the destination node `recipient`.
 		The audio should be mixed with `output` and not overwritten.
-	*/
-	virtual void send(Buffer input, Buffer output, AudioNode& dest) = 0;
 
-	//! Returns `true` if this node should be rendered for the current audio period.
-	virtual auto canRender() -> bool = 0;
+		`src` contains a mix of the audio that was rendered on the call to `render`, and, if it applies, the input that
+	   was sent to this node by other nodes.
+
+	   `dest` is the place where `output` should be sent to.
+	*/
+	virtual void send(sampleFrame* dest, const sampleFrame* src, size_t numFrames, AudioNode& recipient) = 0;
 
 	//! Connect output from this node to the input of `dest`.
 	void connect(AudioNode& dest);

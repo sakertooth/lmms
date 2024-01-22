@@ -68,29 +68,26 @@ using LocklessListElement = LocklessList<PlayHandle*>::Element;
 static thread_local bool s_renderingThread;
 static thread_local bool s_runningChange;
 
-
-
-
-AudioEngine::AudioEngine( bool renderOnly ) :
-	m_renderOnly( renderOnly ),
-	m_framesPerPeriod( DEFAULT_BUFFER_SIZE ),
-	m_inputBufferRead( 0 ),
-	m_inputBufferWrite( 1 ),
-	m_outputBufferRead(nullptr),
-	m_outputBufferWrite(nullptr),
-	m_qualitySettings( qualitySettings::Mode::Draft ),
-	m_masterGain( 1.0f ),
-	m_audioDev( nullptr ),
-	m_oldAudioDev( nullptr ),
-	m_audioDevStartFailed( false ),
-	m_profiler(),
-	m_clearSignal(false)
+AudioEngine::AudioEngine(bool renderOnly)
+	: m_renderOnly(renderOnly)
+	, m_framesPerPeriod(AudioNode::Processor::DefaultBufferSize)
+	, m_inputBufferRead(0)
+	, m_inputBufferWrite(1)
+	, m_outputBufferRead(nullptr)
+	, m_outputBufferWrite(nullptr)
+	, m_qualitySettings(qualitySettings::Mode::Draft)
+	, m_masterGain(1.0f)
+	, m_audioDev(nullptr)
+	, m_oldAudioDev(nullptr)
+	, m_audioDevStartFailed(false)
+	, m_profiler()
+	, m_clearSignal(false)
 {
 	for( int i = 0; i < 2; ++i )
 	{
 		m_inputBufferFrames[i] = 0;
-		m_inputBufferSize[i] = DEFAULT_BUFFER_SIZE * 100;
-		m_inputBuffer[i] = new sampleFrame[ DEFAULT_BUFFER_SIZE * 100 ];
+		m_inputBufferSize[i] = AudioNode::Processor::DefaultBufferSize * 100;
+		m_inputBuffer[i] = new sampleFrame[ AudioNode::Processor::DefaultBufferSize * 100 ];
 		BufferManager::clear( m_inputBuffer[i], m_inputBufferSize[i] );
 	}
 
@@ -204,7 +201,7 @@ bool AudioEngine::criticalXRuns() const
 	return cpuLoad() >= 99 && Engine::getSong()->isExporting() == false;
 }
 
-const surroundSampleFrame *AudioEngine::renderNextBuffer()
+auto AudioEngine::renderNextBuffer() -> AudioNode::Processor::Buffer
 {
 	const auto lock = std::lock_guard{m_changeMutex};
 
@@ -221,8 +218,8 @@ const surroundSampleFrame *AudioEngine::renderNextBuffer()
 	s_renderingThread = false;
 	m_profiler.finishPeriod(processingSampleRate(), m_framesPerPeriod);
 
-	emit nextAudioBuffer(output.buffer);
-	return output.buffer;
+	emit nextAudioBuffer(output.data());
+	return output;
 }
 
 

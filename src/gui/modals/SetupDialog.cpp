@@ -1208,7 +1208,7 @@ void SetupDialog::updateBufferSizeWarning(int value)
 
 void SetupDialog::setBufferSize(int value)
 {
-	const int step = DEFAULT_BUFFER_SIZE / BUFFERSIZE_RESOLUTION;
+	const int step = AudioNode::Processor::DefaultBufferSize / BUFFERSIZE_RESOLUTION;
 	if(value > step && value % step)
 	{
 		int mod_value = value % step;
@@ -1237,7 +1237,7 @@ void SetupDialog::setBufferSize(int value)
 
 void SetupDialog::resetBufferSize()
 {
-	setBufferSize(DEFAULT_BUFFER_SIZE / BUFFERSIZE_RESOLUTION);
+	setBufferSize(AudioNode::Processor::DefaultBufferSize / BUFFERSIZE_RESOLUTION);
 }
 
 

@@ -82,11 +82,7 @@ void AudioDevice::processNextBuffer()
 fpp_t AudioDevice::getNextBuffer( surroundSampleFrame * _ab )
 {
 	fpp_t frames = audioEngine()->framesPerPeriod();
-	const surroundSampleFrame * b = audioEngine()->renderNextBuffer();
-	if( !b )
-	{
-		return 0;
-	}
+	const auto buffer = audioEngine()->renderNextBuffer();
 
 	// make sure, no other thread is accessing device
 	lock();
@@ -94,12 +90,9 @@ fpp_t AudioDevice::getNextBuffer( surroundSampleFrame * _ab )
 	// resample if necessary
 	if( audioEngine()->processingSampleRate() != m_sampleRate )
 	{
-		frames = resample( b, frames, _ab, audioEngine()->processingSampleRate(), m_sampleRate );
+		frames = resample(buffer.data(), frames, _ab, audioEngine()->processingSampleRate(), m_sampleRate);
 	}
-	else
-	{
-		memcpy( _ab, b, frames * sizeof( surroundSampleFrame ) );
-	}
+	else { memcpy(_ab, buffer.data(), frames * sizeof(surroundSampleFrame)); }
 
 	// release lock
 	unlock();

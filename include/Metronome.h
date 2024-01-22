@@ -36,9 +36,8 @@ public:
 	bool active() const;
 	void setActive(bool active);
 
-	void render(sampleFrame* buffer, size_t size) override;
-	void send(Buffer input, Buffer output, AudioNode& dest) override;
-	auto canRender() -> bool override;
+	void render(sampleFrame* dest, size_t numFrames) override;
+	void send(sampleFrame* dest, const sampleFrame* src, size_t numFrames, AudioNode& recipient) override;
 
 private:
 	struct Handle

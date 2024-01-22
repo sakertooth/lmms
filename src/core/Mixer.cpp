@@ -78,24 +78,7 @@ void MixerChannel::unmuteForSolo()
 	m_muteModel.setValue(false);
 }
 
-bool MixerChannel::canRender()
-{
-	return !m_muted;
-}
-
-void MixerChannel::render(sampleFrame* buffer, size_t size)
-{
-	m_fxChain.startRunning();
-	m_fxChain.processAudioBuffer(buffer, size, true);
-
-	// TODO: Peak calculations should be handled in `MixerChannelView`
-	AudioEngine::StereoSample peakSamples = Engine::audioEngine()->getPeakValues(buffer, size);
-	const auto channelVol = m_volumeModel.value();
-	m_peakLeft = std::max(m_peakLeft, peakSamples.left * channelVol);
-	m_peakRight = std::max(m_peakRight, peakSamples.right * channelVol);
-}
-
-void MixerChannel::send(Buffer input, Buffer output, AudioNode& dest)
+void MixerChannel::render(sampleFrame* dest, size_t numFrames)
 {
 	if (m_muted)
 	{
@@ -103,36 +86,47 @@ void MixerChannel::send(Buffer input, Buffer output, AudioNode& dest)
 		m_peakRight = 0.0f;
 		return;
 	}
+	
+	m_fxChain.startRunning();
+	m_fxChain.processAudioBuffer(dest, numFrames, true);
 
-	auto receiver = dynamic_cast<MixerChannel*>(&dest);
+	const auto channelVol = m_volumeModel.value(); 
+	const auto channelVolBuf = m_volumeModel.valueBuffer();
+
+	// TODO: Redesign `MixHelpers` to support unary operations
+	for (size_t frame = 0; frame < numFrames; ++frame)
+	{
+		if (channelVolBuf)
+		{
+			dest[frame][0] *= channelVolBuf->values()[0];
+			dest[frame][1] *= channelVolBuf->values()[1];
+		}
+		else
+		{
+			dest[frame][0] *= channelVol;
+			dest[frame][1] *= channelVol;
+		}
+	}
+
+	// TODO: Peak calculations should be handled in `MixerChannelView`
+	const auto [leftPeak, rightPeak] = Engine::audioEngine()->getPeakValues(dest, numFrames);
+	m_peakLeft = std::max(m_peakLeft, leftPeak);
+	m_peakRight = std::max(m_peakRight, rightPeak);
+}
+
+void MixerChannel::send(sampleFrame* dest, const sampleFrame* src, size_t numFrames, AudioNode& recipient)
+{
+	const auto receiver = dynamic_cast<MixerChannel*>(&recipient);
 	if (!receiver) { return; }
 
 	const auto routeIt = std::find_if(
 		m_sends.begin(), m_sends.end(), [&receiver](const MixerRoute* route) { return route->receiver() == receiver; });
 
-	const auto channelVol = m_volumeModel.value(); 
-	const auto channelVolBuf = m_volumeModel.valueBuffer();
-
 	const auto routeVol = (*routeIt)->amount()->value();
 	const auto routeVolBuf = (*routeIt)->amount()->valueBuffer();
 
-	// Use sample-exact mixing if sample-exact values are available
-	if (!channelVolBuf && !routeVolBuf)
-	{
-		MixHelpers::addSanitizedMultiplied(output.buffer, input.buffer, channelVol * routeVol, output.size);
-	}
-	else if (channelVolBuf && routeVolBuf)
-	{
-		MixHelpers::addSanitizedMultipliedByBuffers(output.buffer, input.buffer, channelVolBuf, routeVolBuf, output.size);
-	}
-	else if (channelVolBuf)
-	{
-		MixHelpers::addSanitizedMultipliedByBuffer(output.buffer, input.buffer, routeVol, channelVolBuf, output.size);
-	}
-	else
-	{
-		MixHelpers::addSanitizedMultipliedByBuffer(output.buffer, input.buffer, channelVol, routeVolBuf, output.size);
-	}
+	routeVolBuf ? MixHelpers::addMultipliedByBuffer(dest, src, 1.0f, routeVolBuf, numFrames)
+				: MixHelpers::addMultiplied(dest, src, routeVol, numFrames);
 }
 
 Mixer::Mixer() :

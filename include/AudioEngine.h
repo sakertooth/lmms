@@ -48,9 +48,6 @@ class AudioDevice;
 class MidiClient;
 class AudioPort;
 
-const fpp_t MINIMUM_BUFFER_SIZE = 32;
-const fpp_t DEFAULT_BUFFER_SIZE = 256;
-
 const int BYTES_PER_SAMPLE = sizeof( sample_t );
 const int BYTES_PER_INT_SAMPLE = sizeof( int_sample_t );
 const int BYTES_PER_FRAME = sizeof( sampleFrame );
@@ -323,7 +320,7 @@ public:
 		return m_inputBuffer[ m_inputBufferRead ];
 	}
 
-	const surroundSampleFrame * renderNextBuffer();
+	auto renderNextBuffer() -> AudioNode::Processor::Buffer;
 
 	inline f_cnt_t inputBufferFrames() const
 	{

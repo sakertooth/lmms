@@ -38,9 +38,15 @@ Metronome::Metronome(size_t size)
 	connect(*Engine::mixer()->mixerChannel(0));
 }
 
-void Metronome::render(sampleFrame* buffer, size_t size)
+void Metronome::render(sampleFrame* dest, size_t numFrames)
 {
 	const auto song = Engine::getSong();
+	const auto currentPlayMode = song->playMode();
+
+	const auto metronomeSupported = currentPlayMode == Song::PlayMode::MidiClip
+		|| currentPlayMode == Song::PlayMode::Song || currentPlayMode == Song::PlayMode::Pattern;
+	if (!metronomeSupported || !active() || song->isExporting()) { return; }
+
 	const auto ticks = song->getPlayPos().getTicks();
 	const auto ticksPerBeat = song->getPlayPos().ticksPerBeat(song->getTimeSigModel());
 
@@ -52,14 +58,14 @@ void Metronome::render(sampleFrame* buffer, size_t size)
 		m_weakBeat.state.setFrameIndex(0);
 	}
 
-	if (m_strongBeat.enabled) { m_strongBeat.sample.play(buffer, &m_strongBeat.state, size); }
-	else if (m_weakBeat.enabled) { m_weakBeat.sample.play(buffer, &m_weakBeat.state, size); }
+	if (m_strongBeat.enabled) { m_strongBeat.sample.play(dest, &m_strongBeat.state, numFrames); }
+	else if (m_weakBeat.enabled) { m_weakBeat.sample.play(dest, &m_weakBeat.state, numFrames); }
 	m_prevTicks = ticks;
 }
 
-void Metronome::send(Buffer input, Buffer output, AudioNode& dest)
+void Metronome::send(sampleFrame* dest, const sampleFrame* src, size_t numFrames, AudioNode&)
 {
-	MixHelpers::add(output.buffer, input.buffer, output.size);
+	MixHelpers::add(dest, src, numFrames);
 }
 
 bool Metronome::active() const
@@ -70,15 +76,6 @@ bool Metronome::active() const
 void Metronome::setActive(bool active)
 {
 	m_active.store(active, std::memory_order_relaxed);
-}
-
-auto Metronome::canRender() -> bool
-{
-	const auto song = Engine::getSong();
-	const auto currentPlayMode = song->playMode();
-	const auto metronomeSupported = currentPlayMode == Song::PlayMode::MidiClip
-		|| currentPlayMode == Song::PlayMode::Song || currentPlayMode == Song::PlayMode::Pattern;
-	return metronomeSupported && active() && !song->isExporting();
 }
 
 Metronome::Handle::Handle(const QString& audioFile)

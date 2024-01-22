@@ -71,9 +71,8 @@ class MixerChannel : public AudioNode
 		// pointers to other channels that send to this one
 		MixerRouteVector m_receives;
 
-		void render(sampleFrame* buffer, size_t size) override;
-		void send(Buffer input, Buffer output, AudioNode& dest) override;
-		auto canRender() -> bool override;
+		void render(sampleFrame* dest, size_t numFrames) override;
+		void send(sampleFrame* dest, const sampleFrame* src, size_t numFrames, AudioNode& recipient) override;
 
 		void unmuteForSolo();
 
