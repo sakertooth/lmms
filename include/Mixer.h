@@ -49,11 +49,6 @@ class MixerChannel : public AudioNode
 
 		EffectChain m_fxChain;
 
-		// set to true when input fed from mixToChannel or child channel
-		bool m_hasInput;
-		// set to true if any effect in the channel is enabled and running
-		bool m_stillRunning;
-
 		float m_peakLeft;
 		float m_peakRight;
 		bool m_muteBeforeSolo;
