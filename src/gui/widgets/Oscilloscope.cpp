@@ -93,9 +93,9 @@ void Oscilloscope::setActive( bool _active )
 		connect( getGUI()->mainWindow(),
 					SIGNAL(periodicUpdate()),
 					this, SLOT(update()));
-		connect( Engine::audioEngine(),
-			SIGNAL(nextAudioBuffer(const lmms::surroundSampleFrame*)),
-			this, SLOT(updateAudioBuffer(const lmms::surroundSampleFrame*)) );
+
+		connect(Engine::audioEngine(), &AudioEngine::nextAudioBuffer, this, &Oscilloscope::updateAudioBuffer,
+			Qt::DirectConnection);
 	}
 	else
 	{
