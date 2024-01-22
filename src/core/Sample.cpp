@@ -117,7 +117,7 @@ auto Sample::operator=(Sample&& other) -> Sample&
 	return *this;
 }
 
-bool Sample::play(sampleFrame* dst, PlaybackState* state, int numFrames, float desiredFrequency, Loop loopMode)
+bool Sample::play(sampleFrame* dst, PlaybackState* state, int numFrames, float desiredFrequency, Loop loopMode) const
 {
 	if (numFrames <= 0 || desiredFrequency <= 0) { return false; }
 
@@ -175,7 +175,8 @@ bool Sample::play(sampleFrame* dst, PlaybackState* state, int numFrames, float d
 auto Sample::sampleDuration() const -> std::chrono::milliseconds
 {
 	const auto numFrames = endFrame() - startFrame();
-	const auto duration = numFrames / static_cast<float>(m_buffer->sampleRate()) * 1000;
+	const auto sampleRate = static_cast<float>(m_buffer->sampleRate());
+	const auto duration = sampleRate == 0 ? 0.0f : numFrames / static_cast<float>(m_buffer->sampleRate()) * 1000;
 	return std::chrono::milliseconds{static_cast<int>(duration)};
 }
 
