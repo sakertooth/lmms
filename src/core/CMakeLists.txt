@@ -1,6 +1,7 @@
 set(LMMS_SRCS
 	${LMMS_SRCS}
 
+	core/AsyncWorkerPool.cpp
 	core/AudioEngine.cpp
 	core/AudioEngineProfiler.cpp
 	core/AudioResampler.cpp
