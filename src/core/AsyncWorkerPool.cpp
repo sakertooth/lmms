@@ -30,7 +30,7 @@ AsyncWorkerPool::AsyncWorkerPool(unsigned int numWorkers)
 {
 	for (unsigned int i = 0; i < numWorkers; ++i)
 	{
-		m_tasks.emplace([this] { process(); });
+		m_workers.emplace_back([this] { process(); });
 	}
 }
 
