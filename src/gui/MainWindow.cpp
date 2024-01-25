@@ -85,6 +85,7 @@ MainWindow::MainWindow() :
 	m_autoSaveTimer( this ),
 	m_viewMenu( nullptr ),
 	m_metronomeToggle( 0 ),
+	m_metronome(*Engine::getSong()),
 	m_session( SessionState::Normal )
 {
 	setAttribute( Qt::WA_DeleteOnClose );

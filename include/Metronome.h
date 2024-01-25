@@ -31,7 +31,7 @@ namespace lmms {
 class Metronome : public AudioNode
 {
 public:
-	Metronome();
+	Metronome(Song& song);
 
 	bool active() const;
 	void setActive(bool active);
@@ -49,6 +49,7 @@ private:
 	Handle m_strongBeat, m_weakBeat;
 	tick_t m_prevTicks = -1;
 	std::atomic<bool> m_active = false;
+	Song* m_song = nullptr;
 };
 } // namespace lmms
 

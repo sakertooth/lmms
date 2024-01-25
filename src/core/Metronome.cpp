@@ -30,28 +30,28 @@
 #include "Song.h"
 
 namespace lmms {
-Metronome::Metronome()
+Metronome::Metronome(Song& song)
 	: m_strongBeat(QString{"misc/metronome02.ogg"})
 	, m_weakBeat(QString{"misc/metronome01.ogg"})
+	, m_song(&song)
 {
 	connect(Engine::mixer()->mixerChannel(0));
 }
 
 void Metronome::render(sampleFrame* dest, std::size_t size)
 {
-	const auto song = Engine::getSong();
-	const auto ticks = song->getPlayPos().getTicks();
-	const auto ticksPerBeat = song->getPlayPos().ticksPerBeat(song->getTimeSigModel());
+	const auto ticks = m_song->getPlayPos().getTicks();
+	const auto ticksPerBeat = m_song->getPlayPos().ticksPerBeat(m_song->getTimeSigModel());
 
-	const auto currentPlayMode = song->playMode();
+	const auto currentPlayMode = m_song->playMode();
 	const auto metronomeSupported = currentPlayMode == Song::PlayMode::MidiClip
 		|| currentPlayMode == Song::PlayMode::Song || currentPlayMode == Song::PlayMode::Pattern;
-	if (!metronomeSupported || !active() || song->isExporting()) { return; }
+	if (!metronomeSupported || !active() || m_song->isExporting()) { return; }
 
 	if (ticks % ticksPerBeat == 0 && m_prevTicks != ticks)
 	{
-		m_strongBeat.enabled = song->getBeat() == 0;
-		m_weakBeat.enabled = song->getBeat() > 0;
+		m_strongBeat.enabled = m_song->getBeat() == 0;
+		m_weakBeat.enabled = m_song->getBeat() > 0;
 		m_strongBeat.state.setFrameIndex(0);
 		m_weakBeat.state.setFrameIndex(0);
 	}
