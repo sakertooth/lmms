@@ -30,25 +30,23 @@
 #include "Song.h"
 
 namespace lmms {
-Metronome::Metronome(size_t size)
-	: AudioNode(size)
-	, m_strongBeat(QString{"misc/metronome02.ogg"})
+Metronome::Metronome()
+	: m_strongBeat(QString{"misc/metronome02.ogg"})
 	, m_weakBeat(QString{"misc/metronome01.ogg"})
 {
-	connect(*Engine::mixer()->mixerChannel(0));
+	connect(Engine::mixer()->mixerChannel(0));
 }
 
-void Metronome::render(sampleFrame* dest, size_t numFrames)
+void Metronome::render(sampleFrame* dest, std::size_t size)
 {
 	const auto song = Engine::getSong();
-	const auto currentPlayMode = song->playMode();
+	const auto ticks = song->getPlayPos().getTicks();
+	const auto ticksPerBeat = song->getPlayPos().ticksPerBeat(song->getTimeSigModel());
 
+	const auto currentPlayMode = song->playMode();
 	const auto metronomeSupported = currentPlayMode == Song::PlayMode::MidiClip
 		|| currentPlayMode == Song::PlayMode::Song || currentPlayMode == Song::PlayMode::Pattern;
 	if (!metronomeSupported || !active() || song->isExporting()) { return; }
-
-	const auto ticks = song->getPlayPos().getTicks();
-	const auto ticksPerBeat = song->getPlayPos().ticksPerBeat(song->getTimeSigModel());
 
 	if (ticks % ticksPerBeat == 0 && m_prevTicks != ticks)
 	{
@@ -58,14 +56,9 @@ void Metronome::render(sampleFrame* dest, size_t numFrames)
 		m_weakBeat.state.setFrameIndex(0);
 	}
 
-	if (m_strongBeat.enabled) { m_strongBeat.sample.play(dest, &m_strongBeat.state, numFrames); }
-	else if (m_weakBeat.enabled) { m_weakBeat.sample.play(dest, &m_weakBeat.state, numFrames); }
+	if (m_strongBeat.enabled) { m_strongBeat.sample.play(dest, &m_strongBeat.state, size); }
+	else if (m_weakBeat.enabled) { m_weakBeat.sample.play(dest, &m_weakBeat.state, size); }
 	m_prevTicks = ticks;
-}
-
-void Metronome::send(sampleFrame* dest, const sampleFrame* src, size_t numFrames, AudioNode&)
-{
-	MixHelpers::add(dest, src, numFrames);
 }
 
 bool Metronome::active() const

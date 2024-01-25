@@ -24,161 +24,97 @@
 
 #include "AudioNode.h"
 
-#include <algorithm>
-#include <cassert>
-#include <emmintrin.h>
-#include <functional>
+#include <iostream>
 #include <unordered_map>
 
-#include "ArrayVector.h"
-#include "AudioEngine.h"
 #include "MixHelpers.h"
 
 namespace lmms {
 
-AudioNode::AudioNode(size_t size)
-	: m_buffer(size)
+AudioNode::~AudioNode() noexcept
 {
-}
-
-AudioNode::~AudioNode()
-{
-	for (const auto& dest : m_destinations)
-	{
-		disconnect(*dest);
-	}
-
 	for (const auto& dependency : m_dependencies)
 	{
-		dependency->disconnect(*this);
+		dependency->disconnect(this);
 	}
-}
 
-void AudioNode::connect(AudioNode& dest)
-{
-	const auto lock = std::scoped_lock{m_connectionMutex, dest.m_connectionMutex};
-	m_destinations.push_back(&dest);
-	dest.m_dependencies.push_back(this);
-}
-
-void AudioNode::disconnect(AudioNode& dest)
-{
-	const auto lock = std::scoped_lock{m_connectionMutex, dest.m_connectionMutex};
-	m_destinations.erase(std::find(m_destinations.begin(), m_destinations.end(), &dest));
-	dest.m_dependencies.erase(std::find(dest.m_dependencies.begin(), dest.m_dependencies.end(), this));
-}
-
-AudioNode::Processor::Processor(unsigned int numWorkers)
-{
-	for (unsigned int i = 0; i < numWorkers; ++i)
+	for (const auto& destination : m_destinations)
 	{
-		m_workers.emplace_back([this] { runWorker(); });
+		disconnect(destination);
 	}
 }
 
-AudioNode::Processor::~Processor()
+void AudioNode::send(sampleFrame* dest, const sampleFrame* src, std::size_t size, AudioNode& recipient)
 {
-	m_done = true;
-	m_runCond.notify_all();
-	for (auto& worker : m_workers)
-	{
-		worker.join();
-	}
+	MixHelpers::add(dest, src, size);
 }
 
-auto AudioNode::Processor::process(AudioNode& target) -> Processor::Buffer
+void AudioNode::connect(AudioNode* node)
 {
-	m_target = &target;
-	{
-		auto lock = std::lock_guard{m_runMutex};
-		populateQueue(target);
-		for (auto& node : m_queue)
-		{
-			std::fill(node->m_buffer.begin(), node->m_buffer.end(), sampleFrame{});
-			node->m_numInputs.store(0, std::memory_order_relaxed);
-		}
-	}
-
-	m_runCond.notify_all();
-
-	// TODO C++20: Use std::atomic::wait
-	while (!m_complete.load(std::memory_order_relaxed))
-	{
-		_mm_pause();
-	}
-
-	m_target = nullptr;
-	m_complete.store(false, std::memory_order_relaxed);
-	m_queue.clear();
-
-	auto buffer = Processor::Buffer{};
-	std::copy(target.m_buffer.begin(), target.m_buffer.end(), buffer.begin());
-	return buffer;
+	const auto lock = std::scoped_lock{m_mutex, node->m_mutex};
+	m_destinations.push_back(node);
+	node->m_dependencies.push_back(this);
 }
 
-void AudioNode::Processor::populateQueue(AudioNode& target)
+void AudioNode::disconnect(AudioNode* node)
 {
-	auto temporaryMarks = std::unordered_map<AudioNode*, bool>{};
-	auto permanentMarks = std::unordered_map<AudioNode*, bool>{};
+	const auto lock = std::scoped_lock{m_mutex, node->m_mutex};
+	m_destinations.erase(std::find(m_destinations.begin(), m_destinations.end(), node));
+	node->m_dependencies.erase(std::find(node->m_dependencies.begin(), node->m_dependencies.end(), this));
+}
+
+auto AudioNode::pull(AsyncWorkerPool& pool, std::size_t size) -> std::future<Buffer>
+{
+	auto temp = std::unordered_map<AudioNode*, bool>{};
+	auto permanent = std::unordered_map<AudioNode*, bool>{};
+	auto target = std::future<Buffer>{};
 
 	std::function<void(AudioNode*)> visit = [&](AudioNode* node) {
-		if (permanentMarks.find(node) != permanentMarks.end()) { return; }
-		assert(temporaryMarks.find(node) == temporaryMarks.end());
+		const auto lock = std::lock_guard{node->m_mutex};
 
-		temporaryMarks.emplace(node, true);
-		for (auto& dependency : node->m_dependencies)
+		if (permanent.find(node) != permanent.end()) { return; }
+		assert(temp.find(node) == temp.end() && "Cycle detected");
+
+		temp.emplace(node, true);
+		for (const auto& dependency : node->m_dependencies)
 		{
 			visit(dependency);
 		}
 
-		temporaryMarks.erase(node);
-		permanentMarks.emplace(node, true);
-		m_queue.push_front(node);
+		auto task = pool.enqueue(&AudioNode::process, node, size, node->m_dependencies.size());
+		if (node == this) { target = std::move(task); }
+
+		temp.erase(node);
+		permanent.emplace(node, true);
 	};
 
-	visit(&target);
+	visit(this);
+	return target;
 }
 
-auto AudioNode::Processor::retrieveNode() -> AudioNode*
+auto AudioNode::process(std::size_t size, std::size_t numDependencies) -> Buffer
 {
-	auto lock = std::unique_lock{m_runMutex};
-	auto node = static_cast<AudioNode*>(nullptr);
-
-	m_runCond.wait(lock, [this] { return !m_queue.empty() || m_done; });
-	if (m_done) { return nullptr; }
-
-	node = m_queue.front();
-	m_queue.pop_front();
-	return node;
-}
-
-void AudioNode::Processor::processNode(AudioNode& node)
-{
-	const auto lock = std::unique_lock{node.m_connectionMutex};
-
-	while (node.m_numInputs < node.m_dependencies.size())
+	while (m_numInputs < numDependencies)
 	{
 		_mm_pause();
 	}
 
-	node.render(node.m_buffer.data(), node.m_buffer.size());
-	for (const auto& dest : node.m_destinations)
-	{
-		const auto lock = std::scoped_lock{node.m_renderingMutex, dest->m_renderingMutex};
-		node.send(dest->m_buffer.data(), node.m_buffer.data(), node.m_buffer.size(), *dest);
-		dest->m_numInputs.fetch_add(1, std::memory_order_relaxed);
-	}
-}
+	const auto lock = std::lock_guard{m_mutex};
+	render(m_buffer.data(), size);
 
-void AudioNode::Processor::runWorker()
-{
-	while (!m_done)
+	for (auto& destination : m_destinations)
 	{
-		const auto node = retrieveNode();
-		if (!node) { break; }
-		processNode(*node);
-		if (node == m_target) { m_complete.store(true, std::memory_order_relaxed); }
+		const auto lock = std::lock_guard{destination->m_mutex};
+		send(destination->m_buffer.data(), m_buffer.data(), size, *destination);
+		++destination->m_numInputs;
 	}
+
+	auto result = Buffer{size};
+	std::copy_n(m_buffer.begin(), size, result.begin());
+	std::fill_n(m_buffer.begin(), size, sampleFrame{});
+	m_numInputs = 0;
+
+	return result;
 }
 
 } // namespace lmms

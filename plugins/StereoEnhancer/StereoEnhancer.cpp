@@ -54,7 +54,7 @@ Plugin::Descriptor PLUGIN_EXPORT stereoenhancer_plugin_descriptor =
 StereoEnhancerEffect::StereoEnhancerEffect(Model* _parent, const Descriptor::SubPluginFeatures::Key* _key)
 	: Effect(&stereoenhancer_plugin_descriptor, _parent, _key)
 	, m_seFX(DspEffectLibrary::StereoEnhancer(0.0f))
-	, m_delayBuffer(new sampleFrame[AudioNode::Processor::DefaultBufferSize])
+	, m_delayBuffer(new sampleFrame[AudioNode::DefaultBufferSize])
 	, m_currFrame(0)
 	, m_bbControls(this)
 {
@@ -114,7 +114,7 @@ bool StereoEnhancerEffect::processAudioBuffer( sampleFrame * _buf,
 		if( frameIndex < 0 )
 		{
 			// e.g. difference = -10, frameIndex = DBS - 10
-			frameIndex += AudioNode::Processor::DefaultBufferSize;
+			frameIndex += AudioNode::DefaultBufferSize;
 		}
 
 		//sample_t s[2] = { _buf[f][0], _buf[f][1] };	//Vanilla
@@ -128,7 +128,7 @@ bool StereoEnhancerEffect::processAudioBuffer( sampleFrame * _buf,
 
 		// Update currFrame
 		m_currFrame += 1;
-		m_currFrame %= AudioNode::Processor::DefaultBufferSize;
+		m_currFrame %= AudioNode::DefaultBufferSize;
 	}
 
 	checkGate( out_sum / _frames );
@@ -146,7 +146,7 @@ bool StereoEnhancerEffect::processAudioBuffer( sampleFrame * _buf,
 void StereoEnhancerEffect::clearMyBuffer()
 {
 	int i;
-	for (i = 0; i < AudioNode::Processor::DefaultBufferSize; i++)
+	for (i = 0; i < AudioNode::DefaultBufferSize; i++)
 	{
 		m_delayBuffer[i][0] = 0.0f;
 		m_delayBuffer[i][1] = 0.0f;

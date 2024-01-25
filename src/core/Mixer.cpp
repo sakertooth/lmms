@@ -57,8 +57,7 @@ void MixerRoute::updateName()
 }
 
 MixerChannel::MixerChannel(int idx, Model* _parent)
-	: AudioNode(Engine::audioEngine()->framesPerPeriod())
-	, m_fxChain(nullptr)
+	: m_fxChain(nullptr)
 	, m_peakLeft(0.0f)
 	, m_peakRight(0.0f)
 	, m_muteModel(false, _parent)
@@ -76,7 +75,7 @@ void MixerChannel::unmuteForSolo()
 	m_muteModel.setValue(false);
 }
 
-void MixerChannel::render(sampleFrame* dest, size_t numFrames)
+void MixerChannel::render(sampleFrame* dest, std::size_t size)
 {
 	if (m_muted)
 	{
@@ -84,15 +83,15 @@ void MixerChannel::render(sampleFrame* dest, size_t numFrames)
 		m_peakRight = 0.0f;
 		return;
 	}
-	
-	m_fxChain.startRunning();
-	m_fxChain.processAudioBuffer(dest, numFrames, true);
 
 	const auto channelVol = m_volumeModel.value(); 
 	const auto channelVolBuf = m_volumeModel.valueBuffer();
 
+	m_fxChain.startRunning();
+	m_fxChain.processAudioBuffer(dest, size, true);
+
 	// TODO: Redesign `MixHelpers` to support unary operations
-	for (size_t frame = 0; frame < numFrames; ++frame)
+	for (std::size_t frame = 0; frame < size; ++frame)
 	{
 		if (channelVolBuf)
 		{
@@ -107,24 +106,23 @@ void MixerChannel::render(sampleFrame* dest, size_t numFrames)
 	}
 
 	// TODO: Peak calculations should be handled in `MixerChannelView`
-	const auto [leftPeak, rightPeak] = Engine::audioEngine()->getPeakValues(dest, numFrames);
+	const auto [leftPeak, rightPeak] = Engine::audioEngine()->getPeakValues(dest, size);
 	m_peakLeft = std::max(m_peakLeft, leftPeak);
 	m_peakRight = std::max(m_peakRight, rightPeak);
 }
 
-void MixerChannel::send(sampleFrame* dest, const sampleFrame* src, size_t numFrames, AudioNode& recipient)
+void MixerChannel::send(sampleFrame* dest, const sampleFrame* src, std::size_t size, AudioNode& recipient)
 {
-	const auto receiver = dynamic_cast<MixerChannel*>(&recipient);
-	if (!receiver) { return; }
+	if (!dynamic_cast<MixerChannel*>(&recipient)) { return AudioNode::send(dest, src, size, recipient); }
 
-	const auto routeIt = std::find_if(
-		m_sends.begin(), m_sends.end(), [&receiver](const MixerRoute* route) { return route->receiver() == receiver; });
+	const auto routeIt
+		= std::find_if(m_sends.begin(), m_sends.end(), [&](MixerRoute* route) { return route->receiver() == &recipient; });
 
 	const auto routeVol = (*routeIt)->amount()->value();
 	const auto routeVolBuf = (*routeIt)->amount()->valueBuffer();
 
-	routeVolBuf ? MixHelpers::addMultipliedByBuffer(dest, src, 1.0f, routeVolBuf, numFrames)
-				: MixHelpers::addMultiplied(dest, src, routeVol, numFrames);
+	routeVolBuf ? MixHelpers::addMultipliedByBuffer(dest, src, 1.0f, routeVolBuf, size)
+				: MixHelpers::addMultiplied(dest, src, routeVol, size);
 }
 
 Mixer::Mixer() :

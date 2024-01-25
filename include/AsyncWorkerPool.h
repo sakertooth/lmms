@@ -45,7 +45,6 @@ public:
 	template <typename Fn, typename... Args>
 	auto enqueue(Fn fn, Args&&... args) -> std::future<std::invoke_result_t<Fn, Args...>>
 	{
-		const auto lock = std::lock_guard{m_runMutex};
 		using Task = std::packaged_task<std::invoke_result_t<Fn, Args...>()>;
 
 		// TODO C++20: Use initialized lambda pack captures
@@ -54,7 +53,10 @@ public:
 		};
 
 		auto task = std::make_shared<Task>(work);
-		m_tasks.emplace([task] { return (*task)(); });
+		{
+			const auto lock = std::lock_guard{m_runMutex};
+			m_tasks.emplace([task] { return (*task)(); });
+		}
 
 		return task->get_future();
 	}
@@ -64,9 +66,6 @@ public:
 
 	//! Starts the worker pool but returns immediately.
 	void runAsync();
-
-	//! Wait for the worker pool to finish processing any tasks.
-	void wait();
 
 private:
 	void process();

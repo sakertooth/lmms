@@ -25,64 +25,25 @@
 #ifndef LMMS_AUDIO_NODE_H
 #define LMMS_AUDIO_NODE_H
 
-#include <atomic>
 #include <condition_variable>
-#include <list>
 #include <mutex>
 #include <thread>
 #include <vector>
 
 #include "ArrayVector.h"
+#include "AsyncWorkerPool.h"
 #include "lmms_basics.h"
 
 namespace lmms {
 class AudioNode
 {
 public:
-	class Processor
-	{
-	public:
-		static constexpr auto DefaultBufferSize = 256;
-		using Buffer = ArrayVector<sampleFrame, DefaultBufferSize>;
+	static constexpr auto DefaultBufferSize = 256;
+	static constexpr auto MaxBufferSize = 4096;
 
-		//! Create a `Processor` containing `numWorkers` worker threads.
-		Processor(unsigned int numWorkers = std::thread::hardware_concurrency());
+	using Buffer = ArrayVector<sampleFrame, MaxBufferSize>;
 
-		//! Signals to the workers that any processing must cease, and joins all the workers threads before deletion.
-		~Processor();
-
-		//! Run the processing for `target` and return its output after waiting for `target` to complete.
-		auto process(AudioNode& target) -> Buffer;
-
-	private:
-		//! Topologically sort the audio graph, starting from `target`,
-		//! and use that as the work queue.
-		void populateQueue(AudioNode& target);
-
-		//! Retrieve a node from the work queue, blocking if necessary.
-		//! Returns `nullptr` if a node could not be retrieved.
-		//! The worker stops if no node could be retrieved.
-		auto retrieveNode() -> AudioNode*;
-
-		//! For each destination paired with the given node, renders output for each and sends it to them.
-		void processNode(AudioNode& node);
-
-		//! Run loop for worker thread(s).
-		void runWorker();
-
-		AudioNode* m_target = nullptr;
-		std::list<AudioNode*> m_queue;
-		std::vector<std::thread> m_workers;
-
-		std::condition_variable m_runCond;
-		std::mutex m_runMutex;
-
-		std::atomic<bool> m_done = false;
-		std::atomic<bool> m_complete = false;
-	};
-
-	//! Creates a node that contains `size` sample frames.
-	AudioNode(size_t size);
+	AudioNode() = default;
 
 	AudioNode(const AudioNode&) = delete;
 	AudioNode(AudioNode&&) = delete;
@@ -90,35 +51,36 @@ public:
 	AudioNode& operator=(const AudioNode&) = delete;
 	AudioNode& operator=(AudioNode&&) = delete;
 
-	//! Removes connections from all neighboring nodes before deletion.
-	virtual ~AudioNode();
+	//! Disconnects from all other nodes it has connections to.
+	virtual ~AudioNode() noexcept;
 
-	//!	Render audio and store it in `dest`.
-	virtual void render(sampleFrame* dest, size_t numFrames) = 0;
+	//! Render `size` sample frames and store it in `dest`.
+	//! Precondition: `size <= MaxBufferSize == true`.
+	virtual void render(sampleFrame* dest, std::size_t size) = 0;
 
-	/*
-		Send rendered audio intended for the destination node `recipient`.
-		The audio should be mixed with `output` and not overwritten.
+	//! Optionally invokes post processing on `size` sample frames within `src` and mixes the output into `dest`.
+	//! `recipient` represents the intended recipient the audio processed is going to.
+	//! The default implementation does no post processing and simply mixes `src` into `dest` unchanged.
+	//! Precondition: `size <= MaxBufferSize == true`.
+	virtual void send(sampleFrame* dest, const sampleFrame* src, std::size_t size, AudioNode& recipient);
 
-		`src` contains a mix of the audio that was rendered on the call to `render`, and, if it applies, the input that
-	   was sent to this node by other nodes.
+	//! Enqueue a topological ordering of calls to `render` for this node and its dependencies into `pool`.
+	//! Returns a future that returns the `Buffer` output when this node finishes executing within `pool`.
+	//! Precondition: `size <= MaxBufferSize` is `true`.
+	auto pull(AsyncWorkerPool& pool, std::size_t size) -> std::future<Buffer>;
 
-	   `dest` is the place where `output` should be sent to.
-	*/
-	virtual void send(sampleFrame* dest, const sampleFrame* src, size_t numFrames, AudioNode& recipient) = 0;
+	//! Connect the output from this node to the input of `node`.
+	void connect(AudioNode* node);
 
-	//! Connect output from this node to the input of `dest`.
-	void connect(AudioNode& dest);
-
-	//! Disconnect output from this node to the input of `dest`.
-	void disconnect(AudioNode& dest);
+	//! Disconnect the output from this node to the input of `node`.
+	void disconnect(AudioNode* node);
 
 private:
-	std::vector<sampleFrame> m_buffer;
-	std::atomic<int> m_numInputs = 0;
-	std::vector<AudioNode*> m_dependencies;
-	std::vector<AudioNode*> m_destinations;
-	std::mutex m_renderingMutex, m_connectionMutex;
+	auto process(std::size_t size, std::size_t numDependencies) -> Buffer;
+	Buffer m_buffer;
+	size_t m_numInputs = 0;
+	std::vector<AudioNode*> m_dependencies, m_destinations;
+	std::mutex m_mutex;
 };
 } // namespace lmms
 

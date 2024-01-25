@@ -30,6 +30,7 @@
 #include "EffectChain.h"
 #include "JournallingObject.h"
 #include "ThreadableJob.h"
+#include "lmms_basics.h"
 
 #include <atomic>
 #include <optional>
@@ -66,8 +67,8 @@ class MixerChannel : public AudioNode
 		// pointers to other channels that send to this one
 		MixerRouteVector m_receives;
 
-		void render(sampleFrame* dest, size_t numFrames) override;
-		void send(sampleFrame* dest, const sampleFrame* src, size_t numFrames, AudioNode& recipient) override;
+		void render(sampleFrame* dest, std::size_t size) override;
+		void send(sampleFrame* dest, const sampleFrame* src, std::size_t size, AudioNode& recipient) override;
 
 		void unmuteForSolo();
 

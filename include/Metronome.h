@@ -31,13 +31,12 @@ namespace lmms {
 class Metronome : public AudioNode
 {
 public:
-	Metronome(size_t size);
+	Metronome();
 
 	bool active() const;
 	void setActive(bool active);
 
-	void render(sampleFrame* dest, size_t numFrames) override;
-	void send(sampleFrame* dest, const sampleFrame* src, size_t numFrames, AudioNode& recipient) override;
+	void render(sampleFrame* dest, std::size_t size) override;
 
 private:
 	struct Handle
