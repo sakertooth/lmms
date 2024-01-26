@@ -66,14 +66,6 @@ public:
 	//! Disconnects from all other nodes it has connections to.
 	virtual ~AudioNode() noexcept;
 
-	//! Render `size` sample frames and store it in `dest`.
-	virtual void render(sampleFrame* dest, std::size_t size) = 0;
-
-	//! Optionally invokes post processing on `size` sample frames within `src` and mixes the output into `dest`.
-	//! `recipient` represents the intended recipient the audio processed is going to.
-	//! The default implementation does no post processing and simply mixes `src` into `dest` unchanged.
-	virtual void send(sampleFrame* dest, const sampleFrame* src, std::size_t size, AudioNode& recipient);
-
 	//! Enqueue a topological ordering of the processing for this node and its dependencies into `pool`.
 	//! Returns a future that waits for the completion of the node's processing.
 	auto execute(AsyncWorkerPool& pool) -> std::future<void>;
@@ -93,6 +85,15 @@ public:
 	//! This function should be called before any nodes are created, as without that call, all nodes will have a buffer
 	//! of size `0`.
 	static void setFramesPerPeriod(std::size_t framesPerPeriod);
+
+protected:
+	//! Render `size` sample frames and store it in `dest`.
+	virtual void render(sampleFrame* dest, std::size_t size) = 0;
+
+	//! Optionally invokes post processing on `size` sample frames within `src` and mixes the output into `dest`.
+	//! `recipient` represents the intended recipient the audio processed is going to.
+	//! The default implementation does no post processing and simply mixes `src` into `dest` unchanged.
+	virtual void send(sampleFrame* dest, const sampleFrame* src, std::size_t size, AudioNode& recipient);
 
 private:
 	void process(std::size_t size, std::size_t numDependencies);

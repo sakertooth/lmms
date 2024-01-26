@@ -67,14 +67,15 @@ class MixerChannel : public AudioNode
 		// pointers to other channels that send to this one
 		MixerRouteVector m_receives;
 
-		void render(sampleFrame* dest, std::size_t size) override;
-		void send(sampleFrame* dest, const sampleFrame* src, std::size_t size, AudioNode& recipient) override;
-
 		void unmuteForSolo();
 
 		auto color() const -> const std::optional<QColor>& { return m_color; }
 		void setColor(const std::optional<QColor>& color) { m_color = color; }
-		
+
+	protected:
+		void render(sampleFrame* dest, std::size_t size) override;
+		void send(sampleFrame* dest, const sampleFrame* src, std::size_t size, AudioNode& recipient) override;
+	
 	private:
 		std::optional<QColor> m_color;
 };

@@ -36,6 +36,7 @@ public:
 	bool active() const;
 	void setActive(bool active);
 
+protected:
 	void render(sampleFrame* dest, std::size_t size) override;
 
 private:
