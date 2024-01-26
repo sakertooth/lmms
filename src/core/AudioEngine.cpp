@@ -212,7 +212,6 @@ auto AudioEngine::renderNextBuffer() -> AudioNode::Buffer
 
 	const auto masterChannel = Engine::mixer()->mixerChannel(0);
 	auto task = masterChannel->pull(m_audioProcessor, m_framesPerPeriod);
-	m_audioProcessor.run();
 
 	const auto output = task.get();
 	emit nextAudioBuffer(output.data());

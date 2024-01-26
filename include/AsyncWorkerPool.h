@@ -27,6 +27,7 @@
 
 #include <condition_variable>
 #include <emmintrin.h>
+#include <functional>
 #include <future>
 #include <memory>
 #include <queue>
@@ -41,31 +42,27 @@ public:
 	~AsyncWorkerPool();
 
 	//! Enqueue function `fn` with arguments `args` to be ran asynchronously.
-	//! Workers are not notified to do the work enqueued until `run` or `runAsync` are called.
 	template <typename Fn, typename... Args>
-	auto enqueue(Fn fn, Args&&... args) -> std::future<std::invoke_result_t<Fn, Args...>>
+	auto enqueue(Fn&& fn, Args&&... args) -> std::future<std::invoke_result_t<Fn, Args...>>
 	{
-		using Task = std::packaged_task<std::invoke_result_t<Fn, Args...>()>;
+		using ReturnType = std::invoke_result_t<Fn, Args...>;
+		using PackagedTask = std::packaged_task<ReturnType()>;
 
-		// TODO C++20: Use initialized lambda pack captures
-		auto work = [fn = std::move(fn), args = std::make_tuple(std::forward<Args>(args)...)] {
-			return std::apply(fn, std::move(args));
+		auto callable = [fn = std::move(fn), args = std::make_tuple(std::forward<Args>(args)...)] {
+			return std::apply(fn, args);
 		};
 
-		auto task = std::make_shared<Task>(work);
+		auto packagedTask = std::make_shared<PackagedTask>(std::move(callable));
+		auto task = [packagedTask] { return (*packagedTask)(); };
+
 		{
 			const auto lock = std::lock_guard{m_runMutex};
-			m_tasks.emplace([task] { return (*task)(); });
+			m_tasks.emplace(std::move(task));
+			m_runCond.notify_one();
 		}
 
-		return task->get_future();
+		return packagedTask->get_future();
 	}
-
-	//! Starts the worker pool and blocks until no more tasks can be processed.
-	void run();
-
-	//! Starts the worker pool but returns immediately.
-	void runAsync();
 
 private:
 	void process();

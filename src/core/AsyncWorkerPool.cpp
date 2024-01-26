@@ -67,17 +67,4 @@ void AsyncWorkerPool::process()
 	}
 }
 
-void AsyncWorkerPool::run()
-{
-	m_runCond.notify_all();
-
-    auto lock = std::unique_lock{m_runMutex};
-    m_waitCond.wait(lock, [this] { return m_tasks.empty(); });
-}
-
-void AsyncWorkerPool::runAsync()
-{
-	m_runCond.notify_all();
-}
-
 } // namespace lmms
