@@ -70,11 +70,8 @@ static thread_local bool s_runningChange;
 
 AudioEngine::AudioEngine(bool renderOnly)
 	: m_renderOnly(renderOnly)
-	, m_framesPerPeriod(AudioNode::DefaultBufferSize)
 	, m_inputBufferRead(0)
 	, m_inputBufferWrite(1)
-	, m_outputBufferRead(nullptr)
-	, m_outputBufferWrite(nullptr)
 	, m_qualitySettings(qualitySettings::Mode::Draft)
 	, m_masterGain(1.0f)
 	, m_audioDev(nullptr)
@@ -83,23 +80,13 @@ AudioEngine::AudioEngine(bool renderOnly)
 	, m_profiler()
 	, m_clearSignal(false)
 {
-	for( int i = 0; i < 2; ++i )
-	{
-		m_inputBufferFrames[i] = 0;
-		m_inputBufferSize[i] = AudioNode::DefaultBufferSize * 100;
-		m_inputBuffer[i] = new sampleFrame[AudioNode::DefaultBufferSize * 100];
-		BufferManager::clear( m_inputBuffer[i], m_inputBufferSize[i] );
-	}
+	m_framesPerPeriod = ConfigManager::inst()
+							->value("audioengine", "framesperaudiobuffer", QString{AudioNode::DefaultBufferSize})
+							.toInt();
 
-	// now that framesPerPeriod is fixed initialize global BufferManager
-	BufferManager::init( m_framesPerPeriod );
-
-	int outputBufferSize = m_framesPerPeriod * sizeof(surroundSampleFrame);
-	m_outputBufferRead = static_cast<surroundSampleFrame *>(MemoryHelper::alignedMalloc(outputBufferSize));
-	m_outputBufferWrite = static_cast<surroundSampleFrame *>(MemoryHelper::alignedMalloc(outputBufferSize));
-
-	BufferManager::clear(m_outputBufferRead, m_framesPerPeriod);
-	BufferManager::clear(m_outputBufferWrite, m_framesPerPeriod);
+	m_outputBuffer.resize(m_framesPerPeriod);
+	AudioNode::setFramesPerPeriod(m_framesPerPeriod);
+	BufferManager::init(m_framesPerPeriod);
 }
 
 
@@ -109,14 +96,6 @@ AudioEngine::~AudioEngine()
 {
 	delete m_midiClient;
 	delete m_audioDev;
-
-	MemoryHelper::alignedFree(m_outputBufferRead);
-	MemoryHelper::alignedFree(m_outputBufferWrite);
-
-	for (const auto& input : m_inputBuffer)
-	{
-		delete[] input;
-	}
 }
 
 
@@ -201,7 +180,7 @@ bool AudioEngine::criticalXRuns() const
 	return cpuLoad() >= 99 && Engine::getSong()->isExporting() == false;
 }
 
-auto AudioEngine::renderNextBuffer() -> AudioNode::Buffer
+auto AudioEngine::renderNextBuffer() -> const sampleFrame*
 {
 	const auto lock = std::lock_guard{m_changeMutex};
 
@@ -211,10 +190,11 @@ auto AudioEngine::renderNextBuffer() -> AudioNode::Buffer
 	Engine::getSong()->processNextBuffer();
 
 	const auto masterChannel = Engine::mixer()->mixerChannel(0);
-	auto task = masterChannel->pull(m_audioProcessor, m_framesPerPeriod);
+	const auto task = masterChannel->execute(m_audioProcessor);
 
-	const auto output = task.get();
-	emit nextAudioBuffer(output.data());
+	task.wait();
+	masterChannel->pull(m_outputBuffer.data());
+	emit nextAudioBuffer(m_outputBuffer.data());
 
 	EnvelopeAndLfoParameters::instances()->trigger();
 	Controller::triggerFrameCounter();
@@ -223,7 +203,7 @@ auto AudioEngine::renderNextBuffer() -> AudioNode::Buffer
 	s_renderingThread = false;
 	m_profiler.finishPeriod(processingSampleRate(), m_framesPerPeriod);
 
-	return output;
+	return m_outputBuffer.data();
 }
 
 
@@ -234,9 +214,6 @@ void AudioEngine::swapBuffers()
 	m_inputBufferWrite = (m_inputBufferWrite + 1) % 2;
 	m_inputBufferRead = (m_inputBufferRead + 1) % 2;
 	m_inputBufferFrames[m_inputBufferWrite] = 0;
-
-	std::swap(m_outputBufferRead, m_outputBufferWrite);
-	BufferManager::clear(m_outputBufferWrite, m_framesPerPeriod);
 }
 
 

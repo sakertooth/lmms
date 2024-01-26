@@ -320,7 +320,7 @@ public:
 		return m_inputBuffer[ m_inputBufferRead ];
 	}
 
-	auto renderNextBuffer() -> AudioNode::Buffer;
+	auto renderNextBuffer() -> const sampleFrame*;
 
 	inline f_cnt_t inputBufferFrames() const
 	{
@@ -382,10 +382,8 @@ private:
 	int m_inputBufferRead;
 	int m_inputBufferWrite;
 
-	surroundSampleFrame * m_outputBufferRead;
-	surroundSampleFrame * m_outputBufferWrite;
-
 	AsyncWorkerPool m_audioProcessor;
+	std::vector<sampleFrame> m_outputBuffer;
 
 	struct qualitySettings m_qualitySettings;
 	float m_masterGain;

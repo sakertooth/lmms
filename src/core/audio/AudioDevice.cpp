@@ -90,9 +90,9 @@ fpp_t AudioDevice::getNextBuffer( surroundSampleFrame * _ab )
 	// resample if necessary
 	if( audioEngine()->processingSampleRate() != m_sampleRate )
 	{
-		frames = resample(buffer.data(), frames, _ab, audioEngine()->processingSampleRate(), m_sampleRate);
+		frames = resample(buffer, frames, _ab, audioEngine()->processingSampleRate(), m_sampleRate);
 	}
-	else { memcpy(_ab, buffer.data(), frames * sizeof(surroundSampleFrame)); }
+	else { memcpy(_ab, buffer, frames * sizeof(surroundSampleFrame)); }
 
 	// release lock
 	unlock();

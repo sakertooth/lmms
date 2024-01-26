@@ -31,6 +31,11 @@
 
 namespace lmms {
 
+AudioNode::AudioNode()
+	: m_buffer(s_framesPerPeriod)
+{
+}
+
 AudioNode::~AudioNode() noexcept
 {
 	for (const auto& dependency : m_dependencies)
@@ -49,6 +54,11 @@ void AudioNode::send(sampleFrame* dest, const sampleFrame* src, std::size_t size
 	MixHelpers::add(dest, src, size);
 }
 
+void AudioNode::pull(sampleFrame* dest)
+{
+	std::copy(m_buffer.begin(), m_buffer.end(), dest);
+}
+
 void AudioNode::connect(AudioNode* node)
 {
 	const auto lock = std::scoped_lock{m_mutex, node->m_mutex};
@@ -63,14 +73,16 @@ void AudioNode::disconnect(AudioNode* node)
 	node->m_dependencies.erase(std::find(node->m_dependencies.begin(), node->m_dependencies.end(), this));
 }
 
-auto AudioNode::pull(AsyncWorkerPool& pool, std::size_t size) -> std::future<Buffer>
+auto AudioNode::execute(AsyncWorkerPool& pool) -> std::future<void>
 {
 	auto temp = std::unordered_map<AudioNode*, bool>{};
 	auto permanent = std::unordered_map<AudioNode*, bool>{};
-	auto target = std::future<Buffer>{};
+	auto result = std::future<void>{};
 
 	std::function<void(AudioNode*)> visit = [&](AudioNode* node) {
 		const auto lock = std::lock_guard{node->m_mutex};
+
+		std::fill_n(node->m_buffer.begin(), s_framesPerPeriod, sampleFrame{0.0f, 0.0f});
 
 		if (permanent.find(node) != permanent.end()) { return; }
 		assert(temp.find(node) == temp.end() && "Cycle detected");
@@ -81,18 +93,18 @@ auto AudioNode::pull(AsyncWorkerPool& pool, std::size_t size) -> std::future<Buf
 			visit(dependency);
 		}
 
-		auto task = pool.enqueue(&AudioNode::process, node, size, node->m_dependencies.size());
-		if (node == this) { target = std::move(task); }
+		auto task = pool.enqueue(&AudioNode::process, node, s_framesPerPeriod, node->m_dependencies.size());
+		if (node == this) { result = std::move(task); }
 
 		temp.erase(node);
 		permanent.emplace(node, true);
 	};
 
 	visit(this);
-	return target;
+	return result;
 }
 
-auto AudioNode::process(std::size_t size, std::size_t numDependencies) -> Buffer
+void AudioNode::process(std::size_t size, std::size_t numDependencies)
 {
 	while (m_numInputs < numDependencies)
 	{
@@ -109,12 +121,13 @@ auto AudioNode::process(std::size_t size, std::size_t numDependencies) -> Buffer
 		++destination->m_numInputs;
 	}
 
-	auto result = Buffer{size};
-	std::copy_n(m_buffer.begin(), size, result.begin());
-	std::fill_n(m_buffer.begin(), size, sampleFrame{});
 	m_numInputs = 0;
+}
 
-	return result;
+void AudioNode::setFramesPerPeriod(std::size_t framesPerPeriod)
+{
+	static auto s_once = std::once_flag{};
+	std::call_once(s_once, [&framesPerPeriod] { s_framesPerPeriod = framesPerPeriod; });
 }
 
 } // namespace lmms
