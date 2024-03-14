@@ -25,73 +25,70 @@
 #ifndef LMMS_FIFO_BUFFER_H
 #define LMMS_FIFO_BUFFER_H
 
-#include <QSemaphore>
+#include <atomic>
+#include <optional>
+#include <vector>
 
-
-namespace lmms
-{
-
-
-template<typename T>
-class FifoBuffer
+namespace lmms {
+//! A single producer single consumer wait-free and lock-free fixed size FIFO queue.
+template <typename T> class FifoBuffer
 {
 public:
-	FifoBuffer(int size) :
-		m_readSem(size),
-		m_writeSem(size),
-		m_readIndex(0),
-		m_writeIndex(0),
-		m_size(size)
+	FifoBuffer(size_t size)
+		: m_buffer(size)
 	{
-		m_buffer = new T[size];
-		m_readSem.acquire(size);
 	}
 
-	~FifoBuffer()
+	//! Push `value` into the queue, busy-waiting if it is full.
+	void push(T value)
 	{
-		delete[] m_buffer;
-		m_readSem.release(m_size);
+		const auto newWriteIndex = (m_writeIndex + 1) % m_buffer.size();
+		while (newWriteIndex == m_readIndex) {}
+		m_buffer[m_writeIndex] = std::move(value);
+		m_writeIndex = newWriteIndex;
 	}
 
-	void write(T element)
+	//! Pop and return a value out of the queue, busy-waiting if there are no items available.
+	auto pop() -> T
 	{
-		m_writeSem.acquire();
-		m_buffer[m_writeIndex++] = element;
-		m_writeIndex %= m_size;
-		m_readSem.release();
+		while (m_readIndex == m_writeIndex) {}
+		const auto value = m_buffer[m_readIndex];
+		m_readIndex = (m_readIndex + 1) % m_buffer.size();
+		return value;
 	}
 
-	T read()
+	//! Attempts to push `value` into the queue, returning `true` if it was pushed and `false` otherwise.
+	auto tryPush(T value) -> bool
 	{
-		m_readSem.acquire();
-		T element = m_buffer[m_readIndex++];
-		m_readIndex %= m_size;
-		m_writeSem.release();
-		return element;
+		if ((m_writeIndex + 1) % m_buffer.size() == m_readIndex) { return false; }
+		push(std::move(value));
+		return true;
 	}
 
-	void waitUntilRead()
+	//! Attempts to pop a value out of the queue, returning it if possible and `std::nullopt` otherwise.
+	auto tryPop() -> std::optional<T>
 	{
-		m_writeSem.acquire(m_size);
-		m_writeSem.release(m_size);
+		if (m_readIndex == m_writeIndex) { return std::nullopt; }
+		return pop();
 	}
 
-	bool available()
+	//! Waits until all items have been read from the queue.
+	void waitForFullRead() const
 	{
-		return m_readSem.available();
+		while (m_readIndex != m_writeIndex) {}
 	}
 
+	//! Return the size of this FIFO queue.
+	auto size() const -> size_t { return m_buffer.size(); }
+
+	//! Returns `true` if this queue is empty and `false` otherwise.
+	auto empty() const -> bool { return m_readIndex == m_writeIndex; }
 
 private:
-	QSemaphore m_readSem;
-	QSemaphore m_writeSem;
-	int m_readIndex;
-	int m_writeIndex;
-	int m_size;
-	T * m_buffer;
-} ;
-
-
+	std::vector<T> m_buffer;
+	std::atomic<size_t> m_readIndex = 0;
+	std::atomic<size_t> m_writeIndex = 0;
+};
 } // namespace lmms
 
 #endif // LMMS_FIFO_BUFFER_H

@@ -172,12 +172,6 @@ AudioEngine::~AudioEngine()
 		m_workers[w]->wait( 500 );
 	}
 
-	while( m_fifo->available() )
-	{
-		delete[] m_fifo->read();
-	}
-	delete m_fifo;
-
 	delete m_midiClient;
 	delete m_audioDev;
 
@@ -1247,12 +1241,12 @@ void AudioEngine::fifoWriter::run()
 		auto buffer = new surroundSampleFrame[frames];
 		const surroundSampleFrame * b = m_audioEngine->renderNextBuffer();
 		memcpy( buffer, b, frames * sizeof( surroundSampleFrame ) );
-		m_fifo->write(buffer);
+		m_fifo->push(buffer);
 	}
 
 	// Let audio backend stop processing
-	m_fifo->write(nullptr);
-	m_fifo->waitUntilRead();
+	m_fifo->push(nullptr);
+	m_fifo->waitForFullRead();
 }
 
 } // namespace lmms

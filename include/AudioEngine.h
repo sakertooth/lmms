@@ -347,7 +347,7 @@ public:
 
 	inline const surroundSampleFrame * nextBuffer()
 	{
-		return hasFifoWriter() ? m_fifo->read() : renderNextBuffer();
+		return hasFifoWriter() ? m_fifo->pop() : renderNextBuffer();
 	}
 
 	void changeQuality(const struct qualitySettings & qs);
