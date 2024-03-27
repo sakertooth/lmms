@@ -26,6 +26,7 @@
 #define LMMS_AUDIO_RESAMPLER_H
 
 #include <samplerate.h>
+#include <vector>
 
 #include "lmms_export.h"
 
@@ -41,6 +42,12 @@ public:
 		long outputFramesGenerated;
 	};
 
+	struct Converter
+	{
+		int type;
+		const char* name;
+	};
+
 	AudioResampler(int interpolationMode, int channels);
 	AudioResampler(const AudioResampler&) = delete;
 	AudioResampler(AudioResampler&&) = delete;
@@ -52,6 +59,8 @@ public:
 	auto resample(const float* in, long inputFrames, float* out, long outputFrames, double ratio) -> ProcessResult;
 	auto interpolationMode() const -> int { return m_interpolationMode; }
 	auto channels() const -> int { return m_channels; }
+
+	static auto availableConverters() -> const std::vector<Converter>&;
 
 private:
 	int m_interpolationMode = -1;

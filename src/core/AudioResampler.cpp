@@ -61,4 +61,21 @@ auto AudioResampler::resample(const float* in, long inputFrames, float* out, lon
 	return {src_process(m_state, &data), data.input_frames_used, data.output_frames_gen};
 }
 
+auto AudioResampler::availableConverters() -> const std::vector<Converter>&
+{
+	static auto s_converters = [] {
+		std::vector<Converter> converters;
+		auto converterType = 0;
+
+		while (const char* converterName = src_get_name(converterType))
+		{
+			converters.push_back(Converter{converterType, converterName});
+			++converterType;
+		}
+
+		return converters;
+	}();
+	return s_converters;
+}
+
 } // namespace lmms

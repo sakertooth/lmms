@@ -33,6 +33,7 @@
 #include <QScrollArea>
 
 #include "AudioEngine.h"
+#include "AudioResampler.h"
 #include "debug.h"
 #include "embed.h"
 #include "Engine.h"
@@ -144,6 +145,8 @@ SetupDialog::SetupDialog(ConfigTab tab_to_open) :
 			"app", "nanhandler", "1").toInt()),
 	m_bufferSize(ConfigManager::inst()->value(
 			"audioengine", "framesperaudiobuffer").toInt()),
+	m_resampleQuality(ConfigManager::inst()->value(
+			"audioengine", "resamplequality", "0").toInt()),
 	m_midiAutoQuantize(ConfigManager::inst()->value(
 			"midi", "autoquantize", "0").toInt() != 0),
 	m_workingDir(QDir::toNativeSeparators(ConfigManager::inst()->workingDir())),
@@ -595,11 +598,25 @@ SetupDialog::SetupDialog(ConfigTab tab_to_open) :
 
 	setBufferSize(m_bufferSizeSlider->value());
 
+	// Resample quality group
+	auto resampleQualityBox = new QGroupBox(tr("Resample quality"), audio_w);
+	auto resampleQualityLayout = new QVBoxLayout(resampleQualityBox);
+	auto resampleQualityComboBox = new QComboBox(resampleQualityBox);
+	resampleQualityLayout->addWidget(resampleQualityComboBox);
+
+	for (const auto& converter : AudioResampler::availableConverters())
+	{
+		resampleQualityComboBox->addItem(converter.name, converter.type);
+	}
+
+	resampleQualityComboBox->setCurrentIndex(m_resampleQuality);
+	connect(resampleQualityComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, &SetupDialog::setResampleQuality);
 
 	// Audio layout ordering.
 	audio_layout->addWidget(audioInterfaceBox);
 	audio_layout->addWidget(as_w);
 	audio_layout->addWidget(bufferSizeBox);
+	audio_layout->addWidget(resampleQualityBox);
 	audio_layout->addStretch();
 
 
@@ -965,6 +982,7 @@ void SetupDialog::accept()
 					QString::number(m_NaNHandler));
 	ConfigManager::inst()->setValue("audioengine", "framesperaudiobuffer",
 					QString::number(m_bufferSize));
+	ConfigManager::inst()->setValue("audioengine", "resamplequality", QString::number(m_resampleQuality));
 	ConfigManager::inst()->setValue("audioengine", "mididev",
 					m_midiIfaceNames[m_midiInterfaces->currentText()]);
 	ConfigManager::inst()->setValue("midi", "midiautoassign",
@@ -1233,6 +1251,10 @@ void SetupDialog::resetBufferSize()
 	setBufferSize(DEFAULT_BUFFER_SIZE / BUFFERSIZE_RESOLUTION);
 }
 
+void SetupDialog::setResampleQuality(int value)
+{
+	m_resampleQuality = value;
+}
 
 // MIDI settings slots.
 
