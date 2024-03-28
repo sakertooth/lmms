@@ -28,6 +28,8 @@
 #include <QMutex>
 #include <samplerate.h>
 
+#include "AudioEngine.h"
+#include "AudioResampler.h"
 #include "lmms_basics.h"
 
 class QThread;
@@ -110,13 +112,6 @@ protected:
 	void clearS16Buffer( int_sample_t * _outbuf,
 							const fpp_t _frames );
 
-	// resample given buffer from samplerate _src_sr to samplerate _dst_sr
-	fpp_t resample( const surroundSampleFrame * _src,
-					const fpp_t _frames,
-					surroundSampleFrame * _dst,
-					const sample_rate_t _src_sr,
-					const sample_rate_t _dst_sr );
-
 	inline void setSampleRate( const sample_rate_t _new_sr )
 	{
 		m_sampleRate = _new_sr;
@@ -138,12 +133,10 @@ private:
 	sample_rate_t m_sampleRate;
 	ch_cnt_t m_channels;
 	AudioEngine* m_audioEngine;
+	AudioResampler m_resampler;
 	bool m_inProcess;
 
 	QMutex m_devMutex;
-
-	SRC_DATA m_srcData;
-	SRC_STATE * m_srcState;
 
 	surroundSampleFrame * m_buffer;
 

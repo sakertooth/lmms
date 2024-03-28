@@ -37,15 +37,9 @@ AudioDevice::AudioDevice( const ch_cnt_t _channels, AudioEngine*  _audioEngine )
 	m_sampleRate( _audioEngine->processingSampleRate() ),
 	m_channels( _channels ),
 	m_audioEngine( _audioEngine ),
-	m_buffer( new surroundSampleFrame[audioEngine()->framesPerPeriod()] )
+	m_resampler(m_audioEngine->createAudioResampler()),
+	m_buffer(new surroundSampleFrame[audioEngine()->framesPerPeriod()])
 {
-	int error;
-	if( ( m_srcState = src_new(
-		audioEngine()->currentQualitySettings().libsrcInterpolation(),
-				SURROUND_CHANNELS, &error ) ) == nullptr )
-	{
-		printf( "Error: src_new() failed in audio_device.cpp!\n" );
-	}
 }
 
 
@@ -53,9 +47,7 @@ AudioDevice::AudioDevice( const ch_cnt_t _channels, AudioEngine*  _audioEngine )
 
 AudioDevice::~AudioDevice()
 {
-	src_delete( m_srcState );
 	delete[] m_buffer;
-
 	m_devMutex.tryLock();
 	unlock();
 }
@@ -91,7 +83,8 @@ fpp_t AudioDevice::getNextBuffer( surroundSampleFrame * _ab )
 	// resample if necessary
 	if( audioEngine()->processingSampleRate() != m_sampleRate )
 	{
-		frames = resample( b, frames, _ab, audioEngine()->processingSampleRate(), m_sampleRate );
+		m_resampler.resample(b->data(), frames, _ab->data(), frames,
+			static_cast<double>(m_sampleRate) / m_audioEngine->processingSampleRate());
 	}
 	else
 	{
@@ -144,15 +137,6 @@ void AudioDevice::stopProcessingThread( QThread * thread )
 
 void AudioDevice::applyQualitySettings()
 {
-	src_delete( m_srcState );
-
-	int error;
-	if( ( m_srcState = src_new(
-		audioEngine()->currentQualitySettings().libsrcInterpolation(),
-				SURROUND_CHANNELS, &error ) ) == nullptr )
-	{
-		printf( "Error: src_new() failed in audio_device.cpp!\n" );
-	}
 }
 
 
@@ -175,35 +159,6 @@ void AudioDevice::unregisterPort( AudioPort * _port )
 void AudioDevice::renamePort( AudioPort * )
 {
 }
-
-
-
-
-fpp_t AudioDevice::resample( const surroundSampleFrame * _src,
-						const fpp_t _frames,
-						surroundSampleFrame * _dst,
-						const sample_rate_t _src_sr,
-						const sample_rate_t _dst_sr )
-{
-	if( m_srcState == nullptr )
-	{
-		return _frames;
-	}
-	m_srcData.input_frames = _frames;
-	m_srcData.output_frames = _frames;
-	m_srcData.data_in = const_cast<float*>(_src[0].data());
-	m_srcData.data_out = _dst[0].data ();
-	m_srcData.src_ratio = (double) _dst_sr / _src_sr;
-	m_srcData.end_of_input = 0;
-	if (int error = src_process(m_srcState, &m_srcData))
-	{
-		printf( "AudioDevice::resample(): error while resampling: %s\n",
-							src_strerror( error ) );
-	}
-	return static_cast<fpp_t>(m_srcData.output_frames_gen);
-}
-
-
 
 int AudioDevice::convertToS16( const surroundSampleFrame * _ab,
 								const fpp_t _frames,
