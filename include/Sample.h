@@ -53,9 +53,8 @@ public:
 	class LMMS_EXPORT PlaybackState
 	{
 	public:
-		PlaybackState(bool varyingPitch = false, int interpolationMode = SRC_LINEAR)
-			: m_resampler(interpolationMode, DEFAULT_CHANNELS)
-			, m_varyingPitch(varyingPitch)
+		PlaybackState(bool varyingPitch = false)
+			: m_varyingPitch(varyingPitch)
 		{
 		}
 
@@ -69,7 +68,7 @@ public:
 		void setBackwards(bool backwards) { m_backwards = backwards; }
 
 	private:
-		AudioResampler m_resampler;
+		AudioResampler m_resampler = Engine::audioEngine()->createAudioResampler();
 		int m_frameIndex = 0;
 		bool m_varyingPitch = false;
 		bool m_backwards = false;
