@@ -50,11 +50,11 @@ public:
 
 	AudioResampler(int interpolationMode, int channels);
 	AudioResampler(const AudioResampler&);
-	AudioResampler(AudioResampler&&) = delete;
+	AudioResampler(AudioResampler&&) noexcept;
 	~AudioResampler();
 
-	AudioResampler& operator=(const AudioResampler&) = delete;
-	AudioResampler& operator=(AudioResampler&&) = delete;
+	AudioResampler& operator=(const AudioResampler&);
+	AudioResampler& operator=(AudioResampler&&) noexcept;
 
 	auto resample(const float* in, long inputFrames, float* out, long outputFrames, double ratio) -> ProcessResult;
 	auto interpolationMode() const -> int { return m_interpolationMode; }

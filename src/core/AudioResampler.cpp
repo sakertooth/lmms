@@ -27,6 +27,7 @@
 #include <samplerate.h>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 namespace lmms {
 
@@ -48,9 +49,40 @@ AudioResampler::AudioResampler(const AudioResampler& resampler)
 {
 }
 
+AudioResampler::AudioResampler(AudioResampler&& resampler) noexcept
+	: m_interpolationMode(resampler.m_interpolationMode)
+	, m_channels(resampler.m_channels)
+	, m_state(std::exchange(resampler.m_state, nullptr))
+{
+}
+
+AudioResampler& AudioResampler::operator=(const AudioResampler& resampler)
+{
+	m_interpolationMode = resampler.m_interpolationMode;
+	m_channels = resampler.m_channels;
+	m_state = src_new(m_interpolationMode, m_channels, &m_error);
+
+	if (!m_state)
+	{
+		const auto errorMessage = std::string{src_strerror(m_error)};
+		const auto fullMessage = std::string{"Failed to create an AudioResampler: "} + errorMessage;
+		throw std::runtime_error{fullMessage};
+	}
+
+	return *this;
+}
+
+AudioResampler& AudioResampler::operator=(AudioResampler&& resampler) noexcept
+{
+	m_interpolationMode = resampler.m_interpolationMode;
+	m_channels = resampler.m_channels;
+	m_state = std::exchange(resampler.m_state, nullptr);
+	return *this;
+}
+
 AudioResampler::~AudioResampler()
 {
-	src_delete(m_state);
+	if (m_state) { src_delete(m_state); }
 }
 
 auto AudioResampler::resample(const float* in, long inputFrames, float* out, long outputFrames, double ratio)
