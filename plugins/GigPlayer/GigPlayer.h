@@ -32,6 +32,9 @@
 #include <QMutexLocker>
 #include <samplerate.h>
 
+#include "AudioEngine.h"
+#include "Engine.h"
+#include "AudioResampler.h"
 #include "Instrument.h"
 #include "PixmapButton.h"
 #include "InstrumentView.h"
@@ -157,8 +160,6 @@ public:
 
 	// Needed since libsamplerate stores data internally between calls
 	void updateSampleRate();
-	bool convertSampleRate( sampleFrame & oldBuf, sampleFrame & newBuf,
-		f_cnt_t oldSize, f_cnt_t newSize, float freq_factor, f_cnt_t& used );
 
 	gig::Sample * sample;
 	gig::DimensionRegion * region;
@@ -299,6 +300,8 @@ private:
 	// Used when determining which samples to use
 	uint32_t m_RandomSeed;
 	float m_currentKeyDimension;
+
+	AudioResampler m_resampler = Engine::audioEngine()->createAudioResampler();
 
 private:
 	// Delete the current GIG instance if one is open

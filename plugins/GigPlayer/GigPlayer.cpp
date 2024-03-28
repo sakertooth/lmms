@@ -461,7 +461,7 @@ void GigInstrument::play( sampleFrame * _working_buffer )
 				sampleFrame convertBuf[frames];
 
 				// Only output if resampling is successful (note that "used" is output)
-				if (sample.convertSampleRate(*sampleData, *convertBuf, samples, frames, freq_factor, used))
+				if (!m_resampler.resample(sampleData->data(), samples, convertBuf->data(), frames, freq_factor).error)
 				{
 					for( f_cnt_t i = 0; i < frames; ++i )
 					{
@@ -1178,56 +1178,6 @@ void GigSample::updateSampleRate()
 		qCritical( "error while creating libsamplerate data structure in GigSample" );
 	}
 }
-
-
-
-
-bool GigSample::convertSampleRate( sampleFrame & oldBuf, sampleFrame & newBuf,
-		f_cnt_t oldSize, f_cnt_t newSize, float freq_factor, f_cnt_t& used )
-{
-	if( srcState == nullptr )
-	{
-		return false;
-	}
-
-	SRC_DATA src_data;
-	src_data.data_in = &oldBuf[0];
-	src_data.data_out = &newBuf[0];
-	src_data.input_frames = oldSize;
-	src_data.output_frames = newSize;
-	src_data.src_ratio = freq_factor;
-	src_data.end_of_input = 0;
-
-	// We don't need to lock this assuming that we're only outputting the
-	// samples in one thread
-	int error = src_process( srcState, &src_data );
-
-	used = src_data.input_frames_used;
-
-	if( error != 0 )
-	{
-		qCritical( "GigInstrument: error while resampling: %s", src_strerror( error ) );
-		return false;
-	}
-
-	if( oldSize != 0 && src_data.output_frames_gen == 0 )
-	{
-		qCritical( "GigInstrument: could not resample, no frames generated" );
-		return false;
-	}
-
-	if( src_data.output_frames_gen > 0 && src_data.output_frames_gen < newSize )
-	{
-		qCritical() << "GigInstrument: not enough frames, wanted"
-			<< newSize << "generated" << src_data.output_frames_gen;
-		return false;
-	}
-
-	return true;
-}
-
-
-
 
 ADSR::ADSR()
 	: preattack( 0 ), attack( 0 ), decay1( 0 ), decay2( 0 ), infiniteSustain( false ),
