@@ -26,6 +26,9 @@
 #ifndef WATSYN_H
 #define WATSYN_H
 
+#include "AudioEngine.h"
+#include "AudioResampler.h"
+#include "Engine.h"
 #include "Instrument.h"
 #include "InstrumentView.h"
 #include "Graph.h"
@@ -189,7 +192,6 @@ private:
 	// memcpy utilizing libsamplerate (src) for sinc interpolation
 	inline void srccpy( float * _dst, float * _src )
 	{
-		int err;
 		const int margin = 64;
 		
 		// copy to temp array
@@ -198,17 +200,12 @@ private:
 
 		memcpy( tmp, _src, sizeof( float ) * GRAPHLEN );
 		memcpy( tmp + GRAPHLEN, _src, sizeof( float ) * margin );
-		SRC_STATE * src_state = src_new( SRC_SINC_FASTEST, 1, &err );
-		SRC_DATA src_data;
-		src_data.data_in = tmp;
-		src_data.input_frames = GRAPHLEN + margin;
-		src_data.data_out = _dst;
-		src_data.output_frames = WAVELEN;
-		src_data.src_ratio = static_cast<double>( WAVERATIO );
-		src_data.end_of_input = 0;
-		err = src_process( src_state, &src_data ); 
-		if( err ) { qDebug( "Watsyn SRC error: %s", src_strerror( err ) ); }
-		src_delete( src_state );
+
+		AudioResampler resampler = Engine::audioEngine()->createAudioResampler();
+		if (int err = resampler.resample(tmp, GRAPHLEN + margin, _dst, WAVELEN, static_cast<double>(WAVERATIO)).error)
+		{
+			qDebug("Watsyn SRC error: %s", src_strerror(err));
+		}
 	}
 
 	// memcpy utilizing cubic interpolation
