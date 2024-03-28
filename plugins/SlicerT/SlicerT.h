@@ -101,6 +101,7 @@ private:
 	std::vector<float> m_slicePoints;
 
 	InstrumentTrack* m_parentTrack;
+	AudioResampler m_resampler = Engine::audioEngine()->createAudioResampler();
 
 	friend class gui::SlicerTView;
 	friend class gui::SlicerTWaveform;
