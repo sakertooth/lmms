@@ -53,7 +53,6 @@ public:
 	Effect( const Plugin::Descriptor * _desc,
 			Model * _parent,
 			const Descriptor::SubPluginFeatures::Key * _key );
-	~Effect() override;
 
 	void saveSettings( QDomDocument & _doc, QDomElement & _parent ) override;
 	void loadSettings( const QDomElement & _this ) override;
@@ -191,30 +190,25 @@ protected:
 							sampleFrame * _dst_buf,
 							sample_rate_t _dst_sr )
 	{
-		resample( 0, _src_buf,
-				Engine::audioEngine()->processingSampleRate(),
-					_dst_buf, _dst_sr,
-					Engine::audioEngine()->framesPerPeriod() );
+		const auto frames = Engine::audioEngine()->framesPerPeriod();
+		const auto ratio = static_cast<double>(_dst_sr) / Engine::audioEngine()->processingSampleRate();
+		m_resamplers[0].resample(_src_buf->data(), frames, _dst_buf->data(), frames, ratio);
 	}
 
 	inline void sampleBack( const sampleFrame * _src_buf,
 							sampleFrame * _dst_buf,
 							sample_rate_t _src_sr )
 	{
-		resample( 1, _src_buf, _src_sr, _dst_buf,
-				Engine::audioEngine()->processingSampleRate(),
-			Engine::audioEngine()->framesPerPeriod() * _src_sr /
-				Engine::audioEngine()->processingSampleRate() );
+		const auto outputFrames = Engine::audioEngine()->framesPerPeriod();
+		const auto inputFrames = outputFrames * _src_sr / Engine::audioEngine()->processingSampleRate();
+		const auto ratio = static_cast<double>(Engine::audioEngine()->processingSampleRate()) / _src_sr;
+		m_resamplers[1].resample(_src_buf->data(), inputFrames, _dst_buf->data(), outputFrames, ratio);
 	}
 	void reinitSRC();
 
 
 private:
 	EffectChain * m_parent;
-	void resample( int _i, const sampleFrame * _src_buf,
-					sample_rate_t _src_sr,
-					sampleFrame * _dst_buf, sample_rate_t _dst_sr,
-					const f_cnt_t _frames );
 
 	ch_cnt_t m_processors;
 
@@ -230,9 +224,8 @@ private:
 	
 	bool m_autoQuitDisabled;
 
-	SRC_DATA m_srcData[2];
-	SRC_STATE * m_srcState[2];
-
+	std::array<AudioResampler, 2> m_resamplers
+		= {Engine::audioEngine()->createAudioResampler(), Engine::audioEngine()->createAudioResampler()};
 
 	friend class gui::EffectView;
 	friend class EffectChain;
