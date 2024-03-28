@@ -85,6 +85,7 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 	m_newPlayHandles( PlayHandle::MaxNumber ),
 	m_qualitySettings( qualitySettings::Mode::Draft ),
 	m_masterGain( 1.0f ),
+	m_resampleQuality(ConfigManager::inst()->value("audioengine", "resamplequality", "0").toInt()),
 	m_audioDev( nullptr ),
 	m_oldAudioDev( nullptr ),
 	m_audioDevStartFailed( false ),
@@ -293,7 +294,10 @@ bool AudioEngine::criticalXRuns() const
 	return cpuLoad() >= 99 && Engine::getSong()->isExporting() == false;
 }
 
-
+auto AudioEngine::createAudioResampler() const -> AudioResampler
+{
+	return AudioResampler{m_resampleQuality, DEFAULT_CHANNELS};
+}
 
 
 void AudioEngine::pushInputFrames( sampleFrame * _ab, const f_cnt_t _frames )
