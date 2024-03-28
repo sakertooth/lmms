@@ -882,26 +882,10 @@ void Sf2Instrument::renderFrames( f_cnt_t frames, sampleFrame * buf )
 		sampleFrame * tmp = new sampleFrame[f];
 #endif
 		fluid_synth_write_float( m_synth, f, tmp, 0, 2, tmp, 1, 2 );
-
-		SRC_DATA src_data;
-		src_data.data_in = (float *)tmp;
-		src_data.data_out = (float *)buf;
-		src_data.input_frames = f;
-		src_data.output_frames = frames;
-		src_data.src_ratio = (double) frames / f;
-		src_data.end_of_input = 0;
-		int error = src_process( m_srcState, &src_data );
+		m_resampler.resample(tmp->data(), f, buf->data(), frames, static_cast<double>(frames) / f);
 #ifndef __GNUC__
 		delete[] tmp;
 #endif
-		if( error )
-		{
-			qCritical( "Sf2Instrument: error while resampling: %s", src_strerror( error ) );
-		}
-		if( src_data.output_frames_gen > frames )
-		{
-			qCritical( "Sf2Instrument: not enough frames: %ld / %d", src_data.output_frames_gen, frames );
-		}
 	}
 	else
 	{

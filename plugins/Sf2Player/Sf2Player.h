@@ -31,6 +31,9 @@
 #include <QMutex>
 #include <samplerate.h>
 
+#include "AudioEngine.h"
+#include "AudioResampler.h"
+#include "Engine.h"
 #include "Instrument.h"
 #include "InstrumentView.h"
 #include "LcdSpinBox.h"
@@ -145,6 +148,8 @@ private:
 
 	QVector<NotePlayHandle *> m_playingNotes;
 	QMutex m_playingNotesMutex;
+
+	AudioResampler m_resampler = Engine::audioEngine()->createAudioResampler();
 
 private:
 	void freeFont();
