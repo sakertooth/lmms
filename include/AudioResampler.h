@@ -49,7 +49,7 @@ public:
 	};
 
 	AudioResampler(int interpolationMode, int channels);
-	AudioResampler(const AudioResampler&) = delete;
+	AudioResampler(const AudioResampler&);
 	AudioResampler(AudioResampler&&) = delete;
 	~AudioResampler();
 

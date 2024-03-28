@@ -43,6 +43,11 @@ AudioResampler::AudioResampler(int interpolationMode, int channels)
 	}
 }
 
+AudioResampler::AudioResampler(const AudioResampler& resampler)
+	: AudioResampler(resampler.m_interpolationMode, resampler.m_channels)
+{
+}
+
 AudioResampler::~AudioResampler()
 {
 	src_delete(m_state);
