@@ -85,7 +85,7 @@ AudioResampler& AudioResampler::operator=(AudioResampler&& resampler) noexcept
 
 AudioResampler::~AudioResampler()
 {
-	if (m_state) { src_delete(m_state); }
+	src_delete(m_state);
 }
 
 auto AudioResampler::resample(const float* in, long inputFrames, float* out, long outputFrames, double ratio)
