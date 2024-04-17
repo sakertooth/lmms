@@ -129,6 +129,8 @@ int AudioResampler::libSrcInterpolation(ResampleQuality quality)
 		return SRC_SINC_MEDIUM_QUALITY;
 	case ResampleQuality::Best:
 		return SRC_SINC_BEST_QUALITY;
+	default:
+		return SRC_SINC_FASTEST;
 	}
 }
 
