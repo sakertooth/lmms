@@ -303,9 +303,6 @@ public:
 		m_masterGain = mo;
 	}
 
-	auto resampleQuality() const -> int { return m_resampleQuality; }
-	auto createAudioResampler() const -> AudioResampler;
-
 	static inline sample_t clip(const sample_t s)
 	{
 		if (s > 1.0f)
@@ -450,7 +447,6 @@ private:
 
 	struct qualitySettings m_qualitySettings;
 	float m_masterGain;
-	int m_resampleQuality;
 
 	// audio device stuff
 	void doSetAudioDevice( AudioDevice *_dev );

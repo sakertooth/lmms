@@ -201,7 +201,7 @@ private:
 		memcpy( tmp, _src, sizeof( float ) * GRAPHLEN );
 		memcpy( tmp + GRAPHLEN, _src, sizeof( float ) * margin );
 
-		AudioResampler resampler = Engine::audioEngine()->createAudioResampler();
+		AudioResampler resampler = AudioResampler::createAudioResampler();
 		if (int err = resampler.resample(tmp, GRAPHLEN + margin, _dst, WAVELEN, static_cast<double>(WAVERATIO)).error)
 		{
 			qDebug("Watsyn SRC error: %s", src_strerror(err));

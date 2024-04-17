@@ -25,8 +25,8 @@
 #ifndef LMMS_AUDIO_RESAMPLER_H
 #define LMMS_AUDIO_RESAMPLER_H
 
+#include <atomic>
 #include <samplerate.h>
-#include <vector>
 
 #include "lmms_export.h"
 
@@ -42,13 +42,13 @@ public:
 		long outputFramesGenerated;
 	};
 
-	struct Converter
+	enum class ResampleQuality
 	{
-		int type;
-		const char* name;
+		Fastest,
+		Medium,
+		Best
 	};
 
-	AudioResampler(int interpolationMode, int channels);
 	AudioResampler(const AudioResampler&);
 	AudioResampler(AudioResampler&&) noexcept;
 	~AudioResampler();
@@ -60,13 +60,18 @@ public:
 	auto interpolationMode() const -> int { return m_interpolationMode; }
 	auto channels() const -> int { return m_channels; }
 
-	static auto availableConverters() -> const std::vector<Converter>&;
+	static auto createAudioResampler() -> AudioResampler;
+	static void setPlaybackQuality(ResampleQuality quality);
 
 private:
+	AudioResampler(int interpolationMode, int channels);
 	int m_interpolationMode = -1;
 	int m_channels = 0;
 	int m_error = 0;
 	SRC_STATE* m_state = nullptr;
+
+	static int libSrcInterpolation(ResampleQuality quality);
+	inline static std::atomic<int> s_playbackInterpolationMode = libSrcInterpolation(ResampleQuality::Fastest);
 };
 } // namespace lmms
 

@@ -604,13 +604,12 @@ SetupDialog::SetupDialog(ConfigTab tab_to_open) :
 	auto resampleQualityComboBox = new QComboBox(resampleQualityBox);
 	resampleQualityLayout->addWidget(resampleQualityComboBox);
 
-	for (const auto& converter : AudioResampler::availableConverters())
-	{
-		resampleQualityComboBox->addItem(converter.name, converter.type);
-	}
-
-	resampleQualityComboBox->setCurrentIndex(m_resampleQuality);
-	connect(resampleQualityComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this, &SetupDialog::setResampleQuality);
+	resampleQualityComboBox->addItem("Fastest", static_cast<int>(AudioResampler::ResampleQuality::Fastest));
+	resampleQualityComboBox->addItem("Medium", static_cast<int>(AudioResampler::ResampleQuality::Medium));
+	resampleQualityComboBox->addItem("Best", static_cast<int>(AudioResampler::ResampleQuality::Best));
+	resampleQualityComboBox->setCurrentIndex(resampleQualityComboBox->findData(m_resampleQuality));
+	connect(resampleQualityComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this,
+		[&](int index) { setResampleQuality(resampleQualityComboBox->itemData(index).toInt()); });
 
 	// Audio layout ordering.
 	audio_layout->addWidget(audioInterfaceBox);

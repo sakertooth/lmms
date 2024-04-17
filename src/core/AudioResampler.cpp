@@ -24,10 +24,13 @@
 
 #include "AudioResampler.h"
 
+#include <cassert>
 #include <samplerate.h>
 #include <stdexcept>
 #include <string>
 #include <utility>
+
+#include "lmms_basics.h"
 
 namespace lmms {
 
@@ -88,6 +91,14 @@ AudioResampler::~AudioResampler()
 auto AudioResampler::resample(const float* in, long inputFrames, float* out, long outputFrames, double ratio)
 	-> ProcessResult
 {
+	if (m_interpolationMode != s_playbackInterpolationMode)
+	{
+		src_delete(m_state);
+		m_state = src_new(s_playbackInterpolationMode, DEFAULT_CHANNELS, &m_error);
+		m_interpolationMode = s_playbackInterpolationMode;
+		assert(m_state);
+	}
+
 	auto data = SRC_DATA{};
 	data.data_in = in;
 	data.input_frames = inputFrames;
@@ -98,21 +109,27 @@ auto AudioResampler::resample(const float* in, long inputFrames, float* out, lon
 	return {src_process(m_state, &data), data.input_frames_used, data.output_frames_gen};
 }
 
-auto AudioResampler::availableConverters() -> const std::vector<Converter>&
+auto AudioResampler::createAudioResampler() -> AudioResampler
 {
-	static auto s_converters = [] {
-		std::vector<Converter> converters;
-		auto converterType = 0;
+	return AudioResampler(s_playbackInterpolationMode, DEFAULT_CHANNELS);
+}
 
-		while (const char* converterName = src_get_name(converterType))
-		{
-			converters.push_back(Converter{converterType, converterName});
-			++converterType;
-		}
+void AudioResampler::setPlaybackQuality(ResampleQuality quality)
+{
+	s_playbackInterpolationMode.store(libSrcInterpolation(quality), std::memory_order_relaxed);
+}
 
-		return converters;
-	}();
-	return s_converters;
+int AudioResampler::libSrcInterpolation(ResampleQuality quality)
+{
+	switch (quality)
+	{
+	case ResampleQuality::Fastest:
+		return SRC_SINC_FASTEST;
+	case ResampleQuality::Medium:
+		return SRC_SINC_MEDIUM_QUALITY;
+	case ResampleQuality::Best:
+		return SRC_SINC_BEST_QUALITY;
+	}
 }
 
 } // namespace lmms

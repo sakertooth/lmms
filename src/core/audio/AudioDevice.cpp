@@ -37,7 +37,7 @@ AudioDevice::AudioDevice( const ch_cnt_t _channels, AudioEngine*  _audioEngine )
 	m_sampleRate( _audioEngine->processingSampleRate() ),
 	m_channels( _channels ),
 	m_audioEngine( _audioEngine ),
-	m_resampler(m_audioEngine->createAudioResampler()),
+	m_resampler(AudioResampler::createAudioResampler()),
 	m_buffer(new surroundSampleFrame[audioEngine()->framesPerPeriod()])
 {
 }
