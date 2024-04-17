@@ -609,7 +609,8 @@ SetupDialog::SetupDialog(ConfigTab tab_to_open) :
 	resampleQualityComboBox->addItem("Best", static_cast<int>(AudioResampler::ResampleQuality::Best));
 	resampleQualityComboBox->setCurrentIndex(resampleQualityComboBox->findData(m_resampleQuality));
 	connect(resampleQualityComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this,
-		[&](int index) { setResampleQuality(resampleQualityComboBox->itemData(index).toInt()); });
+		[this, resampleQualityComboBox](int index)
+		{ setResampleQuality(resampleQualityComboBox->itemData(index).toInt()); });
 
 	// Audio layout ordering.
 	audio_layout->addWidget(audioInterfaceBox);
