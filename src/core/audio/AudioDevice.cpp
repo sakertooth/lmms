@@ -37,7 +37,6 @@ AudioDevice::AudioDevice( const ch_cnt_t _channels, AudioEngine*  _audioEngine )
 	m_sampleRate( _audioEngine->processingSampleRate() ),
 	m_channels( _channels ),
 	m_audioEngine( _audioEngine ),
-	m_resampler(AudioResampler::createAudioResampler()),
 	m_buffer(new surroundSampleFrame[audioEngine()->framesPerPeriod()])
 {
 }
@@ -83,8 +82,9 @@ fpp_t AudioDevice::getNextBuffer( surroundSampleFrame * _ab )
 	// resample if necessary
 	if( audioEngine()->processingSampleRate() != m_sampleRate )
 	{
-		m_resampler.resample(b->data(), frames, _ab->data(), frames,
-			static_cast<double>(m_sampleRate) / m_audioEngine->processingSampleRate());
+		const auto ratio = static_cast<double>(m_sampleRate) / m_audioEngine->processingSampleRate();
+		const auto result = m_resampler.resample(b->data(), frames, _ab->data(), frames, ratio);
+		frames = static_cast<fpp_t>(result.outputFramesGenerated);
 	}
 	else
 	{
