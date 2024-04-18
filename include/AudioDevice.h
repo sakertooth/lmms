@@ -133,7 +133,7 @@ private:
 	sample_rate_t m_sampleRate;
 	ch_cnt_t m_channels;
 	AudioEngine* m_audioEngine;
-	AudioResampler m_resampler = AudioResampler::createAudioResampler();
+	AudioResampler m_resampler;
 	bool m_inProcess;
 
 	QMutex m_devMutex;

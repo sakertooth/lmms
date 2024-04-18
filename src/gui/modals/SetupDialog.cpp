@@ -33,8 +33,7 @@
 #include <QScrollArea>
 
 #include "AudioEngine.h"
-#include "AudioResampler.h"
-#include "debug.h"
+#include "AudioQuality.h"
 #include "embed.h"
 #include "Engine.h"
 #include "FileDialog.h"
@@ -604,9 +603,12 @@ SetupDialog::SetupDialog(ConfigTab tab_to_open) :
 	auto resampleQualityComboBox = new QComboBox(resampleQualityBox);
 	resampleQualityLayout->addWidget(resampleQualityComboBox);
 
-	resampleQualityComboBox->addItem("Fastest", static_cast<int>(AudioResampler::ResampleQuality::Fastest));
-	resampleQualityComboBox->addItem("Medium", static_cast<int>(AudioResampler::ResampleQuality::Medium));
-	resampleQualityComboBox->addItem("Best", static_cast<int>(AudioResampler::ResampleQuality::Best));
+	for (int i = 0; i < AudioQuality::ResampleQualityCount; ++i)
+	{
+		const auto quality = static_cast<AudioQuality::ResampleQuality>(i);
+		resampleQualityComboBox->addItem(AudioQuality::libSrcName(quality), i);
+	}
+
 	resampleQualityComboBox->setCurrentIndex(resampleQualityComboBox->findData(m_resampleQuality));
 	connect(resampleQualityComboBox, qOverload<int>(&QComboBox::currentIndexChanged), this,
 		[this, resampleQualityComboBox](int index)

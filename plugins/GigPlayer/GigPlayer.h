@@ -301,7 +301,7 @@ private:
 	uint32_t m_RandomSeed;
 	float m_currentKeyDimension;
 
-	AudioResampler m_resampler = AudioResampler::createAudioResampler();
+	AudioResampler m_resampler;
 
 private:
 	// Delete the current GIG instance if one is open

@@ -25,9 +25,9 @@
 #ifndef LMMS_AUDIO_RESAMPLER_H
 #define LMMS_AUDIO_RESAMPLER_H
 
-#include <atomic>
 #include <samplerate.h>
 
+#include "lmms_basics.h"
 #include "lmms_export.h"
 
 namespace lmms {
@@ -42,12 +42,13 @@ public:
 		long outputFramesGenerated;
 	};
 
-	enum class ResampleQuality
-	{
-		Fastest,
-		Medium,
-		Best
-	};
+	//! Creates a resampler that uses the resample quality set in `AudioQuality`
+	//! with `channels` channels.
+	AudioResampler(int channels = DEFAULT_CHANNELS);
+
+	//! Creates a resampler that uses the libsamplerate converter type  with
+	//! with `channels` channels. 
+	AudioResampler(int interpolationMode, int channels = DEFAULT_CHANNELS);
 
 	AudioResampler(const AudioResampler&);
 	AudioResampler(AudioResampler&&) noexcept;
@@ -60,18 +61,12 @@ public:
 	auto interpolationMode() const -> int { return m_interpolationMode; }
 	auto channels() const -> int { return m_channels; }
 
-	static auto createAudioResampler() -> AudioResampler;
-	static void setResampleQuality(ResampleQuality quality);
-
 private:
-	AudioResampler(int interpolationMode, int channels);
 	int m_interpolationMode = -1;
 	int m_channels = 0;
 	int m_error = 0;
+	bool m_useAudioQuality = false;
 	SRC_STATE* m_state = nullptr;
-
-	static int libSrcInterpolation(ResampleQuality quality);
-	inline static std::atomic<int> s_playbackInterpolationMode = libSrcInterpolation(ResampleQuality::Fastest);
 };
 } // namespace lmms
 

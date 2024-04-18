@@ -149,7 +149,7 @@ private:
 	QVector<NotePlayHandle *> m_playingNotes;
 	QMutex m_playingNotesMutex;
 
-	AudioResampler m_resampler = AudioResampler::createAudioResampler();
+	AudioResampler m_resampler;
 
 private:
 	void freeFont();

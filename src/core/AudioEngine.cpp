@@ -24,6 +24,7 @@
 
 #include "AudioEngine.h"
 
+#include "AudioQuality.h"
 #include "MixHelpers.h"
 #include "denormals.h"
 
@@ -154,8 +155,10 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 		m_workers.push_back( wt );
 	}
 
-	const auto resampleQuality = ConfigManager::inst()->value("audioengine", "resamplequality", "0").toInt();
-	AudioResampler::setResampleQuality(static_cast<AudioResampler::ResampleQuality>(resampleQuality));
+	const auto defaultResampleQuality = QString{static_cast<int>(AudioQuality::DefaultResampleQuality)};
+	const auto resampleQuality
+		= ConfigManager::inst()->value("audioengine", "resamplequality", defaultResampleQuality).toInt();
+	AudioQuality::setResampleQuality(static_cast<AudioQuality::ResampleQuality>(resampleQuality));
 }
 
 

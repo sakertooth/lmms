@@ -26,17 +26,26 @@
 
 #include <cassert>
 #include <samplerate.h>
-#include <stdexcept>
-#include <string>
 #include <utility>
 
+#include "AudioQuality.h"
 #include "lmms_basics.h"
 
 namespace lmms {
 
+AudioResampler::AudioResampler(int channels)
+	: m_interpolationMode(AudioQuality::libSrcConverterType(AudioQuality::resampleQuality()))
+	, m_channels(channels)
+	, m_useAudioQuality(true)
+	, m_state(src_new(m_interpolationMode, channels, &m_error))
+{
+	assert(m_state);
+}
+
 AudioResampler::AudioResampler(int interpolationMode, int channels)
 	: m_interpolationMode(interpolationMode)
 	, m_channels(channels)
+	, m_useAudioQuality(false)
 	, m_state(src_new(interpolationMode, channels, &m_error))
 {
 	assert(m_state);
@@ -79,11 +88,12 @@ AudioResampler::~AudioResampler()
 auto AudioResampler::resample(const float* in, long inputFrames, float* out, long outputFrames, double ratio)
 	-> ProcessResult
 {
-	if (m_interpolationMode != s_playbackInterpolationMode)
+	const auto currentConverterType = AudioQuality::libSrcConverterType(AudioQuality::resampleQuality());
+	if (m_useAudioQuality && m_interpolationMode != currentConverterType)
 	{
 		src_delete(m_state);
-		m_state = src_new(s_playbackInterpolationMode, DEFAULT_CHANNELS, &m_error);
-		m_interpolationMode = s_playbackInterpolationMode;
+		m_state = src_new(currentConverterType, DEFAULT_CHANNELS, &m_error);
+		m_interpolationMode = currentConverterType;
 		assert(m_state);
 	}
 
@@ -95,31 +105,6 @@ auto AudioResampler::resample(const float* in, long inputFrames, float* out, lon
 	data.src_ratio = ratio;
 	data.end_of_input = 0;
 	return {src_process(m_state, &data), data.input_frames_used, data.output_frames_gen};
-}
-
-auto AudioResampler::createAudioResampler() -> AudioResampler
-{
-	return AudioResampler(s_playbackInterpolationMode, DEFAULT_CHANNELS);
-}
-
-void AudioResampler::setResampleQuality(ResampleQuality quality)
-{
-	s_playbackInterpolationMode.store(libSrcInterpolation(quality), std::memory_order_relaxed);
-}
-
-int AudioResampler::libSrcInterpolation(ResampleQuality quality)
-{
-	switch (quality)
-	{
-	case ResampleQuality::Fastest:
-		return SRC_SINC_FASTEST;
-	case ResampleQuality::Medium:
-		return SRC_SINC_MEDIUM_QUALITY;
-	case ResampleQuality::Best:
-		return SRC_SINC_BEST_QUALITY;
-	default:
-		return SRC_SINC_FASTEST;
-	}
 }
 
 } // namespace lmms

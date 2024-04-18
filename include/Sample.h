@@ -68,7 +68,7 @@ public:
 		void setBackwards(bool backwards) { m_backwards = backwards; }
 
 	private:
-		AudioResampler m_resampler = AudioResampler::createAudioResampler();
+		AudioResampler m_resampler;
 		int m_frameIndex = 0;
 		bool m_varyingPitch = false;
 		bool m_backwards = false;

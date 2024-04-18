@@ -224,9 +224,7 @@ private:
 	
 	bool m_autoQuitDisabled;
 
-	std::array<AudioResampler, 2> m_resamplers
-		= {AudioResampler::createAudioResampler(), AudioResampler::createAudioResampler()};
-
+	std::array<AudioResampler, 2> m_resamplers;
 	friend class gui::EffectView;
 	friend class EffectChain;
 
