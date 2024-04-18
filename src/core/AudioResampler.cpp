@@ -39,12 +39,7 @@ AudioResampler::AudioResampler(int interpolationMode, int channels)
 	, m_channels(channels)
 	, m_state(src_new(interpolationMode, channels, &m_error))
 {
-	if (!m_state)
-	{
-		const auto errorMessage = std::string{src_strerror(m_error)};
-		const auto fullMessage = std::string{"Failed to create an AudioResampler: "} + errorMessage;
-		throw std::runtime_error{fullMessage};
-	}
+	assert(m_state);
 }
 
 AudioResampler::AudioResampler(const AudioResampler& resampler)
@@ -64,14 +59,7 @@ AudioResampler& AudioResampler::operator=(const AudioResampler& resampler)
 	m_interpolationMode = resampler.m_interpolationMode;
 	m_channels = resampler.m_channels;
 	m_state = src_new(m_interpolationMode, m_channels, &m_error);
-
-	if (!m_state)
-	{
-		const auto errorMessage = std::string{src_strerror(m_error)};
-		const auto fullMessage = std::string{"Failed to create an AudioResampler: "} + errorMessage;
-		throw std::runtime_error{fullMessage};
-	}
-
+	assert(m_state);
 	return *this;
 }
 
