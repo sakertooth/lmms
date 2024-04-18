@@ -145,7 +145,8 @@ SetupDialog::SetupDialog(ConfigTab tab_to_open) :
 	m_bufferSize(ConfigManager::inst()->value(
 			"audioengine", "framesperaudiobuffer").toInt()),
 	m_resampleQuality(ConfigManager::inst()->value(
-			"audioengine", "resamplequality", "0").toInt()),
+			"audioengine", "resamplequality",
+			QString{static_cast<int>(AudioQuality::DefaultResampleQuality)}).toInt()),
 	m_midiAutoQuantize(ConfigManager::inst()->value(
 			"midi", "autoquantize", "0").toInt() != 0),
 	m_workingDir(QDir::toNativeSeparators(ConfigManager::inst()->workingDir())),
