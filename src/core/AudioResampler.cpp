@@ -114,7 +114,7 @@ auto AudioResampler::createAudioResampler() -> AudioResampler
 	return AudioResampler(s_playbackInterpolationMode, DEFAULT_CHANNELS);
 }
 
-void AudioResampler::setPlaybackQuality(ResampleQuality quality)
+void AudioResampler::setResampleQuality(ResampleQuality quality)
 {
 	s_playbackInterpolationMode.store(libSrcInterpolation(quality), std::memory_order_relaxed);
 }

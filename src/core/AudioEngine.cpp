@@ -154,8 +154,8 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 		m_workers.push_back( wt );
 	}
 
-	const auto playbackQuality = ConfigManager::inst()->value("audioengine", "resamplequality", "0").toInt();
-	AudioResampler::setPlaybackQuality(static_cast<AudioResampler::ResampleQuality>(playbackQuality));
+	const auto resampleQuality = ConfigManager::inst()->value("audioengine", "resamplequality", "0").toInt();
+	AudioResampler::setResampleQuality(static_cast<AudioResampler::ResampleQuality>(resampleQuality));
 }
 
 

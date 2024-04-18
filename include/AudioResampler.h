@@ -61,7 +61,7 @@ public:
 	auto channels() const -> int { return m_channels; }
 
 	static auto createAudioResampler() -> AudioResampler;
-	static void setPlaybackQuality(ResampleQuality quality);
+	static void setResampleQuality(ResampleQuality quality);
 
 private:
 	AudioResampler(int interpolationMode, int channels);
