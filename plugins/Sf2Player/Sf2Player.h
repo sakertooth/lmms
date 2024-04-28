@@ -31,9 +31,7 @@
 #include <QMutex>
 #include <samplerate.h>
 
-#include "AudioEngine.h"
 #include "AudioResampler.h"
-#include "Engine.h"
 #include "Instrument.h"
 #include "InstrumentView.h"
 #include "LcdSpinBox.h"

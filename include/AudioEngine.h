@@ -25,7 +25,6 @@
 #ifndef LMMS_AUDIO_ENGINE_H
 #define LMMS_AUDIO_ENGINE_H
 
-#include "AudioResampler.h"
 #ifdef __MINGW32__
 #include <mingw.mutex.h>
 #else
@@ -302,6 +301,7 @@ public:
 	{
 		m_masterGain = mo;
 	}
+
 
 	static inline sample_t clip(const sample_t s)
 	{

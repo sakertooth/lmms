@@ -26,9 +26,7 @@
 #ifndef WATSYN_H
 #define WATSYN_H
 
-#include "AudioEngine.h"
 #include "AudioResampler.h"
-#include "Engine.h"
 #include "Instrument.h"
 #include "InstrumentView.h"
 #include "Graph.h"

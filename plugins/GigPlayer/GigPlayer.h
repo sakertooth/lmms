@@ -32,8 +32,6 @@
 #include <QMutexLocker>
 #include <samplerate.h>
 
-#include "AudioEngine.h"
-#include "Engine.h"
 #include "AudioResampler.h"
 #include "Instrument.h"
 #include "PixmapButton.h"
