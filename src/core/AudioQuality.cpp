@@ -1,7 +1,7 @@
 /*
- * AudioQuality.coo - Stores audio quality settings used throughout the application
+ * AudioQuality.cpp - Stores audio quality settings used throughout the application
  *
- * Copyright (c) 2023 saker <sakertooth@gmail.com>
+ * Copyright (c) 2024 saker
  *
  * This file is part of LMMS - https://lmms.io
  *
