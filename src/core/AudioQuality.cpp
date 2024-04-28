@@ -53,11 +53,6 @@ auto AudioQuality::resampleQualityName(ResampleQuality quality) -> const char*
 	}
 }
 
-auto AudioQuality::libSrcName(ResampleQuality quality) -> const char*
-{
-	return src_get_name(libSrcConverterType(quality));
-}
-
 int AudioQuality::libSrcConverterType(ResampleQuality quality)
 {
     switch (quality) {

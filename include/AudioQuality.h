@@ -52,9 +52,6 @@ public:
 	//! Change the current resample quality to the given quality
 	static void setResampleQuality(ResampleQuality quality);
 
-	//! Returns the name that libsamplerate would use for the given resample quality
-	static auto libSrcName(ResampleQuality quality) -> const char*;
-
 	//! Returns the equivalent converter type used in libsamplerate for the given resample quality
 	static int libSrcConverterType(ResampleQuality quality);
 

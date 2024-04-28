@@ -607,7 +607,7 @@ SetupDialog::SetupDialog(ConfigTab tab_to_open) :
 	for (int i = 0; i < AudioQuality::ResampleQualityCount; ++i)
 	{
 		const auto quality = static_cast<AudioQuality::ResampleQuality>(i);
-		resampleQualityComboBox->addItem(AudioQuality::libSrcName(quality), i);
+		resampleQualityComboBox->addItem(AudioQuality::resampleQualityName(quality), i);
 	}
 
 	resampleQualityComboBox->setCurrentIndex(resampleQualityComboBox->findData(m_resampleQuality));
