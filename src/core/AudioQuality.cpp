@@ -34,6 +34,7 @@ auto AudioQuality::resampleQuality() -> ResampleQuality
 void AudioQuality::setResampleQuality(ResampleQuality quality)
 {
 	s_resampleQuality.store(quality, std::memory_order_relaxed);
+	emit inst()->audioQualityChanged(quality);
 }
 
 auto AudioQuality::resampleQualityName(ResampleQuality quality) -> const char*
@@ -68,4 +69,11 @@ int AudioQuality::libSrcConverterType(ResampleQuality quality)
         return libSrcConverterType(DefaultResampleQuality);
 	}
 }
+
+auto AudioQuality::inst() -> AudioQuality*
+{
+	static auto s_inst = new AudioQuality{};
+	return s_inst;
+}
+
 } // namespace lmms

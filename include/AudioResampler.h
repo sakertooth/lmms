@@ -27,8 +27,15 @@
 
 #include <samplerate.h>
 
+#include "AudioQuality.h"
 #include "lmms_basics.h"
 #include "lmms_export.h"
+
+#ifdef __MINGW32__
+#include <mingw.mutex.h>
+#else
+#include <mutex>
+#endif
 
 namespace lmms {
 
@@ -72,11 +79,13 @@ public:
 	auto channels() const -> int { return m_channels; }
 
 private:
+	void onQualityChanged(AudioQuality::ResampleQuality quality);
 	int m_interpolationMode = -1;
 	int m_channels = 0;
 	int m_error = 0;
 	bool m_useAudioQuality = false;
 	SRC_STATE* m_state = nullptr;
+	std::mutex m_mutex;
 };
 } // namespace lmms
 

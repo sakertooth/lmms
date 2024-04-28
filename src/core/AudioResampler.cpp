@@ -40,6 +40,8 @@ AudioResampler::AudioResampler(int channels)
 	, m_state(src_new(m_interpolationMode, channels, &m_error))
 {
 	assert(m_state);
+	QObject::connect(AudioQuality::inst(), &AudioQuality::audioQualityChanged,
+		[this](auto quality) { onQualityChanged(quality); });
 }
 
 AudioResampler::AudioResampler(const AudioResampler& resampler)
@@ -79,14 +81,7 @@ AudioResampler::~AudioResampler()
 auto AudioResampler::resample(const float* in, long inputFrames, float* out, long outputFrames, double ratio)
 	-> ProcessResult
 {
-	const auto currentConverterType = AudioQuality::libSrcConverterType(AudioQuality::resampleQuality());
-	if (m_useAudioQuality && m_interpolationMode != currentConverterType)
-	{
-		src_delete(m_state);
-		m_state = src_new(currentConverterType, DEFAULT_CHANNELS, &m_error);
-		m_interpolationMode = currentConverterType;
-		assert(m_state);
-	}
+	const auto lock = std::lock_guard{m_mutex};
 
 	auto data = SRC_DATA{};
 	data.data_in = in;
@@ -96,6 +91,17 @@ auto AudioResampler::resample(const float* in, long inputFrames, float* out, lon
 	data.src_ratio = ratio;
 	data.end_of_input = 0;
 	return {src_process(m_state, &data), data.input_frames_used, data.output_frames_gen};
+}
+
+void AudioResampler::onQualityChanged(AudioQuality::ResampleQuality quality)
+{
+	const auto lock = std::lock_guard{m_mutex};
+	const auto currentConverterType = AudioQuality::libSrcConverterType(AudioQuality::resampleQuality());
+
+	src_delete(m_state);
+	m_state = src_new(currentConverterType, DEFAULT_CHANNELS, &m_error);
+	m_interpolationMode = currentConverterType;
+	assert(m_state);
 }
 
 } // namespace lmms

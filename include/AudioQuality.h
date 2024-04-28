@@ -25,11 +25,13 @@
 #ifndef LMMS_AUDIO_QUALITY_H
 #define LMMS_AUDIO_QUALITY_H
 
+#include <QObject>
 #include <atomic>
 
 namespace lmms {
-class AudioQuality
+class AudioQuality : public QObject
 {
+	Q_OBJECT
 public:
 	enum class ResampleQuality
 	{
@@ -54,6 +56,13 @@ public:
 
 	//! Returns the equivalent converter type used in libsamplerate for the given resample quality
 	static int libSrcConverterType(ResampleQuality quality);
+
+	//! Return the audio quality instance object.
+	static auto inst() -> AudioQuality*;
+
+signals:
+	//! Emitted when any part of the audio quality changes
+	void audioQualityChanged(ResampleQuality quality);
 
 private:
 	inline static std::atomic<ResampleQuality> s_resampleQuality = DefaultResampleQuality;
