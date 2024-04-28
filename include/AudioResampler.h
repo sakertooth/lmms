@@ -46,10 +46,6 @@ public:
 	//! with `channels` channels.
 	AudioResampler(int channels = DEFAULT_CHANNELS);
 
-	//! Creates a resampler that uses the libsamplerate converter type  with
-	//! with `channels` channels. 
-	AudioResampler(int interpolationMode, int channels = DEFAULT_CHANNELS);
-
 	AudioResampler(const AudioResampler&);
 	AudioResampler(AudioResampler&&) noexcept;
 	~AudioResampler();

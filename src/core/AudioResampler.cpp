@@ -42,17 +42,8 @@ AudioResampler::AudioResampler(int channels)
 	assert(m_state);
 }
 
-AudioResampler::AudioResampler(int interpolationMode, int channels)
-	: m_interpolationMode(interpolationMode)
-	, m_channels(channels)
-	, m_useAudioQuality(false)
-	, m_state(src_new(interpolationMode, channels, &m_error))
-{
-	assert(m_state);
-}
-
 AudioResampler::AudioResampler(const AudioResampler& resampler)
-	: AudioResampler(resampler.m_interpolationMode, resampler.m_channels)
+	: AudioResampler(resampler.m_channels)
 {
 }
 
