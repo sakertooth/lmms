@@ -35,26 +35,40 @@ namespace lmms {
 class LMMS_EXPORT AudioResampler
 {
 public:
+	//! The result returned after resampling.
 	struct ProcessResult
 	{
-		int error;
-		long inputFramesUsed;
-		long outputFramesGenerated;
+		int error; //!< Stores any error that occurred when resampling.
+		long inputFramesUsed; //!< The number of input frames used to generate the given output.
+		long outputFramesGenerated; //!< The number of output frames generated.
 	};
 
 	//! Creates a resampler that uses the resample quality set in `AudioQuality`
 	//! with `channels` channels.
 	AudioResampler(int channels = DEFAULT_CHANNELS);
 
+	//! Clones a resampler (i.e., completely separate object, but the same settings)
 	AudioResampler(const AudioResampler&);
+
+	//! Moves a resampler.
 	AudioResampler(AudioResampler&&) noexcept;
+
+	//! Destroys the internal state for this resampler.
 	~AudioResampler();
 
+	//! Clones a resampler (i.e., completely separate object, but the same settings)
 	AudioResampler& operator=(const AudioResampler&);
+
+	//! Moves a resampler.
 	AudioResampler& operator=(AudioResampler&&) noexcept;
 
+	//! Resample `in` of size `inputFrames` to `out` of size `outputFrames` with the ratio of `ratio`.
 	auto resample(const float* in, long inputFrames, float* out, long outputFrames, double ratio) -> ProcessResult;
+	
+	//! Returns the libsamplerate interpolation mode set for this resampler.
 	auto interpolationMode() const -> int { return m_interpolationMode; }
+
+	//! Returns the number of channels set for this resampler.
 	auto channels() const -> int { return m_channels; }
 
 private:
