@@ -71,6 +71,7 @@
 #include "TimeLineWidget.h"
 #include "ToolButton.h"
 #include "ToolPlugin.h"
+#include "UndoManager.h"
 #include "VersionedSaveDialog.h"
 
 #include "lmmsversion.h"
@@ -331,33 +332,35 @@ void MainWindow::finalize()
 					qApp, SLOT(closeAllWindows()),
 					combine(Qt::CTRL, Qt::Key_Q));
 
-	auto edit_menu = new QMenu(this);
-	menuBar()->addMenu( edit_menu )->setText( tr( "&Edit" ) );
-	m_undoAction = edit_menu->addAction( embed::getIconPixmap( "edit_undo" ),
-					tr( "Undo" ),
-					this, SLOT(undo()),
-					QKeySequence::Undo );
-	m_redoAction = edit_menu->addAction( embed::getIconPixmap( "edit_redo" ),
-					tr( "Redo" ),
-					this, SLOT(redo()),
-					QKeySequence::Redo );
+	auto editMenu = new QMenu(this);
+	menuBar()->addMenu(editMenu)->setText(tr("&Edit"));
+
+	auto undoAction = UndoManager::instance()->undoStack()->createUndoAction(this, tr("Undo"));
+	undoAction->setIcon(embed::getIconPixmap("edit_undo"));
+	undoAction->setShortcut(QKeySequence::Undo);
+
+	auto redoAction = UndoManager::instance()->undoStack()->createRedoAction(this, tr("Redo"));
+	redoAction->setIcon(embed::getIconPixmap("edit_redo"));
+	redoAction->setShortcut(QKeySequence::Redo);
+
 	// Ensure that both (Ctrl+Y) and (Ctrl+Shift+Z) activate redo shortcut regardless of OS defaults
 	if (QKeySequence(QKeySequence::Redo) != QKeySequence(combine(Qt::CTRL, Qt::Key_Y)))
 	{
-		new QShortcut(QKeySequence(combine(Qt::CTRL, Qt::Key_Y)), this, SLOT(redo()));
+		new QShortcut(QKeySequence(combine(Qt::CTRL, Qt::Key_Y)), this, [redoAction] { redoAction->trigger(); });
 	}
 	if (QKeySequence(QKeySequence::Redo) != QKeySequence(combine(Qt::CTRL, Qt::SHIFT, Qt::Key_Z)))
 	{
-		new QShortcut(QKeySequence(combine(Qt::CTRL, Qt::SHIFT, Qt::Key_Z)), this, SLOT(redo()));
+		new QShortcut(QKeySequence(combine(Qt::CTRL, Qt::SHIFT, Qt::Key_Z)), this, [redoAction] { redoAction->trigger(); });
 	}
 
-	edit_menu->addSeparator();
-	edit_menu->addAction(embed::getIconPixmap("microtuner"), tr("Scales and keymaps"),
-		this, SLOT(toggleMicrotunerWin()));
-	edit_menu->addAction(embed::getIconPixmap("setup_general"), tr("Settings"),
-		this, SLOT(showSettingsDialog()));
+	editMenu->addAction(undoAction);
+	editMenu->addAction(redoAction);
 
-	connect(edit_menu, SIGNAL(aboutToShow()), this, SLOT(updateUndoRedoButtons()));
+	editMenu->addSeparator();
+	editMenu->addAction(embed::getIconPixmap("microtuner"), tr("Scales and keymaps"),
+		this, SLOT(toggleMicrotunerWin()));
+	editMenu->addAction(embed::getIconPixmap("setup_general"), tr("Settings"),
+		this, SLOT(showSettingsDialog()));
 
 	m_viewMenu = new QMenu( this );
 	menuBar()->addMenu( m_viewMenu )->setText( tr( "&View" ) );
@@ -1216,33 +1219,6 @@ void MainWindow::updatePlayPauseIcons()
 		}
 	}
 }
-
-
-void MainWindow::updateUndoRedoButtons()
-{
-	// when the edit menu is shown, grey out the undo/redo buttons if there's nothing to undo/redo
-	// else, un-grey them
-	m_undoAction->setEnabled(Engine::projectJournal()->canUndo());
-	m_redoAction->setEnabled(Engine::projectJournal()->canRedo());
-}
-
-
-
-void MainWindow::undo()
-{
-	Engine::projectJournal()->undo();
-}
-
-
-
-
-void MainWindow::redo()
-{
-	Engine::projectJournal()->redo();
-}
-
-
-
 
 void MainWindow::closeEvent( QCloseEvent * _ce )
 {
