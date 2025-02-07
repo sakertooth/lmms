@@ -24,7 +24,10 @@
 
 #include "UndoManager.h"
 
+#include "AudioEngine.h"
 #include "Clip.h"
+#include "ClipView.h"
+#include "Engine.h"
 #include "Track.h"
 
 namespace lmms::gui {
@@ -49,18 +52,53 @@ CreateClipCommand::CreateClipCommand(Track* track, TimePos pos)
 
 void CreateClipCommand::undo()
 {
-    m_track->removeClip(m_clip);
-    delete m_clip;
+	const auto guard = Engine::audioEngine()->requestChangesGuard();
+	m_track->removeClip(m_clip);
 }
 
 void CreateClipCommand::redo()
 {
+	const auto guard = Engine::audioEngine()->requestChangesGuard();
+
+	if (m_clip != nullptr)
+	{
+		m_track->addClip(m_clip);
+		return;
+	}
+
 	m_clip = m_track->createClip(m_pos);
 }
 
-Clip* CreateClipCommand::createdClip()
+Clip* CreateClipCommand::clip()
 {
 	return m_clip;
+}
+
+RemoveClipsCommand::RemoveClipsCommand(std::vector<Clip*> clips)
+	: m_clips(std::move(clips))
+{
+}
+
+void RemoveClipsCommand::undo()
+{
+	const auto guard = Engine::audioEngine()->requestChangesGuard();
+
+	for (auto& clip : m_clips)
+	{
+		if (clip->getTrack() == nullptr) { continue; }
+		clip->getTrack()->addClip(clip);
+	}
+}
+
+void RemoveClipsCommand::redo()
+{
+	const auto guard = Engine::audioEngine()->requestChangesGuard();
+
+	for (auto& clip : m_clips)
+	{
+		if (clip->getTrack() == nullptr) { continue; }
+		clip->getTrack()->removeClip(clip);
+	}
 }
 
 } // namespace lmms::gui

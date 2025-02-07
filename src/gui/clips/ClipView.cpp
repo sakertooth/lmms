@@ -54,6 +54,7 @@
 #include "TrackContainer.h"
 #include "TrackContainerView.h"
 #include "TrackView.h"
+#include "UndoManager.h"
 
 namespace lmms::gui
 {
@@ -129,7 +130,7 @@ ClipView::ClipView( Clip * clip,
 	connect(getGUI()->songEditor()->m_editor, &SongEditor::pixelsPerBarChanged, this, &ClipView::updateLength);
 	connect( m_clip, SIGNAL(positionChanged()),
 			this, SLOT(updatePosition()));
-	connect( m_clip, SIGNAL(destroyedClip()), this, SLOT(close()));
+	connect(m_clip, SIGNAL(clipRemoved()), this, SLOT(close()));
 	setModel( m_clip );
 	connect(m_clip, SIGNAL(colorChanged()), this, SLOT(update()));
 
@@ -277,39 +278,6 @@ bool ClipView::close()
 	m_trackView->getTrackContentWidget()->removeClipView( this );
 	return QWidget::close();
 }
-
-
-
-
-/*! \brief Removes a ClipView from its track view.
- *
- *  Like the close() method, this asks the track view to remove this
- *  ClipView.  However, the clip is
- *  scheduled for later deletion rather than closed immediately.
- *
- */
-void ClipView::remove()
-{
-	m_trackView->getTrack()->addJournalCheckPoint();
-
-	// delete ourself
-	close();
-
-	if (m_clip->getTrack())
-	{
-		auto guard = Engine::audioEngine()->requestChangesGuard();
-		m_clip->getTrack()->removeClip(m_clip);
-	}
-
-	// TODO: Clip::~Clip should not be responsible for removing the Clip from the Track.
-	// One would expect that a call to Track::removeClip would already do that for you, as well
-	// as actually deleting the Clip with the deleteLater function. That being said, it shouldn't
-	// be possible to make a Clip without a Track (i.e., Clip::getTrack is never nullptr).
-	m_clip->deleteLater();
-}
-
-
-
 
 /*! \brief Updates a ClipView's length
  *
@@ -1179,13 +1147,16 @@ QVector<ClipView *> ClipView::getClickedClips()
 		: QVector<ClipView *>( 1, this );
 }
 
+void ClipView::remove()
+{
+	ClipView::remove(QVector<ClipView*>{this});
+}
+
 void ClipView::remove( QVector<ClipView *> clipvs )
 {
-	for( auto clipv: clipvs )
-	{
-		// No need to check if it's nullptr because we check when building the QVector
-		clipv->remove();
-	}
+	auto clips = std::vector<Clip*>(clipvs.size());
+	std::transform(clipvs.begin(), clipvs.end(), clips.begin(), [](const auto& clipv) { return clipv->getClip(); });
+	UndoManager::instance()->commit(new RemoveClipsCommand(std::move(clips)));
 }
 
 void ClipView::copy( QVector<ClipView *> clipvs )

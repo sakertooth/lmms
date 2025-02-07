@@ -144,7 +144,7 @@ public slots:
 signals:
 	void lengthChanged();
 	void positionChanged();
-	void destroyedClip();
+	void clipRemoved();
 	void colorChanged();
 
 

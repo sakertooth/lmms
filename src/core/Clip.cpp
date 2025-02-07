@@ -69,8 +69,6 @@ Clip::Clip( Track * track ) :
  */
 Clip::~Clip()
 {
-	emit destroyedClip();
-
 	if( getTrack() )
 	{
 		getTrack()->removeClip( this );

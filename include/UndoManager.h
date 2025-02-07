@@ -38,6 +38,9 @@ class Clip;
 }
 
 namespace lmms::gui {
+
+class ClipView;
+
 class LMMS_EXPORT UndoManager : public QObject
 {
 	Q_OBJECT
@@ -59,25 +62,23 @@ public:
 	CreateClipCommand(Track* track, TimePos pos);
 	void undo() override;
 	void redo() override;
-
-	Clip* createdClip();
+	auto clip() -> Clip*;
 
 private:
-	Clip* m_clip;
-	Track* m_track;
+	Track* m_track = nullptr;
+	Clip* m_clip = nullptr;
 	TimePos m_pos;
 };
 
-class RemoveClipCommand : public QUndoCommand
+class RemoveClipsCommand : public QUndoCommand
 {
 public:
-	RemoveClipCommand(Track* track, TimePos pos);
+	RemoveClipsCommand(std::vector<Clip*> clips);
 	void undo() override;
 	void redo() override;
 
 private:
-	Track* m_track;
-	TimePos m_pos;
+	std::vector<Clip*> m_clips;
 };
 
 } // namespace lmms::gui

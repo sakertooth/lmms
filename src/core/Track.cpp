@@ -359,7 +359,9 @@ void Track::removeClip( Clip * clip )
 	clipVector::iterator it = std::find( m_clips.begin(), m_clips.end(), clip );
 	if( it != m_clips.end() )
 	{
-		m_clips.erase( it );
+		emit (*it)->clipRemoved();
+		m_clips.erase(it);
+
 		if( Engine::getSong() )
 		{
 			Engine::getSong()->updateLength();
@@ -367,7 +369,6 @@ void Track::removeClip( Clip * clip )
 		}
 	}
 }
-
 
 /*! \brief Remove all Clips from this track */
 void Track::deleteClips()

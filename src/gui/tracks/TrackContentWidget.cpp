@@ -540,7 +540,7 @@ bool TrackContentWidget::pasteSelection( TimePos clipPos, const QMimeData * md, 
 		const auto createClipCommand = new CreateClipCommand(getTrack(), pos);
 		UndoManager::instance()->commit(createClipCommand);
 
-		const auto clip = createClipCommand->createdClip();
+		const auto clip = createClipCommand->clip();
 		clip->restoreState( clipElement );
 		clip->movePosition(pos); // Because we restored the state, we need to move the Clip again.
 		if( wasSelection )
