@@ -42,6 +42,7 @@
 #include "TrackContainerView.h"
 #include "ClipView.h"
 #include "TrackView.h"
+#include "UndoManager.h"
 
 namespace lmms::gui
 {
@@ -536,7 +537,10 @@ bool TrackContentWidget::pasteSelection( TimePos clipPos, const QMimeData * md, 
 		TimePos shift = TimePos::ticksPerBar() * getGUI()->songEditor()->m_editor->getSnapSize();
 		if (offset == 0 && initialTrackIndex == currentTrackIndex) { pos += shift; }
 
-		Clip * clip = t->createClip( pos );
+		const auto createClipCommand = new CreateClipCommand(getTrack(), pos);
+		UndoManager::instance()->commit(createClipCommand);
+
+		const auto clip = createClipCommand->createdClip();
 		clip->restoreState( clipElement );
 		clip->movePosition(pos); // Because we restored the state, we need to move the Clip again.
 		if( wasSelection )
@@ -600,7 +604,8 @@ void TrackContentWidget::mousePressEvent( QMouseEvent * me )
 		getTrack()->addJournalCheckPoint();
 		const TimePos pos = getPosition( me->x() ).getBar() *
 						TimePos::ticksPerBar();
-		getTrack()->createClip(pos);
+
+		UndoManager::instance()->commit(new CreateClipCommand(getTrack(), pos));
 	}
 }
 

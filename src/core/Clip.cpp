@@ -54,10 +54,9 @@ Clip::Clip( Track * track ) :
 	{
 		getTrack()->addClip( this );
 	}
-	setJournalling( false );
+
 	movePosition( 0 );
 	changeLength( 0 );
-	setJournalling( true );
 }
 
 

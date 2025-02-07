@@ -22,52 +22,64 @@
  *
  */
 
+#ifndef LMMS_UNDO_MANAGER_H
+#define LMMS_UNDO_MANAGER_H
+
 #include <QObject>
 #include <QUndoCommand>
 
+#include "TimePos.h"
+
 class QUndoStack;
 
+namespace lmms {
+class Track;
+class Clip;
+}
+
 namespace lmms::gui {
-class UndoManager : public QObject
+class LMMS_EXPORT UndoManager : public QObject
 {
+	Q_OBJECT
 public:
-    static UndoManager* instance()
-    {
-        static const auto s_undoManager = new UndoManager();
-        return s_undoManager;
-    }
-
-	template <typename Fn> void commit(Fn undo, Fn redo)
-	{
-		class UndoCommand : public QUndoCommand
-		{
-		public:
-			UndoCommand(Fn undo, Fn redo)
-				: m_undo(std::move(undo))
-				, m_redo(std::move(redo))
-			{
-			}
-
-			void undo() override { m_undo(); }
-			void redo() override { m_redo(); }
-
-		private:
-			Fn m_undo;
-			Fn m_redo;
-		};
-
-		const auto cmd = new UndoCommand(std::move(undo), std::move(redo));
-		m_undoStack->push(cmd);
-        emit commandCommitted(cmd);
-	}
-
-    const QUndoStack* undoStack() const { return m_undoStack; }
+	static UndoManager* instance();
+	void commit(QUndoCommand* cmd);
+	const QUndoStack* undoStack() const { return m_undoStack; }
 
 signals:
-    void commandCommitted(QUndoCommand* cmd);
+	void commandCommitted(const QUndoCommand* cmd);
 
 private:
-    QUndoStack* m_undoStack = new QUndoStack(this);
+	QUndoStack* m_undoStack = new QUndoStack(this);
 };
 
-}
+class CreateClipCommand : public QUndoCommand
+{
+public:
+	CreateClipCommand(Track* track, TimePos pos);
+	void undo() override;
+	void redo() override;
+
+	Clip* createdClip();
+
+private:
+	Clip* m_clip;
+	Track* m_track;
+	TimePos m_pos;
+};
+
+class RemoveClipCommand : public QUndoCommand
+{
+public:
+	RemoveClipCommand(Track* track, TimePos pos);
+	void undo() override;
+	void redo() override;
+
+private:
+	Track* m_track;
+	TimePos m_pos;
+};
+
+} // namespace lmms::gui
+
+#endif // LMMS_UNDO_MANAGER_H
