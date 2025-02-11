@@ -24,8 +24,6 @@
 
 #include "MemoryMappedFile.h"
 
-#include <lmmsconfig.h>
-
 #if defined LMMS_BUILD_LINUX || defined LMMS_BUILD_APPLE || defined LMMS_BUILD_OPENBSD || defined LMMS_BUILD_FREEBSD
 #include <fcntl.h>
 #include <sys/mman.h>
@@ -43,7 +41,26 @@ MemoryMappedFile::MemoryMappedFile(const std::filesystem::path& path)
 
 MemoryMappedFile::~MemoryMappedFile()
 {
-    munmap(m_data, size());
+	munmap(m_data, size());
+	close(m_fd);
+}
+#endif
+
+#if defined LMMS_BUID_WIN32
+MemoryMappedFile::MemoryMappedFile(const std::filesystem::path& path)
+	: m_path(path)
+	, m_fileHandle(CreateFile(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING,
+		  FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, nullptr))
+	, m_mapHandle(CreateFileMapping(m_fileHandle, nullptr, PAGE_EXECUTE_READWRITE, 0, 0, nullptr))
+	, m_data(static_cast<char*>(MapViewOfFile(m_mapHandle, FILE_MAP_ALL_ACCESS, 0, 0, size())))
+{
+}
+
+MemoryMappedFile::~MemoryMappedFile()
+{
+	UnmapViewOfFile(m_data);
+	CloseHandle(m_mapHandle);
+	CloseHandle(m_fileHandle);
 }
 #endif
 
@@ -57,27 +74,27 @@ auto MemoryMappedFile::read(void* ptr, std::size_t count) -> std::size_t
 
 auto MemoryMappedFile::write(const void* ptr, std::size_t count) -> std::size_t
 {
-    const auto numBytesToWrite = std::min(count, size() - m_pos);
-    std::copy_n(static_cast<const char*>(ptr), numBytesToWrite, m_data + m_pos);
-    return numBytesToWrite;
+	const auto numBytesToWrite = std::min(count, size() - m_pos);
+	std::copy_n(static_cast<const char*>(ptr), numBytesToWrite, m_data + m_pos);
+	return numBytesToWrite;
 }
 
 auto MemoryMappedFile::seek(int offset, int whence) -> std::size_t
 {
-    switch (whence)
-    {
-        case SEEK_SET:
-            m_pos = offset;
-            break;
-        case SEEK_CUR:
-            m_pos += offset;
-            break;
-        case SEEK_END:
-            m_pos = size() + offset;
-            break;
-    }
+	switch (whence)
+	{
+	case SEEK_SET:
+		m_pos = offset;
+		break;
+	case SEEK_CUR:
+		m_pos += offset;
+		break;
+	case SEEK_END:
+		m_pos = size() + offset;
+		break;
+	}
 
-    return m_pos;
+	return m_pos;
 }
 
 } // namespace lmms

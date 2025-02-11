@@ -30,6 +30,11 @@
 #include <filesystem>
 
 #include "lmms_export.h"
+#include "lmmsconfig.h"
+
+#if defined LMMS_BUILD_WIN32
+#include <windows.h>
+#endif
 
 namespace lmms {
 class LMMS_EXPORT MemoryMappedFile
@@ -50,7 +55,16 @@ public:
 private:
 	std::filesystem::path m_path;
 	std::size_t m_pos = 0;
+
+#if defined LMMS_BUILD_LINUX || defined LMMS_BUILD_APPLE || defined LMMS_BUILD_OPENBSD || defined LMMS_BUILD_FREEBSD
 	int m_fd = 0;
+#endif
+
+#if defined LMMS_BUID_WIN32
+	HANDLE m_fileHandle;
+	HANDLE m_mapHandle;
+#endif
+
 	char* m_data = nullptr;
 };
 } // namespace lmms
