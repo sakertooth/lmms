@@ -39,6 +39,7 @@ set(LMMS_SRCS
 	core/LfoController.cpp
 	core/LinkedModelGroups.cpp
 	core/LocklessAllocator.cpp
+	core/MemoryMappedFile.cpp
 	core/MeterModel.cpp
 	core/Metronome.cpp
 	core/MicroTimer.cpp
