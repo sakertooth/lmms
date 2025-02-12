@@ -75,7 +75,7 @@ public:
 
 	~SampleStream() { sf_close(m_sndfile); }
 
-	void next(SampleFrame* ptr, std::size_t count) { sf_readf_float(m_sndfile, ptr->data(), count); }
+	auto next(SampleFrame* ptr, std::size_t count) -> size_t { return sf_readf_float(m_sndfile, ptr->data(), count); }
 	auto size() const -> size_t { return m_sfInfo.frames; }
 	auto sampleRate() const -> int { return m_sfInfo.samplerate; }
 
