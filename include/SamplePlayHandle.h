@@ -30,6 +30,7 @@
 #include "SampleBuffer.h"
 #include "AutomatableModel.h"
 #include "PlayHandle.h"
+#include "SampleStream.h"
 
 namespace lmms
 {
@@ -45,6 +46,7 @@ class LMMS_EXPORT SamplePlayHandle : public PlayHandle
 {
 public:
 	SamplePlayHandle(Sample* sample, bool ownAudioPort = true);
+	SamplePlayHandle(SampleStream stream, bool ownAudioPort = true);
 	SamplePlayHandle( const QString& sampleFile );
 	SamplePlayHandle( SampleClip* clip );
 	~SamplePlayHandle() override;
@@ -82,7 +84,7 @@ public:
 
 
 private:
-	Sample* m_sample;
+	std::variant<Sample*, SampleStream> m_sample;
 	bool m_doneMayReturnTrue;
 
 	f_cnt_t m_frame;

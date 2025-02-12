@@ -34,25 +34,31 @@ namespace lmms {
 #if defined LMMS_BUILD_LINUX || defined LMMS_BUILD_APPLE || defined LMMS_BUILD_OPENBSD || defined LMMS_BUILD_FREEBSD
 MemoryMappedFile::MemoryMappedFile(const std::filesystem::path& path)
 	: m_path(path)
-	, m_fd(open(path.c_str(), O_RDWR))
-	, m_data(static_cast<char*>(mmap(nullptr, size(), PROT_READ | PROT_WRITE, MAP_SHARED, m_fd, m_pos)))
+	, m_size(std::filesystem::file_size(path))
 {
+	const auto fd = open(path.c_str(), O_RDWR);
+	if (fd == -1) { throw std::runtime_error{"Failed to open file"}; }
+
+	m_data = static_cast<char*>(mmap(nullptr, m_size, PROT_READ | PROT_WRITE, MAP_PRIVATE, fd, m_pos));
+	if (m_data == MAP_FAILED) { throw std::runtime_error{"Failed to create memory mapping of file"}; }
+
+	close(fd);
 }
 
 MemoryMappedFile::~MemoryMappedFile()
 {
-	munmap(m_data, size());
-	close(m_fd);
+	munmap(m_data, m_size);
 }
 #endif
 
 #if defined LMMS_BUID_WIN32
 MemoryMappedFile::MemoryMappedFile(const std::filesystem::path& path)
 	: m_path(path)
+	, m_size(std::filesystem::file_size(path))
 	, m_fileHandle(CreateFile(path.c_str(), GENERIC_READ | GENERIC_WRITE, 0, nullptr, OPEN_EXISTING,
 		  FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, nullptr))
 	, m_mapHandle(CreateFileMapping(m_fileHandle, nullptr, PAGE_EXECUTE_READWRITE, 0, 0, nullptr))
-	, m_data(static_cast<char*>(MapViewOfFile(m_mapHandle, FILE_MAP_ALL_ACCESS, 0, 0, size())))
+	, m_data(static_cast<char*>(MapViewOfFile(m_mapHandle, FILE_MAP_ALL_ACCESS, 0, 0, m_size)))
 {
 }
 
@@ -64,18 +70,50 @@ MemoryMappedFile::~MemoryMappedFile()
 }
 #endif
 
+MemoryMappedFile::MemoryMappedFile(MemoryMappedFile&& mmapFile) noexcept
+	: m_path(std::move(mmapFile.m_path))
+	, m_pos(std::exchange(mmapFile.m_pos, 0))
+	, m_size(std::exchange(mmapFile.m_size, 0))
+	, m_data(std::exchange(mmapFile.m_data, nullptr))
+#ifdef LMMS_BUILD_WIN32
+	, m_mapHandle(std::exchange(mmapFile.m_mapHandle, INVALID_HANDLE_VALUE))
+	, m_fileHandle(std::exchange(mmapFile.m_fileHandle, INVALID_HANDLE_VALUE))
+#endif
+{
+}
+
+MemoryMappedFile& MemoryMappedFile::operator=(MemoryMappedFile&& mmapFile) noexcept
+{
+	m_path = std::move(mmapFile.m_path);
+	m_pos = std::exchange(mmapFile.m_pos, 0);
+	m_size = std::exchange(mmapFile.m_size, 0);
+	m_data = std::exchange(mmapFile.m_data, nullptr);
+#ifdef LMMS_BUILD_WIN32
+	m_mapHandle = std::exchange(mmapFile.m_mapHandle, INVALID_HANDLE_VALUE);
+	m_fileHandle = std::exchange(mmapFile.m_fileHandle, INVALID_HANDLE_VALUE);
+#endif
+	return *this;
+}
+
 auto MemoryMappedFile::read(void* ptr, std::size_t count) -> std::size_t
 {
-	const auto numBytesToRead = std::min(count, size() - m_pos);
-	std::copy_n(m_data, numBytesToRead, static_cast<char*>(ptr));
+	if (m_data == nullptr || m_pos >= m_size) { return 0; }
+
+	const auto numBytesToRead = std::min(count, m_size - m_pos);
+	std::copy_n(m_data + m_pos, numBytesToRead, static_cast<char*>(ptr));
+
 	m_pos += numBytesToRead;
 	return numBytesToRead;
 }
 
 auto MemoryMappedFile::write(const void* ptr, std::size_t count) -> std::size_t
 {
-	const auto numBytesToWrite = std::min(count, size() - m_pos);
+	if (m_data == nullptr || m_pos >= m_size) { return 0; }
+
+	const auto numBytesToWrite = std::min(count, m_size - m_pos);
 	std::copy_n(static_cast<const char*>(ptr), numBytesToWrite, m_data + m_pos);
+
+	m_pos += numBytesToWrite;
 	return numBytesToWrite;
 }
 
@@ -90,7 +128,7 @@ auto MemoryMappedFile::seek(int offset, int whence) -> std::size_t
 		m_pos += offset;
 		break;
 	case SEEK_END:
-		m_pos = size() + offset;
+		m_pos = m_size + offset;
 		break;
 	}
 

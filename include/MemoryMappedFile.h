@@ -43,8 +43,14 @@ public:
 	MemoryMappedFile(const std::filesystem::path& path);
 	~MemoryMappedFile();
 
+	MemoryMappedFile(const MemoryMappedFile&) = delete;
+	MemoryMappedFile& operator=(const MemoryMappedFile&) = delete;
+
+	MemoryMappedFile(MemoryMappedFile&&) noexcept;
+	MemoryMappedFile& operator=(MemoryMappedFile&&) noexcept;
+
 	auto path() const -> const std::filesystem::path& { return m_path; }
-	auto size() const -> std::size_t { return std::filesystem::file_size(m_path); }
+	auto size() const -> std::size_t { return m_size; }
 
 	auto read(void* ptr, std::size_t count) -> std::size_t;
 	auto write(const void* ptr, std::size_t count) -> std::size_t;
@@ -55,10 +61,7 @@ public:
 private:
 	std::filesystem::path m_path;
 	std::size_t m_pos = 0;
-
-#if defined LMMS_BUILD_LINUX || defined LMMS_BUILD_APPLE || defined LMMS_BUILD_OPENBSD || defined LMMS_BUILD_FREEBSD
-	int m_fd = 0;
-#endif
+	std::size_t m_size = 0;
 
 #if defined LMMS_BUID_WIN32
 	HANDLE m_fileHandle;

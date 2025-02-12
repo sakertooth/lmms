@@ -30,7 +30,6 @@
 
 #include "MemoryMappedFile.h"
 #include "SampleFrame.h"
-#include "lmms_basics.h"
 #include "lmms_export.h"
 
 namespace lmms {
@@ -44,11 +43,41 @@ public:
 			  .read = &SampleStream::read,
 			  .write = &SampleStream::write,
 			  .tell = &SampleStream::tell})
-		, m_sndfile(sf_open_virtual(&m_sfVirtualIo, SFM_READ, &m_sfInfo, this))
+		, m_sndfile(sf_open_virtual(&m_sfVirtualIo, SFM_READ, &m_sfInfo, &m_memoryMappedFile))
 	{
 	}
 
-	void next(SampleFrame* ptr, std::size_t count) { sf_readf_float(m_sndfile, ptr->data(), count * DEFAULT_CHANNELS); }
+	SampleStream(const SampleStream&) = delete;
+	SampleStream& operator=(const SampleStream&) = delete;
+
+	SampleStream(SampleStream&& stream) noexcept
+		: m_memoryMappedFile(std::move(stream.m_memoryMappedFile))
+		, m_sfVirtualIo(std::exchange(stream.m_sfVirtualIo, SF_VIRTUAL_IO{}))
+		, m_sfInfo(std::exchange(stream.m_sfInfo, SF_INFO{}))
+		, m_sndfile(sf_open_virtual(&m_sfVirtualIo, SFM_READ, &m_sfInfo, &m_memoryMappedFile))
+	{
+		sf_close(stream.m_sndfile);
+		stream.m_sndfile = nullptr;
+	}
+
+	SampleStream& operator=(SampleStream&& stream) noexcept
+	{
+		m_memoryMappedFile = std::move(stream.m_memoryMappedFile);
+		m_sfVirtualIo = std::exchange(stream.m_sfVirtualIo, SF_VIRTUAL_IO{});
+		m_sfInfo = std::exchange(stream.m_sfInfo, SF_INFO{});
+		m_sndfile = sf_open_virtual(&m_sfVirtualIo, SFM_READ, &m_sfInfo, &m_memoryMappedFile);
+
+		sf_close(stream.m_sndfile);
+		stream.m_sndfile = nullptr;
+
+		return *this;
+	}
+
+	~SampleStream() { sf_close(m_sndfile); }
+
+	void next(SampleFrame* ptr, std::size_t count) { sf_readf_float(m_sndfile, ptr->data(), count); }
+	auto size() const -> size_t { return m_sfInfo.frames; }
+	auto sampleRate() const -> int { return m_sfInfo.samplerate; }
 
 private:
 	static auto filelen(void* data) -> sf_count_t { return static_cast<MemoryMappedFile*>(data)->size(); }
