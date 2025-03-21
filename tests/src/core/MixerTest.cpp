@@ -97,7 +97,7 @@ private slots:
         QCOMPARE(channelTwo->index(), indexOne);
     }
 
-    void testCanCreateSendRoute() 
+    void testCanCreateSendRoute()
     {
         const auto indexOne = lmms::Engine::mixer()->createChannel();
         const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
@@ -132,7 +132,16 @@ private slots:
 
     void testCanSoloChannel()
     {
-        
+        const auto indexOne = lmms::Engine::mixer()->createChannel();
+        const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
+
+        const auto indexTwo = lmms::Engine::mixer()->createChannel();
+        const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
+
+        channelOne->m_soloModel.setValue(true);
+        lmms::Engine::mixer()->toggledSolo();
+
+        QCOMPARE(channelTwo->m_muteModel.value(), true);
     }
 };
 
