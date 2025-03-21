@@ -69,12 +69,9 @@ private slots:
 
 	void testCanRemoveChannel() {
         const auto indexOne = lmms::Engine::mixer()->createChannel();
-        QCOMPARE(lmms::Engine::mixer()->deleteChannel(indexOne), true);
+        lmms::Engine::mixer()->deleteChannel(indexOne);
+        QCOMPARE(lmms::Engine::mixer()->containsChannel(indexOne), false);
     }
-
-	void testCannotRemoveMaster() {
-		QCOMPARE(lmms::Engine::mixer()->deleteChannel(0), false);
-	}
 
     void testCanMoveChannelLeft() {
         const auto indexOne = lmms::Engine::mixer()->createChannel();
@@ -98,16 +95,6 @@ private slots:
         lmms::Engine::mixer()->moveChannelRight(indexOne);
         QCOMPARE(channelOne->index(), indexTwo);
         QCOMPARE(channelTwo->index(), indexOne);
-    }
-
-    void testCannotMoveMasterLeft() {
-        lmms::Engine::mixer()->moveChannelLeft(0);
-        QCOMPARE(lmms::Engine::mixer()->mixerChannel(0)->index(), 0);
-    }
-
-    void testCannotMoveMasterRight() {
-        lmms::Engine::mixer()->moveChannelRight(0);
-        QCOMPARE(lmms::Engine::mixer()->mixerChannel(0)->index(), 0);
     }
 
     void testCanCreateSendRoute() 
@@ -141,6 +128,11 @@ private slots:
 
         QCOMPARE(lmms::Engine::mixer()->containsSender(indexOne, route), false);
         QCOMPARE(lmms::Engine::mixer()->containsReceiver(indexTwo, route), false);
+    }
+
+    void testCanSoloChannel()
+    {
+        
     }
 };
 

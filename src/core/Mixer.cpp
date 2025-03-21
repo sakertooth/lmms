@@ -330,10 +330,8 @@ void Mixer::toggledSolo()
 	m_lastSoloed = soloedChan;
 }
 
-bool Mixer::deleteChannel(int index)
+void Mixer::deleteChannel(int index)
 {
-	if (index == 0) { return false; }
-
 	// channel deletion is performed between mixer rounds
 	Engine::audioEngine()->requestChangeInModel();
 
@@ -421,8 +419,6 @@ bool Mixer::deleteChannel(int index)
 	}
 
 	Engine::audioEngine()->doneChangeInModel();
-
-	return true;
 }
 
 

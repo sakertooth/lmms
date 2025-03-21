@@ -185,7 +185,7 @@ public:
 	int createChannel();
 
 	// delete a channel from the mixer.
-	bool deleteChannel(int index);
+	void deleteChannel(int index);
 
 	// delete all the mixer channels except master and remove all effects
 	void clear();
