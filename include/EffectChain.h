@@ -67,6 +67,7 @@ public:
 	void startRunning();
 
 	void clear();
+	bool empty() const { return m_effects.empty(); }
 
 
 private:

@@ -23,6 +23,7 @@
  */
 
 #include "Mixer.h"
+
 #include <QObject>
 #include <QtTest/QtTest>
 
@@ -32,117 +33,111 @@ class MixerTest : public QObject
 {
 	Q_OBJECT
 private slots:
-	void initTestCase()
+	void initTestCase() { lmms::Engine::init(true); }
+
+	void cleanupTestCase() { lmms::Engine::destroy(); }
+
+	void testHasMasterChannel() { QCOMPARE(lmms::Engine::mixer()->containsChannel(0), true); }
+
+    void testCreateChannelExists()
 	{
-		lmms::Engine::init(true);
+		const auto index = lmms::Engine::mixer()->createChannel();
+
+        QCOMPARE(lmms::Engine::mixer()->containsChannel(index), true);
 	}
 
-    void cleanupTestCase()
-    {
-        lmms::Engine::destroy();
-    }
+	void testCreateChannelCorrectDefaults()
+	{
+		const auto index = lmms::Engine::mixer()->createChannel();
+		const auto channel = lmms::Engine::mixer()->mixerChannel(index);
 
-    void init()
-    {
-        lmms::Engine::mixer()->clear();
-    }
+        QCOMPARE(channel->m_name, tr("Channel %1").arg(index));
+        QCOMPARE(channel->m_volumeModel.value(), 1.f);
+        QCOMPARE(channel->m_muteModel.value(), false);
+        QCOMPARE(channel->m_soloModel.value(), false);
+        QCOMPARE(channel->m_fxChain.empty(), true);
+        QCOMPARE(channel->color().has_value(), false);
+	}
 
-    void cleanup()
-    {
-        lmms::Engine::mixer()->clear();
-    }
+	void testDeleteChannelDoesNotExist()
+	{
+		const auto index = lmms::Engine::mixer()->createChannel();
+		lmms::Engine::mixer()->deleteChannel(index);
+		QCOMPARE(lmms::Engine::mixer()->containsChannel(index), false);
+	}
 
-    void testHasOneChannelInitially()
-    {
-        QCOMPARE(lmms::Engine::mixer()->numChannels(), 1);
-    }
+	void testMoveChannelLeftSwappedChannelIndices()
+	{
+		const auto indexOne = lmms::Engine::mixer()->createChannel();
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
 
-    void testMasterChannelCreatedInitially()
-    {
-        QCOMPARE(lmms::Engine::mixer()->containsChannel(0), true);
-    }
+		const auto indexTwo = lmms::Engine::mixer()->createChannel();
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
 
-	void testCanAddChannel() {
-        const auto index = lmms::Engine::mixer()->createChannel();
-        QCOMPARE(index, 1);
-    }
+		lmms::Engine::mixer()->moveChannelLeft(indexTwo);
+		QCOMPARE(channelOne->index(), indexTwo);
+		QCOMPARE(channelTwo->index(), indexOne);
+	}
 
-	void testCanRemoveChannel() {
-        const auto indexOne = lmms::Engine::mixer()->createChannel();
-        lmms::Engine::mixer()->deleteChannel(indexOne);
-        QCOMPARE(lmms::Engine::mixer()->containsChannel(indexOne), false);
-    }
+	void testMoveChannelRightSwappedChannelIndicies()
+	{
+		const auto indexOne = lmms::Engine::mixer()->createChannel();
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
 
-    void testCanMoveChannelLeft() {
-        const auto indexOne = lmms::Engine::mixer()->createChannel();
-        const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
+		const auto indexTwo = lmms::Engine::mixer()->createChannel();
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
 
-        const auto indexTwo = lmms::Engine::mixer()->createChannel();
-        const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
+		lmms::Engine::mixer()->moveChannelRight(indexOne);
+		QCOMPARE(channelOne->index(), indexTwo);
+		QCOMPARE(channelTwo->index(), indexOne);
+	}
 
-        lmms::Engine::mixer()->moveChannelLeft(indexTwo);
-        QCOMPARE(channelOne->index(), indexTwo);
-        QCOMPARE(channelTwo->index(), indexOne);
-    }
+	void testCreateRouteCorrectSenderReceiver()
+	{
+		const auto indexOne = lmms::Engine::mixer()->createChannel();
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
 
-    void testCanMoveChannelRight() {
-        const auto indexOne = lmms::Engine::mixer()->createChannel();
-        const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
+		const auto indexTwo = lmms::Engine::mixer()->createChannel();
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
 
-        const auto indexTwo = lmms::Engine::mixer()->createChannel();
-        const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
+		const auto route = lmms::Engine::mixer()->createRoute(channelOne, channelTwo, 1.f);
 
-        lmms::Engine::mixer()->moveChannelRight(indexOne);
-        QCOMPARE(channelOne->index(), indexTwo);
-        QCOMPARE(channelTwo->index(), indexOne);
-    }
+		QCOMPARE(route->sender(), channelOne);
+		QCOMPARE(route->receiver(), channelTwo);
 
-    void testCanCreateSendRoute()
-    {
-        const auto indexOne = lmms::Engine::mixer()->createChannel();
-        const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
+		QCOMPARE(lmms::Engine::mixer()->containsSender(indexOne, route), true);
+		QCOMPARE(lmms::Engine::mixer()->containsReceiver(indexTwo, route), true);
+	}
 
-        const auto indexTwo = lmms::Engine::mixer()->createChannel();
-        const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
+	void testRemoveRouteDoesNotExist()
+	{
+		const auto indexOne = lmms::Engine::mixer()->createChannel();
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
 
-        const auto route = lmms::Engine::mixer()->createRoute(channelOne, channelTwo, 1.f);
+		const auto indexTwo = lmms::Engine::mixer()->createChannel();
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
 
-        QCOMPARE(route->sender(), channelOne);
-        QCOMPARE(route->receiver(), channelTwo);
+		const auto route = lmms::Engine::mixer()->createRoute(channelOne, channelTwo, 1.f);
 
-        QCOMPARE(lmms::Engine::mixer()->containsSender(indexOne, route), true);
-        QCOMPARE(lmms::Engine::mixer()->containsReceiver(indexTwo, route), true);
-    }
+		lmms::Engine::mixer()->deleteChannelSend(route);
 
-    void testCanRemoveSendRoute()
-    {
-        const auto indexOne = lmms::Engine::mixer()->createChannel();
-        const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
+		QCOMPARE(lmms::Engine::mixer()->containsSender(indexOne, route), false);
+		QCOMPARE(lmms::Engine::mixer()->containsReceiver(indexTwo, route), false);
+	}
 
-        const auto indexTwo = lmms::Engine::mixer()->createChannel();
-        const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
+	void testSoloChannelMuteOtherChannels()
+	{
+		const auto indexOne = lmms::Engine::mixer()->createChannel();
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
 
-        const auto route = lmms::Engine::mixer()->createRoute(channelOne, channelTwo, 1.f);
+		const auto indexTwo = lmms::Engine::mixer()->createChannel();
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
 
-        lmms::Engine::mixer()->deleteChannelSend(route);
+		channelOne->m_soloModel.setValue(true);
+		lmms::Engine::mixer()->toggledSolo();
 
-        QCOMPARE(lmms::Engine::mixer()->containsSender(indexOne, route), false);
-        QCOMPARE(lmms::Engine::mixer()->containsReceiver(indexTwo, route), false);
-    }
-
-    void testCanSoloChannel()
-    {
-        const auto indexOne = lmms::Engine::mixer()->createChannel();
-        const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
-
-        const auto indexTwo = lmms::Engine::mixer()->createChannel();
-        const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
-
-        channelOne->m_soloModel.setValue(true);
-        lmms::Engine::mixer()->toggledSolo();
-
-        QCOMPARE(channelTwo->m_muteModel.value(), true);
-    }
+		QCOMPARE(channelTwo->m_muteModel.value(), true);
+	}
 };
 
 QTEST_GUILESS_MAIN(MixerTest)
