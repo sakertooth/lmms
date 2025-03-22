@@ -49,6 +49,8 @@ MixerChannelView::MixerChannelView(QWidget* parent, MixerView* mixerView, int ch
 	, m_mixerView(mixerView)
 	, m_channelIndex(channelIndex)
 {
+	setObjectName(QString{"mixerChannel%1"}.arg(channelIndex));
+
 	auto retainSizeWhenHidden = [](QWidget* widget) {
 		auto sizePolicy = widget->sizePolicy();
 		sizePolicy.setRetainSizeWhenHidden(true);
@@ -59,6 +61,7 @@ MixerChannelView::MixerChannelView(QWidget* parent, MixerView* mixerView, int ch
 	auto receiveArrowLayout = new QVBoxLayout{receiveArrowContainer};
 	m_receiveArrow = new QLabel{};
 	m_receiveArrow->setPixmap(embed::getIconPixmap("receive_bg_arrow"));
+	m_receiveArrow->setObjectName("receiveArrow");
 	receiveArrowLayout->setContentsMargins(0, 0, 0, 0);
 	receiveArrowLayout->setSpacing(0);
 	receiveArrowLayout->addWidget(m_receiveArrow, 0, Qt::AlignHCenter);
@@ -66,6 +69,7 @@ MixerChannelView::MixerChannelView(QWidget* parent, MixerView* mixerView, int ch
 	auto sendButtonContainer = new QWidget{};
 	auto sendButtonLayout = new QVBoxLayout{sendButtonContainer};
 	m_sendButton = new SendButtonIndicator{this, this, mixerView};
+	m_sendButton->setObjectName("sendButton");
 	sendButtonLayout->setContentsMargins(0, 0, 0, 0);
 	sendButtonLayout->setSpacing(0);
 	sendButtonLayout->addWidget(m_sendButton, 0, Qt::AlignHCenter);
@@ -76,13 +80,16 @@ MixerChannelView::MixerChannelView(QWidget* parent, MixerView* mixerView, int ch
 	retainSizeWhenHidden(m_receiveArrowOrSendButton);
 
 	m_sendKnob = new Knob{KnobType::Bright26, this, tr("Channel send amount")};
+	m_sendKnob->setObjectName("sendKnob");
 	retainSizeWhenHidden(m_sendKnob);
 
 	m_sendArrow = new QLabel{};
+	m_sendArrow->setObjectName("sendArrow");
 	m_sendArrow->setPixmap(embed::getIconPixmap("send_bg_arrow"));
 	retainSizeWhenHidden(m_sendArrow);
 
 	m_channelNumberLcd = new LcdWidget{2, this};
+	m_channelNumberLcd->setObjectName("channelNumberLcd");
 	m_channelNumberLcd->setValue(channelIndex);
 	retainSizeWhenHidden(m_channelNumberLcd);
 
@@ -95,6 +102,7 @@ MixerChannelView::MixerChannelView(QWidget* parent, MixerView* mixerView, int ch
 	m_renameLineEdit->setFont(adjustedToPixelSize(font(), LARGE_FONT_SIZE));
 	m_renameLineEdit->setReadOnly(true);
 	m_renameLineEdit->installEventFilter(this);
+	m_renameLineEdit->setObjectName("renameLineEdit");
 
 	auto renameLineEditScene = new QGraphicsScene{};
 	m_renameLineEditView = new QGraphicsView{};
@@ -113,6 +121,7 @@ MixerChannelView::MixerChannelView(QWidget* parent, MixerView* mixerView, int ch
 	m_muteButton->setInactiveGraphic(embed::getIconPixmap("mute_inactive"));
 	m_muteButton->setCheckable(true);
 	m_muteButton->setToolTip(tr("Mute this channel"));
+	m_muteButton->setObjectName("muteButton");
 
 	m_soloButton = new PixmapButton(this, tr("Solo"));
 	m_soloButton->setModel(&mixerChannel->m_soloModel);
@@ -120,6 +129,7 @@ MixerChannelView::MixerChannelView(QWidget* parent, MixerView* mixerView, int ch
 	m_soloButton->setInactiveGraphic(embed::getIconPixmap("solo_inactive"));
 	m_soloButton->setCheckable(true);
 	m_soloButton->setToolTip(tr("Solo this channel"));
+	m_soloButton->setObjectName("soloButton");
 
 	auto soloMuteLayout = new QVBoxLayout();
 	soloMuteLayout->setContentsMargins(0, 2, 0, 2);
@@ -128,12 +138,14 @@ MixerChannelView::MixerChannelView(QWidget* parent, MixerView* mixerView, int ch
 	soloMuteLayout->addWidget(m_muteButton, 0, Qt::AlignHCenter);
 
 	m_fader = new Fader{&mixerChannel->m_volumeModel, tr("Fader %1").arg(channelIndex), this};
+	m_fader->setObjectName("fader");
 
 	m_peakIndicator = new PeakIndicator(this);
 	connect(m_fader, &Fader::peakChanged, m_peakIndicator, &PeakIndicator::updatePeak);
 
 	m_effectRackView = new EffectRackView{&mixerChannel->m_fxChain, mixerView->m_racksWidget};
 	m_effectRackView->setFixedWidth(EffectRackView::DEFAULT_WIDTH);
+	m_effectRackView->setObjectName("effectRack");
 
 	auto mainLayout = new QVBoxLayout{this};
 	mainLayout->setContentsMargins(4, 4, 4, 4);
@@ -251,6 +263,7 @@ void MixerChannelView::setChannelIndex(int index)
 	m_channelNumberLcd->setValue(index);
 	m_renameLineEdit->setText(elideName(mixerChannel->m_name));
 	m_channelIndex = index;
+	setObjectName(QString{"mixerChannel%1"}.arg(index));
 }
 
 void MixerChannelView::renameChannel()

@@ -76,6 +76,7 @@ MixerView::MixerView(Mixer* mixer) :
 
 	setWindowTitle(tr("Mixer"));
 	setWindowIcon(embed::getIconPixmap("mixer"));
+	setObjectName("mixer");
 
 	// main-layout
 	auto ml = new QHBoxLayout{this};
@@ -97,6 +98,7 @@ MixerView::MixerView(Mixer* mixer) :
 	m_racksLayout = new QStackedLayout(m_racksWidget);
 	m_racksLayout->setContentsMargins(0, 0, 0, 0);
 	m_racksWidget->setLayout(m_racksLayout);
+	m_racksWidget->setObjectName("racksWidget");
 
 	// add master channel
 	m_mixerChannelViews.resize(mixer->numChannels());
