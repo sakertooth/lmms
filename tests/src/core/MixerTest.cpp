@@ -34,16 +34,12 @@ class MixerTest : public QObject
 {
 	Q_OBJECT
 private:
-	template <typename... Route> void setup(std::size_t numChannels, Route&&... routes)
+	void addChannels(std::size_t numChannels)
 	{
 		for (auto i = std::size_t{0}; i < numChannels; ++i)
 		{
 			lmms::Engine::mixer()->createChannel();
 		}
-
-		(lmms::Engine::mixer()->createChannelSend(
-			 std::forward<Route>(routes).first, std::forward<Route>(routes).second, 1.f),
-			...);
 	}
 
 private slots:
@@ -86,7 +82,7 @@ private slots:
 
 	void testMovingChannelLeftSwapsChannelIndicies()
 	{
-		setup(2);
+		addChannels(2);
 		const auto channelOne = lmms::Engine::mixer()->mixerChannel(1);
 		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(2);
 
@@ -98,7 +94,7 @@ private slots:
 
 	void testMovingChannelRightSwapsChannelIndicies()
 	{
-		setup(2);
+		addChannels(2);
 		const auto channelOne = lmms::Engine::mixer()->mixerChannel(1);
 		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(2);
 
@@ -110,36 +106,31 @@ private slots:
 
 	void testCreatedRouteHasCorrectSenderReceiver()
 	{
-        constexpr auto sender = 1;
-        constexpr auto receiver = 2;
+		addChannels(2);
+		const auto route = lmms::Engine::mixer()->createChannelSend(1, 2, 1.f);
 
-		setup(2);
-		const auto route = lmms::Engine::mixer()->createChannelSend(sender, receiver, 1.f);
+		QCOMPARE(route->sender()->index(), 1);
+		QCOMPARE(route->receiver()->index(), 2);
 
-		QCOMPARE(route->sender()->index(), sender);
-		QCOMPARE(route->receiver()->index(), receiver);
-
-		QCOMPARE(lmms::Engine::mixer()->containsSender(sender, route), true);
-		QCOMPARE(lmms::Engine::mixer()->containsReceiver(receiver, route), true);
+		QCOMPARE(lmms::Engine::mixer()->containsSender(1, route), true);
+		QCOMPARE(lmms::Engine::mixer()->containsReceiver(2, route), true);
 	}
 
 	void testCreatedRouteHasDefaultAmount()
 	{
-        constexpr auto sender = 1;
-        constexpr auto receiver = 2;
-
-		setup(2);
-		const auto route = lmms::Engine::mixer()->createChannelSend(sender, receiver, 1.f);
+		addChannels(2);
+		const auto route = lmms::Engine::mixer()->createChannelSend(1, 2, 1.f);
 
 		QCOMPARE(route->amount()->value(), 1.f);
 	}
 
 	void testCreatedRouteDoesNotCreateInfiniteLoop()
 	{
-		setup(3);
+		addChannels(3);
 
 		lmms::Engine::mixer()->createChannelSend(1, 2); 
 		lmms::Engine::mixer()->createChannelSend(2, 3);
+
 		const auto infiniteLoopRoute = lmms::Engine::mixer()->createChannelSend(3, 1);
 
 		QCOMPARE(infiniteLoopRoute, nullptr);
@@ -147,21 +138,18 @@ private slots:
 
 	void testDeletedRouteDoesNotExist()
 	{
-        constexpr auto sender = 1;
-        constexpr auto receiver = 2;
-
-        setup(2);
-		const auto route = lmms::Engine::mixer()->createChannelSend(sender, receiver, 1.f);
+        addChannels(2);
+		const auto route = lmms::Engine::mixer()->createChannelSend(1, 2, 1.f);
 
 		lmms::Engine::mixer()->deleteChannelSend(route);
 
-		QCOMPARE(lmms::Engine::mixer()->containsSender(sender, route), false);
-		QCOMPARE(lmms::Engine::mixer()->containsReceiver(receiver, route), false);
+		QCOMPARE(lmms::Engine::mixer()->containsSender(1, route), false);
+		QCOMPARE(lmms::Engine::mixer()->containsReceiver(2, route), false);
 	}
 
 	void testMuteSilencesAudioOutput()
 	{
-		setup(2);
+		addChannels(2);
 
 		// TODO: Pass in frames to mixer channel's rather than have it coupled to the audio engine
 		const auto framesPerPeriod = lmms::Engine::audioEngine()->framesPerPeriod();
@@ -169,8 +157,8 @@ private slots:
 		lmms::Engine::mixer()->createChannelSend(1, 2);
 		lmms::Engine::mixer()->deleteChannelSend(1, 0);
 		const auto channelOne = lmms::Engine::mixer()->mixerChannel(1);
-
 		std::fill_n(channelOne->m_buffer, framesPerPeriod, lmms::SampleFrame{1.f, 1.f});
+
 		channelOne->m_muteModel.setValue(true);
 		channelOne->process();
 
@@ -183,15 +171,19 @@ private slots:
 
 	void testUnmuteRestoresAudioOutput()
 	{
-		setup(2);
+		addChannels(2);
 
 		const auto framesPerPeriod = lmms::Engine::audioEngine()->framesPerPeriod();
 
 		lmms::Engine::mixer()->createChannelSend(1, 2);
 		lmms::Engine::mixer()->deleteChannelSend(1, 0);
 		const auto channelOne = lmms::Engine::mixer()->mixerChannel(1);
-
 		std::fill_n(channelOne->m_buffer, framesPerPeriod, lmms::SampleFrame{1.f, 1.f});
+
+		channelOne->m_muteModel.setValue(true);
+		channelOne->process();
+
+		channelOne->m_muteModel.setValue(false);
 		channelOne->process();
 
 		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(2);
@@ -203,7 +195,7 @@ private slots:
 
 	void testSoloMuteOtherChannelsButThoseRouted()
 	{
-		setup(3);
+		addChannels(3);
 
 		lmms::Engine::mixer()->deleteChannelSend(1, 0);
 		lmms::Engine::mixer()->createChannelSend(1, 2);
@@ -215,15 +207,14 @@ private slots:
 		channelOne->m_soloModel.setValue(true);
 		lmms::Engine::mixer()->toggledSolo();
 
-		QVERIFY(
-			!channelOne->m_muteModel.value() &&
-			!channelTwo->m_muteModel.value() &&
-			channelThree->m_muteModel.value());
+		QCOMPARE(channelOne->m_muteModel.value(), false);
+		QCOMPARE(channelTwo->m_muteModel.value(), false);
+		QCOMPARE(channelThree->m_muteModel.value(), true);
 	}
 
 	void testUnsoloRestoresMuteState()
 	{
-		setup(3);
+		addChannels(3);
 
 		lmms::Engine::mixer()->deleteChannelSend(1, 0);
 		lmms::Engine::mixer()->createChannelSend(1, 2);
@@ -238,7 +229,9 @@ private slots:
 		channelOne->m_soloModel.setValue(false);
 		lmms::Engine::mixer()->toggledSolo();
 
-		QVERIFY(!channelOne->m_muteModel.value() && !channelTwo->m_muteModel.value() && !channelThree->m_muteModel.value());
+		QCOMPARE(channelOne->m_muteModel.value(), false);
+		QCOMPARE(channelTwo->m_muteModel.value(), false);
+		QCOMPARE(channelThree->m_muteModel.value(), false);
 	}
 };
 
