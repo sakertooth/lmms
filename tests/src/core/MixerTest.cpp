@@ -109,20 +109,26 @@ private slots:
 
 	void testCreatedRouteHasCorrectSenderReceiver()
 	{
-		setup(2, std::make_pair(0, 1));
-		const auto route = lmms::Engine::mixer()->createChannelSend(0, 1, 1.f);
+        constexpr auto sender = 1;
+        constexpr auto receiver = 2;
 
-		QCOMPARE(route->sender()->index(), 0);
-		QCOMPARE(route->receiver()->index(), 1);
+		setup(2);
+		const auto route = lmms::Engine::mixer()->createChannelSend(sender, receiver, 1.f);
 
-		QCOMPARE(lmms::Engine::mixer()->containsSender(0, route), true);
-		QCOMPARE(lmms::Engine::mixer()->containsReceiver(1, route), true);
+		QCOMPARE(route->sender()->index(), sender);
+		QCOMPARE(route->receiver()->index(), receiver);
+
+		QCOMPARE(lmms::Engine::mixer()->containsSender(sender, route), true);
+		QCOMPARE(lmms::Engine::mixer()->containsReceiver(receiver, route), true);
 	}
 
 	void testCreatedRouteHasDefaultAmount()
 	{
-		setup(2, std::make_pair(0, 1));
-		const auto route = lmms::Engine::mixer()->createChannelSend(0, 1, 1.f);
+        constexpr auto sender = 1;
+        constexpr auto receiver = 2;
+
+		setup(2);
+		const auto route = lmms::Engine::mixer()->createChannelSend(sender, receiver, 1.f);
 
 		QCOMPARE(route->amount()->value(), 1.f);
 	}
@@ -131,18 +137,16 @@ private slots:
 
 	void testDeletedRouteDoesNotExist()
 	{
-		const auto indexOne = lmms::Engine::mixer()->createChannel();
-		const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
+        constexpr auto sender = 1;
+        constexpr auto receiver = 2;
 
-		const auto indexTwo = lmms::Engine::mixer()->createChannel();
-		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
-
-		const auto route = lmms::Engine::mixer()->createRoute(channelOne, channelTwo, 1.f);
+        setup(2);
+		const auto route = lmms::Engine::mixer()->createChannelSend(sender, receiver, 1.f);
 
 		lmms::Engine::mixer()->deleteChannelSend(route);
 
-		QCOMPARE(lmms::Engine::mixer()->containsSender(indexOne, route), false);
-		QCOMPARE(lmms::Engine::mixer()->containsReceiver(indexTwo, route), false);
+		QCOMPARE(lmms::Engine::mixer()->containsSender(sender, route), false);
+		QCOMPARE(lmms::Engine::mixer()->containsReceiver(receiver, route), false);
 	}
 
 	void testMuteSilencesAudioOutput() {}
