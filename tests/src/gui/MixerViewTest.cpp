@@ -41,7 +41,7 @@ private slots:
 
 	void cleanupTestCase() { lmms::Engine::destroy(); }
 
-	void testClickOnChannelSelectsAsCurrent()
+	void testClickChannelSelectsChannel()
     {
         auto mixerView = lmms::gui::MixerView{mixer(), nullptr};
         mixerView.addNewChannel();
@@ -65,21 +65,40 @@ private slots:
 		QCOMPARE(mixer()->containsChannel(1), true);
 	}
 
-	void testClickRemoveChannelActionRemovesChannel() {}
+	void testClickMuteButtonMutes()
+	{
+		auto mixerView = lmms::gui::MixerView{mixer(), nullptr};
 
-	void testClickMuteButtonWhenUnmutedMutesChannel() {}
+		const auto masterChannelView = mixerView.findChild<lmms::gui::MixerChannelView*>("mixerChannelView0");
+		const auto muteButton = masterChannelView->findChild<lmms::gui::PixmapButton*>("muteButton");
+		QTest::mouseClick(muteButton, Qt::MouseButton::LeftButton);
 
-	void testClickMuteButtonWhenMutedUnmutesChannel() {}
+		QCOMPARE(mixer()->mixerChannel(0)->m_muteModel.value(), true);
+	}
 
-	void testClickSoloButtonWhenNotSoloedSolosChannel() {}
+	void testClickMuteButtonUnmutes()
+	{
+		auto mixerView = lmms::gui::MixerView{mixer(), nullptr};
 
-	void testClickSoloButtonWhenSoloedUnsolosChannel() {}
+		const auto masterChannelView = mixerView.findChild<lmms::gui::MixerChannelView*>("mixerChannelView0");
+		const auto muteButton = masterChannelView->findChild<lmms::gui::PixmapButton*>("muteButton");
+		QTest::mouseDClick(muteButton, Qt::MouseButton::LeftButton, Qt::NoModifier, QPoint{}, 2000);
+		QTest::mouseClick(muteButton, Qt::MouseButton::LeftButton);
 
-	void testClickMoveChannelLeftActionMovesChannelLeft() {}
+		QCOMPARE(mixer()->mixerChannel(0)->m_muteModel.value(), false);
+	}
 
-	void testClickMoveChannelRightActionMovesChannelRight() {}
+	void testClickSoloButtonSolos()
+	{
+	}
 
-	void testRemoveUnusedChannelsWorks() {}
+	void testClickSoloButtonUnsolos()
+	{
+		auto mixerView = lmms::gui::MixerView{mixer(), nullptr};
+		const auto indexOne = mixerView.addNewChannel();
+		const auto indexTwo = mixerView.addNewChannel();
+		const auto indexThree = mixerView.addNewChannel();
+	}
 };
 
 QTEST_MAIN(MixerViewTest)
