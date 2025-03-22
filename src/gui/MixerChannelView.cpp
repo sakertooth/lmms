@@ -49,7 +49,7 @@ MixerChannelView::MixerChannelView(QWidget* parent, MixerView* mixerView, int ch
 	, m_mixerView(mixerView)
 	, m_channelIndex(channelIndex)
 {
-	setObjectName(QString{"mixerChannel%1"}.arg(channelIndex));
+	setObjectName(QString{"mixerChannelView%1"}.arg(channelIndex));
 
 	auto retainSizeWhenHidden = [](QWidget* widget) {
 		auto sizePolicy = widget->sizePolicy();
@@ -263,7 +263,7 @@ void MixerChannelView::setChannelIndex(int index)
 	m_channelNumberLcd->setValue(index);
 	m_renameLineEdit->setText(elideName(mixerChannel->m_name));
 	m_channelIndex = index;
-	setObjectName(QString{"mixerChannel%1"}.arg(index));
+	setObjectName(QString{"mixerChannelView%1"}.arg(index));
 }
 
 void MixerChannelView::renameChannel()
