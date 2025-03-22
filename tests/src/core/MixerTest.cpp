@@ -201,13 +201,45 @@ private slots:
 		QCOMPARE(muted, false);
 	}
 
-	void testSoloMuteOtherChannelsButThoseRouted() {}
+	void testSoloMuteOtherChannelsButThoseRouted()
+	{
+		setup(3);
 
-	void testUnsoloRestoresMuteState() {}
+		lmms::Engine::mixer()->deleteChannelSend(1, 0);
+		lmms::Engine::mixer()->createChannelSend(1, 2);
 
-	void testAddedEffectExists() {}
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(1);
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(2);
+		const auto channelThree = lmms::Engine::mixer()->mixerChannel(3);
 
-	void testRemovedEffectDoesNotExist() {}
+		channelOne->m_soloModel.setValue(true);
+		lmms::Engine::mixer()->toggledSolo();
+
+		QVERIFY(
+			!channelOne->m_muteModel.value() &&
+			!channelTwo->m_muteModel.value() &&
+			channelThree->m_muteModel.value());
+	}
+
+	void testUnsoloRestoresMuteState()
+	{
+		setup(3);
+
+		lmms::Engine::mixer()->deleteChannelSend(1, 0);
+		lmms::Engine::mixer()->createChannelSend(1, 2);
+
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(1);
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(2);
+		const auto channelThree = lmms::Engine::mixer()->mixerChannel(3);
+
+		channelOne->m_soloModel.setValue(true);
+		lmms::Engine::mixer()->toggledSolo();
+
+		channelOne->m_soloModel.setValue(false);
+		lmms::Engine::mixer()->toggledSolo();
+
+		QVERIFY(!channelOne->m_muteModel.value() && !channelTwo->m_muteModel.value() && !channelThree->m_muteModel.value());
+	}
 };
 
 QTEST_GUILESS_MAIN(MixerTest)
