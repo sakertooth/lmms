@@ -133,7 +133,16 @@ private slots:
 		QCOMPARE(route->amount()->value(), 1.f);
 	}
 
-	void testCreatedRouteDoesNotCreateInfiniteLoop() {}
+	void testCreatedRouteDoesNotCreateInfiniteLoop()
+	{
+		setup(3);
+
+		lmms::Engine::mixer()->createChannelSend(1, 2); 
+		lmms::Engine::mixer()->createChannelSend(2, 3);
+		const auto infiniteLoopRoute = lmms::Engine::mixer()->createChannelSend(3, 1);
+
+		QCOMPARE(infiniteLoopRoute, nullptr);
+	}
 
 	void testDeletedRouteDoesNotExist()
 	{

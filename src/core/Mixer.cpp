@@ -494,6 +494,8 @@ void Mixer::moveChannelRight( int index )
 MixerRoute * Mixer::createChannelSend( mix_ch_t fromChannel, mix_ch_t toChannel,
 								float amount )
 {
+	if (isInfiniteLoop(fromChannel, toChannel)) { return nullptr; }
+
 //	qDebug( "requested: %d to %d", fromChannel, toChannel );
 	// find the existing connection
 	MixerChannel * from = m_mixerChannels[fromChannel];
