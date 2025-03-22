@@ -27,6 +27,7 @@
 #include <QObject>
 #include <QtTest/QtTest>
 
+#include "AudioEngine.h"
 #include "Engine.h"
 
 class MixerTest : public QObject
@@ -158,9 +159,47 @@ private slots:
 		QCOMPARE(lmms::Engine::mixer()->containsReceiver(receiver, route), false);
 	}
 
-	void testMuteSilencesAudioOutput() {}
+	void testMuteSilencesAudioOutput()
+	{
+		setup(2);
 
-	void testUnmuteRestoresAudioOutput() {}
+		// TODO: Pass in frames to mixer channel's rather than have it coupled to the audio engine
+		const auto framesPerPeriod = lmms::Engine::audioEngine()->framesPerPeriod();
+
+		lmms::Engine::mixer()->createChannelSend(1, 2);
+		lmms::Engine::mixer()->deleteChannelSend(1, 0);
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(1);
+
+		std::fill_n(channelOne->m_buffer, framesPerPeriod, lmms::SampleFrame{1.f, 1.f});
+		channelOne->m_muteModel.setValue(true);
+		channelOne->process();
+
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(2);
+		const auto muted = std::all_of(channelTwo->m_buffer, channelTwo->m_buffer + framesPerPeriod,
+			[](const auto& frame) { return frame.left() == 0.f && frame.right() == 0.f; });
+
+		QCOMPARE(muted, true);
+	}
+
+	void testUnmuteRestoresAudioOutput()
+	{
+		setup(2);
+
+		const auto framesPerPeriod = lmms::Engine::audioEngine()->framesPerPeriod();
+
+		lmms::Engine::mixer()->createChannelSend(1, 2);
+		lmms::Engine::mixer()->deleteChannelSend(1, 0);
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(1);
+
+		std::fill_n(channelOne->m_buffer, framesPerPeriod, lmms::SampleFrame{1.f, 1.f});
+		channelOne->process();
+
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(2);
+		const auto muted = std::all_of(channelTwo->m_buffer, channelTwo->m_buffer + framesPerPeriod,
+			[](const auto& frame) { return frame.left() == 1.f && frame.right() == 1.f; });
+
+		QCOMPARE(muted, false);
+	}
 
 	void testSoloMuteOtherChannelsButThoseRouted() {}
 
