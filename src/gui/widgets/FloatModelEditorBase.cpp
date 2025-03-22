@@ -62,7 +62,7 @@ void FloatModelEditorBase::initUi(const QString & name)
 {
 	if (s_textFloat == nullptr)
 	{
-		s_textFloat = new SimpleTextFloat;
+		s_textFloat = new SimpleTextFloat(parentWidget());
 	}
 
 	setWindowTitle(name);

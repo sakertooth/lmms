@@ -78,7 +78,7 @@ Fader::Fader(FloatModel* model, const QString& name, QWidget* parent, bool model
 {
 	if (s_textFloat == nullptr)
 	{
-		s_textFloat = new SimpleTextFloat;
+		s_textFloat = new SimpleTextFloat(parentWidget());
 	}
 
 	setWindowTitle(name);

@@ -50,8 +50,8 @@ namespace lmms::gui
 {
 
 
-MixerView::MixerView(Mixer* mixer) :
-	QWidget(),
+MixerView::MixerView(Mixer* mixer, QWidget* parent) :
+	QWidget(parent),
 	ModelView(nullptr, this),
 	SerializingObjectHook(),
 	m_mixer(mixer)
@@ -164,18 +164,19 @@ MixerView::MixerView(Mixer* mixer) :
 
 	updateGeometry();
 
-	auto* mainWindow = getGUI()->mainWindow();
+	if (const auto mainWindow = dynamic_cast<MainWindow*>(parent))
+	{
+		// timer for updating faders
+		connect(mainWindow, &MainWindow::periodicUpdate, this, &MixerView::updateFaders);
 
-	// timer for updating faders
-	connect(mainWindow, &MainWindow::periodicUpdate, this, &MixerView::updateFaders);
+		// add ourself to workspace
+		QMdiSubWindow* subWin = mainWindow->addWindowedWidget(this);
+		layout()->setSizeConstraint(QLayout::SetMinimumSize);
+		subWin->layout()->setSizeConstraint(QLayout::SetMinAndMaxSize);
 
-	// add ourself to workspace
-	QMdiSubWindow* subWin = mainWindow->addWindowedWidget(this);
-	layout()->setSizeConstraint(QLayout::SetMinimumSize);
-	subWin->layout()->setSizeConstraint(QLayout::SetMinAndMaxSize);
-
-	parentWidget()->setAttribute(Qt::WA_DeleteOnClose, false);
-	parentWidget()->move(5, 310);
+		parentWidget()->setAttribute(Qt::WA_DeleteOnClose, false);
+		parentWidget()->move(5, 310);
+	}
 
 	// we want to receive dataChanged-signals in order to update
 	setModel(mixer);

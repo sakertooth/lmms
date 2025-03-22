@@ -10,6 +10,7 @@ set(LMMS_TESTS
 	src/core/MixerTest.cpp
 	src/core/ProjectVersionTest.cpp
 	src/core/RelativePathsTest.cpp
+	src/gui/MixerViewTest.cpp
 	src/tracks/AutomationTrackTest.cpp
 )
 

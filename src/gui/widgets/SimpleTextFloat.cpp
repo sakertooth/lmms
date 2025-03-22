@@ -36,8 +36,8 @@ namespace lmms::gui
 {
 
 
-SimpleTextFloat::SimpleTextFloat() :
-	QWidget(getGUI()->mainWindow(), Qt::ToolTip)
+SimpleTextFloat::SimpleTextFloat(QWidget* parent) :
+	QWidget(parent, Qt::ToolTip)
 {
 	QHBoxLayout * layout = new QHBoxLayout(this);
 	layout->setMargin(3);

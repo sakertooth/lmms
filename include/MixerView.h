@@ -30,6 +30,8 @@
 #include <QStackedLayout>
 #include <QScrollArea>
 
+#include "GuiApplication.h"
+#include "MainWindow.h"
 #include "MixerChannelView.h"
 #include "ModelView.h"
 #include "Engine.h"
@@ -50,7 +52,7 @@ class LMMS_EXPORT MixerView : public QWidget, public ModelView,
 {
 	Q_OBJECT
 public:
-	MixerView(Mixer* mixer);
+	MixerView(Mixer* mixer, QWidget* parent = getGUI()->mainWindow());
 	void keyPressEvent(QKeyEvent* e) override;
 
 	void saveSettings(QDomDocument& doc, QDomElement& domElement) override;

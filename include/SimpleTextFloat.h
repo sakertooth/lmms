@@ -28,6 +28,8 @@
 
 #include <QWidget>
 
+#include "GuiApplication.h"
+#include "MainWindow.h"
 #include "lmms_export.h"
 
 class QLabel;
@@ -40,7 +42,7 @@ class LMMS_EXPORT SimpleTextFloat : public QWidget
 {
 	Q_OBJECT
 public:
-	SimpleTextFloat();
+	SimpleTextFloat(QWidget* parent = getGUI()->mainWindow());
 	~SimpleTextFloat() override = default;
 
 	void setText(const QString & text);
