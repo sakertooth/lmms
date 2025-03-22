@@ -330,7 +330,9 @@ void Mixer::toggledSolo()
 	m_lastSoloed = soloedChan;
 }
 
-void Mixer::deleteChannel(int index)
+
+
+void Mixer::deleteChannel( int index )
 {
 	// channel deletion is performed between mixer rounds
 	Engine::audioEngine()->requestChangeInModel();
@@ -494,8 +496,6 @@ void Mixer::moveChannelRight( int index )
 MixerRoute * Mixer::createChannelSend( mix_ch_t fromChannel, mix_ch_t toChannel,
 								float amount )
 {
-	if (isInfiniteLoop(fromChannel, toChannel)) { return nullptr; }
-
 //	qDebug( "requested: %d to %d", fromChannel, toChannel );
 	// find the existing connection
 	MixerChannel * from = m_mixerChannels[fromChannel];

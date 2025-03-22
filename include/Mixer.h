@@ -204,29 +204,6 @@ public:
 	// or from any instrument or sample track
 	bool isChannelInUse(int index);
 
-	bool containsChannel(mix_ch_t channelIndex)
-	{
-		const auto it = std::find_if(m_mixerChannels.begin(), m_mixerChannels.end(),
-			[&](const auto& channel) { return channel->index() == channelIndex; });
-		return it != m_mixerChannels.end();
-	}
-
-	bool containsSender(mix_ch_t channelIndex, MixerRoute* route)
-	{
-		const auto& routes = m_mixerChannels[channelIndex]->m_sends;
-		const auto it = std::find_if(routes.begin(), routes.end(),
-			[&](const auto& x) { return route == x; });
-		return it != routes.end();
-	}
-
-	bool containsReceiver(mix_ch_t channelIndex, MixerRoute* route)
-	{
-		const auto& routes = m_mixerChannels[channelIndex]->m_receives;
-		const auto it = std::find_if(routes.begin(), routes.end(),
-			[&](const auto& x) { return route == x; });
-		return it != routes.end();
-	}
-
 	void toggledSolo();
 	void activateSolo();
 	void deactivateSolo();
