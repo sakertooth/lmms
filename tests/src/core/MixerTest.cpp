@@ -32,12 +32,23 @@
 class MixerTest : public QObject
 {
 	Q_OBJECT
+private:
+	template <typename... Route> void setup(std::size_t numChannels, Route&&... routes)
+	{
+		for (auto i = std::size_t{0}; i < numChannels; ++i)
+		{
+			lmms::Engine::mixer()->createChannel();
+		}
+
+		(lmms::Engine::mixer()->createChannelSend(
+			 std::forward<Route>(routes).first, std::forward<Route>(routes).second, 1.f),
+			...);
+	}
+
 private slots:
 	void initTestCase() { lmms::Engine::init(true); }
 
 	void cleanupTestCase() { lmms::Engine::destroy(); }
-
-	void init() { lmms::Engine::mixer()->clear(); }
 
 	void cleanup() { lmms::Engine::mixer()->clear(); }
 
@@ -66,68 +77,53 @@ private slots:
 	void testDeletedChannelDoesNotExist()
 	{
 		const auto index = lmms::Engine::mixer()->createChannel();
+
 		lmms::Engine::mixer()->deleteChannel(index);
+
 		QCOMPARE(lmms::Engine::mixer()->containsChannel(index), false);
 	}
 
 	void testMovingChannelLeftSwapsChannelIndicies()
 	{
-		const auto indexOne = lmms::Engine::mixer()->createChannel();
-		const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
-		const auto channelOneName = channelOne->m_name;
+		setup(2);
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(1);
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(2);
 
-		const auto indexTwo = lmms::Engine::mixer()->createChannel();
-		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
-		const auto channelTwoName = channelTwo->m_name;
+		lmms::Engine::mixer()->moveChannelLeft(2);
 
-		lmms::Engine::mixer()->moveChannelLeft(indexTwo);
-
-		QCOMPARE(channelOne->index(), indexTwo);
-		QCOMPARE(channelTwo->index(), indexOne);
+		QCOMPARE(channelOne->index(), 2);
+		QCOMPARE(channelTwo->index(), 1);
 	}
 
 	void testMovingChannelRightSwapsChannelIndicies()
 	{
-		const auto indexOne = lmms::Engine::mixer()->createChannel();
-		const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
-		const auto channelOneName = channelOne->m_name;
+		setup(2);
+		const auto channelOne = lmms::Engine::mixer()->mixerChannel(1);
+		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(2);
 
-		const auto indexTwo = lmms::Engine::mixer()->createChannel();
-		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
-		const auto channelTwoName = channelTwo->m_name;
+		lmms::Engine::mixer()->moveChannelRight(1);
 
-		lmms::Engine::mixer()->moveChannelRight(indexOne);
-
-		QCOMPARE(channelOne->index(), indexTwo);
-		QCOMPARE(channelTwo->index(), indexOne);
+		QCOMPARE(channelOne->index(), 2);
+		QCOMPARE(channelTwo->index(), 1);
 	}
 
 	void testCreatedRouteHasCorrectSenderReceiver()
 	{
-		const auto indexOne = lmms::Engine::mixer()->createChannel();
-		const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
+		setup(2, std::make_pair(0, 1));
+		const auto route = lmms::Engine::mixer()->createChannelSend(0, 1, 1.f);
 
-		const auto indexTwo = lmms::Engine::mixer()->createChannel();
-		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
+		QCOMPARE(route->sender()->index(), 0);
+		QCOMPARE(route->receiver()->index(), 1);
 
-		const auto route = lmms::Engine::mixer()->createRoute(channelOne, channelTwo, 1.f);
-
-		QCOMPARE(route->sender(), channelOne);
-		QCOMPARE(route->receiver(), channelTwo);
-
-		QCOMPARE(lmms::Engine::mixer()->containsSender(indexOne, route), true);
-		QCOMPARE(lmms::Engine::mixer()->containsReceiver(indexTwo, route), true);
+		QCOMPARE(lmms::Engine::mixer()->containsSender(0, route), true);
+		QCOMPARE(lmms::Engine::mixer()->containsReceiver(1, route), true);
 	}
 
 	void testCreatedRouteHasDefaultAmount()
 	{
-		const auto indexOne = lmms::Engine::mixer()->createChannel();
-		const auto channelOne = lmms::Engine::mixer()->mixerChannel(indexOne);
+		setup(2, std::make_pair(0, 1));
+		const auto route = lmms::Engine::mixer()->createChannelSend(0, 1, 1.f);
 
-		const auto indexTwo = lmms::Engine::mixer()->createChannel();
-		const auto channelTwo = lmms::Engine::mixer()->mixerChannel(indexTwo);
-
-		const auto route = lmms::Engine::mixer()->createRoute(channelOne, channelTwo, 1.f);
 		QCOMPARE(route->amount()->value(), 1.f);
 	}
 
