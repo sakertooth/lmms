@@ -65,6 +65,7 @@ public:
 
 	inline MixerChannelView* channelView(int index)
 	{
+		if (index < 0 || index >= m_mixerChannelViews.size()) { return nullptr; }
 		return m_mixerChannelViews[index];
 	}
 

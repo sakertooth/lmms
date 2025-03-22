@@ -148,13 +148,13 @@ MixerView::MixerView(Mixer* mixer, QWidget* parent) :
 	ml->addWidget(channelArea, 1);
 
 	// show the add new mixer channel button
-	auto newChannelBtn = new QPushButton(embed::getIconPixmap("new_channel"), QString(), this);
-	newChannelBtn->setObjectName("newChannelBtn");
-	newChannelBtn->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
-	newChannelBtn->setFixedWidth(mixerChannelSize.width());
-	newChannelBtn->setFocusPolicy(Qt::NoFocus);
-	connect(newChannelBtn, SIGNAL(clicked()), this, SLOT(addNewChannel()));
-	ml->addWidget(newChannelBtn, 0);
+	const auto newChannelButton = new QPushButton(embed::getIconPixmap("new_channel"), QString(), this);
+	newChannelButton->setObjectName("newChannelButton");
+	newChannelButton->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Expanding);
+	newChannelButton->setFixedWidth(mixerChannelSize.width());
+	newChannelButton->setFocusPolicy(Qt::NoFocus);
+	connect(newChannelButton, SIGNAL(clicked()), this, SLOT(addNewChannel()));
+	ml->addWidget(newChannelButton, 0);
 
 
 	// add the stacked layout for the effect racks of mixer channels

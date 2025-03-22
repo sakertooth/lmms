@@ -52,7 +52,18 @@ private slots:
         QCOMPARE(mixerView.currentMixerChannel(), newChannelView);
     }
 
-	void testClickAddChannelButtonAddsChannel() {}
+	void testClickNewChannelButtonAddsChannel()
+	{
+		auto mixerView = lmms::gui::MixerView{mixer(), nullptr};
+
+		auto newChannelButton = mixerView.findChild<QPushButton*>("newChannelButton");
+		QTest::mouseClick(newChannelButton, Qt::LeftButton);
+
+		// TODO Qt 6.4: Use QCOMPARE_NE
+		QVERIFY(mixerView.channelView(1) != nullptr);
+
+		QCOMPARE(mixer()->containsChannel(1), true);
+	}
 
 	void testClickRemoveChannelActionRemovesChannel() {}
 
