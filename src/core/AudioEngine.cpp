@@ -24,19 +24,18 @@
 
 #include "AudioEngine.h"
 
-#include "MixHelpers.h"
-#include "denormals.h"
-
-#include "lmmsconfig.h"
-
-#include "AudioEngineWorkerThread.h"
 #include "AudioBusHandle.h"
-#include "Mixer.h"
-#include "Song.h"
-#include "EnvelopeAndLfoParameters.h"
-#include "NotePlayHandle.h"
+#include "AudioEngineWorkerThread.h"
+#include "AudioGraph.h"
 #include "ConfigManager.h"
+#include "EnvelopeAndLfoParameters.h"
+#include "MixHelpers.h"
+#include "Mixer.h"
+#include "NotePlayHandle.h"
 #include "SamplePlayHandle.h"
+#include "Song.h"
+#include "denormals.h"
+#include "lmmsconfig.h"
 
 // platform-specific audio-interface-classes
 #include "AudioAlsa.h"
@@ -405,10 +404,7 @@ const SampleFrame* AudioEngine::renderNextBuffer()
 	m_profiler.startPeriod();
 	s_renderingThread = true;
 
-	renderStageNoteSetup();     // STAGE 0: clear old play handles and buffers, setup new play handles
-	renderStageInstruments();   // STAGE 1: run and render all play handles
-	renderStageEffects();       // STAGE 2: process effects of all instrument- and sampletracks
-	renderStageMix();           // STAGE 3: do master mix in mixer
+	AudioGraph::inst().process();
 
 	s_renderingThread = false;
 	m_profiler.finishPeriod(outputSampleRate(), m_framesPerPeriod);

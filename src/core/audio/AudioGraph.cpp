@@ -40,11 +40,6 @@ AudioGraph::AudioGraph()
 AudioGraph::~AudioGraph() noexcept
 {
 	m_quit = true;
-
-	for (auto& worker : m_workers)
-	{
-		if (worker.m_thread.joinable()) { worker.m_thread.join(); }
-	}
 }
 
 void AudioGraph::add(Node* node)
@@ -108,7 +103,7 @@ void AudioGraph::process()
 	m_nodesLeftToProcess = m_nodes.size();
 	auto nextAssignedWorker = std::size_t{0};
 
-	while (m_nodesLeftToProcess < 0)
+	while (m_nodesLeftToProcess > 0)
 	{
 		for (auto& node : m_nodes)
 		{
@@ -119,13 +114,7 @@ void AudioGraph::process()
 			if (isReady)
 			{
 				node->m_state = Node::State::Queued;
-
-				auto& worker = m_workers[nextAssignedWorker];
-				worker.m_workStackIndex.wait(worker.m_workStack.size());
-				worker.m_workStack[worker.m_workStackIndex] = node;
-
-				worker.m_workStackIndex.fetch_add(1);
-				worker.m_workStackIndex.notify_one();
+				m_workers[nextAssignedWorker].m_queue.push(node);
 				nextAssignedWorker = (nextAssignedWorker + 1) % m_workers.size();
 			}
 		}
@@ -141,20 +130,24 @@ void AudioGraph::process()
 }
 
 AudioGraph::Worker::Worker(AudioGraph* graph)
-	: m_workStack(MaxWorkPerWorker)
+	: m_queue(MaxWorkPerWorker)
 	, m_thread(&Worker::runWorker, this, graph)
 {
 }
 
-AudioGraph::Worker::Worker(Worker&& other) noexcept
-	: m_workStack(std::move(other.m_workStack))
-	, m_thread(std::move(other.m_thread))
+AudioGraph::Worker::~Worker() noexcept
+{
+	if (m_thread.joinable()) { m_thread.join(); }
+}
+
+AudioGraph::Worker::Worker(Worker&& worker) noexcept
+	: m_queue(MaxWorkPerWorker)
+	, m_thread(std::move(worker.m_thread))
 {
 }
 
 AudioGraph::Worker& AudioGraph::Worker::operator=(Worker&& other) noexcept
 {
-	m_workStack = std::move(other.m_workStack);
 	m_thread = std::move(other.m_thread);
 	return *this;
 }
@@ -163,9 +156,7 @@ void AudioGraph::Worker::runWorker(AudioGraph* graph)
 {
 	while (!graph->m_quit)
 	{
-		m_workStackIndex.wait(0);
-
-		const auto node = m_workStack[m_workStackIndex.fetch_sub(1)];
+		const auto node = m_queue.pop();
 
 		for (auto& dependency : graph->m_dependencies[node])
 		{

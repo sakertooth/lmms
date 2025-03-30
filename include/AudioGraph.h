@@ -32,6 +32,7 @@
 
 #include "MixHelpers.h"
 #include "SampleFrame.h"
+#include "SpscLockfreeQueue.h"
 
 namespace lmms {
 class AudioGraph
@@ -57,13 +58,12 @@ public:
 		Node(Token);
 		virtual ~Node() noexcept;
 
-		Node(const Node&) = default;
+		Node(const Node&) = delete;
 		Node(Node&&) = delete;
-		Node& operator=(const Node&) = default;
+		Node& operator=(const Node&) = delete;
 		Node& operator=(Node&&) = delete;
 
-		template <typename T>
-		static std::unique_ptr<T> create()
+		template <typename T> static std::unique_ptr<T> create()
 		{
 			auto node = std::make_unique<T>(Token{});
 			AudioGraph::inst().add(node);
@@ -112,9 +112,9 @@ private:
 	{
 	public:
 		Worker(AudioGraph* graph);
-		~Worker() noexcept = default;
+		~Worker() noexcept;
 
-		Worker(Worker&&) noexcept;
+		Worker(Worker&& worker) noexcept;
 		Worker& operator=(Worker&&) noexcept;
 
 		Worker(const Worker&) = delete;
@@ -124,9 +124,7 @@ private:
 		void runWorker(AudioGraph* graph);
 
 		static constexpr auto MaxWorkPerWorker = 512;
-		std::vector<Node*> m_workStack;
-		std::atomic<int> m_workStackIndex = 0;
-
+		SpscLockfreeQueue<Node*> m_queue;
 		std::thread m_thread;
 		friend class AudioGraph;
 	};
