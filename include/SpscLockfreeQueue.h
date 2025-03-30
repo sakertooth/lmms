@@ -68,7 +68,7 @@ public:
 		m_empty.wait(true);
 
 		const auto readIndex = m_readIndex.load();
-		const auto value = m_queue[readIndex];
+		const auto value = std::move(m_queue[readIndex]);
 		m_readIndex.store((readIndex + 1) % m_queue.size());
 
 		m_full.store(false);
