@@ -147,6 +147,8 @@ AudioEngine::AudioEngine( bool renderOnly ) :
 		}
 		m_workers.push_back( wt );
 	}
+
+	AudioGraph::inst();
 }
 
 
