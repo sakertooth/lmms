@@ -42,6 +42,16 @@ public:
 	{
 	}
 
+	SpscLockfreeQueue(SpscLockfreeQueue&& other) noexcept
+		: m_queue(std::move(other.m_queue))
+	{
+	}
+
+	SpscLockfreeQueue(const SpscLockfreeQueue&) = delete;
+	SpscLockfreeQueue& operator=(const SpscLockfreeQueue&) = delete;
+	SpscLockfreeQueue& operator=(SpscLockfreeQueue&&) = delete;
+	~SpscLockfreeQueue() = default;
+
 	//! Push `value` into the queue.
 	//! Blocks if no space is available.
 	void push(T value)
@@ -49,12 +59,13 @@ public:
 		m_full.wait(true);
 
 		const auto writeIndex = m_writeIndex.load();
-		m_queue[writeIndex] = std::move(value);
-		m_writeIndex.store((writeIndex + 1) % m_queue.size());
+		const auto nextIndex = (writeIndex + 1) % m_queue.size();
 
-		m_empty.store(false);
-		m_empty.notify_one();
-		m_full.store((writeIndex + 1) % m_queue.size() == m_readIndex);
+		m_queue[writeIndex] = std::move(value);
+		m_writeIndex.store(nextIndex, std::memory_order_release);
+
+		if (nextIndex == m_readIndex.load(std::memory_order_acquire)) { m_full.test_and_set(); }
+		m_empty.test_and_set();
 	}
 
 	//! Tries to push `value` into the queue.
@@ -68,12 +79,14 @@ public:
 		m_empty.wait(true);
 
 		const auto readIndex = m_readIndex.load();
-		const auto value = std::move(m_queue[readIndex]);
-		m_readIndex.store((readIndex + 1) % m_queue.size());
+		const auto nextIndex = (readIndex + 1) % m_queue.size();
 
-		m_full.store(false);
-		m_full.notify_one();
-		m_empty.store(readIndex == m_writeIndex);
+		const auto value = std::move(m_queue[readIndex]);
+		m_readIndex.store(nextIndex, std::memory_order_release);
+
+		if (nextIndex == m_writeIndex.load(std::memory_order_acquire)) { m_empty.test_and_set(); }
+		m_full.test_and_set();
+
 		return value;
 	}
 
@@ -85,8 +98,8 @@ private:
 	std::vector<T> m_queue;
 	std::atomic<std::size_t> m_writeIndex = 0;
 	std::atomic<std::size_t> m_readIndex = 0;
-	std::atomic<bool> m_full = false;
-	std::atomic<bool> m_empty = true;
+	std::atomic_flag m_full = ATOMIC_FLAG_INIT;
+	std::atomic_flag m_empty = ATOMIC_FLAG_INIT;
 };
 } // namespace lmms
 
