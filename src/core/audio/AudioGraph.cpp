@@ -31,15 +31,36 @@ namespace lmms {
 
 AudioGraph::AudioGraph()
 {
-	for (auto i = std::size_t{0}; i < std::thread::hardware_concurrency() - 1; ++i)
+	constexpr auto MaxWorkPerQueue = 512;
+	const auto numWorkers = std::thread::hardware_concurrency() - 1;
+
+	m_workerQueues.reserve(numWorkers);
+	m_workers.reserve(numWorkers);
+
+	for (auto i = std::size_t{0}; i < numWorkers; ++i)
 	{
-		m_workers.emplace_back(this);
+		m_workerQueues.emplace_back(MaxWorkPerQueue);
+	}
+
+	for (auto i = std::size_t{0}; i < numWorkers; ++i)
+	{
+		m_workers.emplace_back([this, i] { return runWorker(m_workerQueues[i]); });
 	}
 }
 
 AudioGraph::~AudioGraph() noexcept
 {
 	m_quit = true;
+
+	for (auto& workQueue : m_workerQueues)
+	{
+		workQueue.push(nullptr);
+	}
+
+	for (auto& worker : m_workers)
+	{
+		if (worker.joinable()) { worker.join(); }
+	}
 }
 
 void AudioGraph::add(Node* node)
@@ -114,7 +135,7 @@ void AudioGraph::process()
 			if (isReady)
 			{
 				node->m_state = Node::State::Queued;
-				m_workers[nextAssignedWorker].m_queue.push(node);
+				m_workerQueues[nextAssignedWorker].push(node);
 				nextAssignedWorker = (nextAssignedWorker + 1) % m_workers.size();
 			}
 		}
@@ -129,36 +150,14 @@ void AudioGraph::process()
 	}
 }
 
-AudioGraph::Worker::Worker(AudioGraph* graph)
-	: m_queue(MaxWorkPerWorker)
-	, m_thread(&Worker::runWorker, this, graph)
+void AudioGraph::runWorker(SpscLockfreeQueue<Node*>& queue)
 {
-}
-
-AudioGraph::Worker::~Worker() noexcept
-{
-	if (m_thread.joinable()) { m_thread.join(); }
-}
-
-AudioGraph::Worker::Worker(Worker&& worker) noexcept
-	: m_queue(MaxWorkPerWorker)
-	, m_thread(std::move(worker.m_thread))
-{
-}
-
-AudioGraph::Worker& AudioGraph::Worker::operator=(Worker&& other) noexcept
-{
-	m_thread = std::move(other.m_thread);
-	return *this;
-}
-
-void AudioGraph::Worker::runWorker(AudioGraph* graph)
-{
-	while (!graph->m_quit)
+	while (!m_quit)
 	{
-		const auto node = m_queue.pop();
+		const auto node = queue.pop();
+		if (!node) { continue; }
 
-		for (auto& dependency : graph->m_dependencies[node])
+		for (auto& dependency : m_dependencies[node])
 		{
 			dependency->send(node);
 		}
@@ -166,14 +165,14 @@ void AudioGraph::Worker::runWorker(AudioGraph* graph)
 		node->m_state = Node::State::Processing;
 		node->process();
 
-		for (auto& dependent : graph->m_dependents[node])
+		for (auto& dependent : m_dependents[node])
 		{
 			node->send(dependent);
 		}
 
 		node->m_state = Node::State::Processed;
-		graph->m_nodesLeftToProcess.fetch_sub(1, std::memory_order_relaxed);
-		graph->m_nodesLeftToProcess.notify_one();
+		m_nodesLeftToProcess.fetch_sub(1, std::memory_order_relaxed);
+		m_nodesLeftToProcess.notify_one();
 	}
 }
 

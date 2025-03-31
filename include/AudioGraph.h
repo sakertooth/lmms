@@ -108,32 +108,14 @@ public:
 	static AudioGraph& inst();
 
 private:
-	class Worker
-	{
-	public:
-		Worker(AudioGraph* graph);
-		~Worker() noexcept;
-
-		Worker(Worker&& worker) noexcept;
-		Worker& operator=(Worker&&) noexcept;
-
-		Worker(const Worker&) = delete;
-		Worker& operator=(const Worker&) = delete;
-
-	private:
-		void runWorker(AudioGraph* graph);
-
-		static constexpr auto MaxWorkPerWorker = 512;
-		SpscLockfreeQueue<Node*> m_queue;
-		std::thread m_thread;
-		friend class AudioGraph;
-	};
-
 	std::vector<Node*> m_nodes;
 	std::unordered_map<Node*, std::vector<Node*>> m_dependencies;
 	std::unordered_map<Node*, std::vector<Node*>> m_dependents;
 
-	std::vector<Worker> m_workers;
+	void runWorker(SpscLockfreeQueue<Node*>& queue);
+	std::vector<std::thread> m_workers;
+	std::vector<SpscLockfreeQueue<Node*>> m_workerQueues;
+
 	std::atomic<bool> m_quit = false;
 	std::atomic<std::size_t> m_nodesLeftToProcess = 0;
 };
