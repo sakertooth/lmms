@@ -115,8 +115,12 @@ public:
 
 	/**
 		Loads an audio file in its entirety from the specified `path`.
+		This can also load DrumSynth files (.ds), which cannot
+		be used like a regular audio file.
+
 		Returns the loaded audio file along with its sample rate and the number
 		of channels within it.
+
 		Throws a `std::runtime_error` exception on error.
 	 */
 	static auto load(std::filesystem::path& path) -> BufferedAudioFile;
