@@ -36,18 +36,18 @@ namespace lmms {
 class AudioFile
 {
 public:
-	enum class Mode
+	enum class Mode : int
 	{
-		Read,		 //! Open the file for reading
-		Write,		 //! Open the file for writing
-		ReadAndWrite //! Open the file for both reading and writing
+		Read = SFM_READ,		//! Open the file for reading
+		Write = SFM_WRITE,		//! Open the file for writing
+		ReadAndWrite = SFM_RDWR //! Open the file for both reading and writing
 	};
 
 	enum class Seek : int
 	{
-		Set = 0,
-		Current = 1,
-		End = 2
+		Set = SF_SEEK_SET,		//! Relative to the start of the file
+		Current = SF_SEEK_CUR,	//! Relative to the current position of the file
+		End = SF_SEEK_END		//! Relative to the end of the file
 	};
 
 	struct BufferedAudioFile
@@ -68,7 +68,7 @@ public:
 		Opens an audio file at the specified `path` with a certain `mode`.
 		Throws a `std::runtime_error` exception on error.
 	*/
-	AudioFile(std::filesystem::path& path, Mode mode);
+	AudioFile(const std::filesystem::path& path, Mode mode);
 
 	/**
 		Closes the opened audio file.
@@ -101,17 +101,17 @@ public:
 	/**
 		Return the number of frames within the audio file.
 	 */
-	auto numFrames() const -> std::size_t;
+	auto numFrames() const -> std::size_t { return m_info.frames; }
 
 	/**
 		Return the number of channels the audio file has.
 	 */
-	auto numChannels() const -> std::size_t;
+	auto numChannels() const -> std::size_t { return m_info.channels; }
 
 	/**
 		Return the sample rate the audio file is meant to be played at.
 	 */
-	auto sampleRate() const -> std::uint32_t;
+	auto sampleRate() const -> std::uint32_t { return m_info.samplerate; }
 
 	/**
 		Loads an audio file in its entirety from the specified `path`.
@@ -123,12 +123,12 @@ public:
 
 		Throws a `std::runtime_error` exception on error.
 	 */
-	static auto load(std::filesystem::path& path) -> BufferedAudioFile;
+	static auto load(const std::filesystem::path& path) -> BufferedAudioFile;
 
 private:
-	SF_INFO m_info;
+	static SNDFILE* openFileHandle(const std::filesystem::path& path, Mode mode, SF_INFO& info);
+	SF_INFO m_info = SF_INFO{};
 	SNDFILE* m_sndfile = nullptr;
-	Mode m_mode;
 };
 } // namespace lmms
 

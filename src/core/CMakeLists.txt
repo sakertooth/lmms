@@ -93,6 +93,7 @@ set(LMMS_SRCS
 
 	core/audio/AudioAlsa.cpp
 	core/audio/AudioDevice.cpp
+	core/audio/AudioFile.cpp
 	core/audio/AudioFileDevice.cpp
 	core/audio/AudioFileMP3.cpp
 	core/audio/AudioFileOgg.cpp
