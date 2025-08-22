@@ -122,7 +122,7 @@ public:
 	 *
 	 * @tparam type - the reservation type
 	 */
-	template <RingBufferReservationType type> auto reserve() -> Reservation<type>
+	template <RingBufferReservationType type> [[nodiscard]] auto reserve() -> Reservation<type>
 	{
 		if constexpr (type == RingBufferReservationType::Read)
 		{
