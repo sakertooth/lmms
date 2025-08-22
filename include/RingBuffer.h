@@ -33,6 +33,14 @@
 
 namespace lmms {
 
+//! @enum RingBufferReservationType specifies the kind of reservation (i.e., either a reservation for reading or
+//! writing)
+enum class RingBufferReservationType
+{
+	Read,
+	Write
+};
+
 /**
  * @brief A class that represents a ring buffer. Can be used in mutlithreaded, single-producer single-consumer (SPSC)
  * scenarios. Single threaded scenarios are also fine. Users can push/pull single values or arrays of values, as
@@ -43,13 +51,6 @@ namespace lmms {
 template <typename T> class RingBuffer
 {
 public:
-	//! @enum ReservationType specifies the kind of reservation (i.e., either a reservation for reading or writing)
-	enum class ReservationType
-	{
-		Read,
-		Write
-	};
-
 	/**
 	 * @brief A resservation for a contiguous region within the ring buffer. Reservations are returned from calls to
 	 * @ref reserve, and act as RAII objects by committing data to the ring buffer on destruction of the object. Manual
@@ -57,10 +58,10 @@ public:
 	 *
 	 * @tparam type
 	 */
-	template <ReservationType type> class Reservation
+	template <RingBufferReservationType type> class Reservation
 	{
 	public:
-		using Region = std::span<std::conditional_t<type == ReservationType::Write, T, const T>>;
+		using Region = std::span<std::conditional_t<type == RingBufferReservationType::Write, T, const T>>;
 
 		Reservation(const Reservation&) = delete;
 		Reservation(Reservation&&) = delete;
@@ -97,8 +98,8 @@ public:
 		void commit(std::size_t count)
 		{
 			assert(region.size() >= count);
-			if constexpr (type == ReservationType::Read) { m_buffer->commitReader(count); }
-			else if constexpr (type == ReservationType::Write) { m_buffer->commitWriter(count); }
+			if constexpr (type == RingBufferReservationType::Read) { m_buffer->commitReader(count); }
+			else if constexpr (type == RingBufferReservationType::Write) { m_buffer->commitWriter(count); }
 
 			m_region = m_region.subspan(count, m_region.size() - count);
 			committed = true;
@@ -121,16 +122,16 @@ public:
 	 *
 	 * @tparam type - the reservation type
 	 */
-	template <ReservationType type> auto reserve() -> Reservation<type>
+	template <RingBufferReservationType type> auto reserve() -> Reservation<type>
 	{
-		if constexpr (type == ReservationType::Read)
+		if constexpr (type == RingBufferReservationType::Read)
 		{
 			const auto writeIndex = m_writeIndex.load(std::memory_order_acquire);
 			const auto readIndex = m_readIndex.load(std::memory_order_acquire);
 			const auto available = readIndex < writeIndex ? writeIndex - readIndex : m_buffer.size() - readIndex;
 			return {this, {&m_buffer[readIndex], available}};
 		}
-		else if constexpr (type == ReservationType::Write)
+		else if constexpr (type == RingBufferReservationType::Write)
 		{
 			const auto writeIndex = m_writeIndex.load(std::memory_order_acquire);
 			const auto readIndex = m_readIndex.load(std::memory_order_acquire);
