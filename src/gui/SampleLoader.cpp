@@ -102,7 +102,7 @@ std::shared_ptr<const SampleBuffer> SampleLoader::createBufferFromFile(const QSt
 	}
 }
 
-std::shared_ptr<const SampleBuffer> SampleLoader::createBufferFromBase64(const QString& base64, int sampleRate)
+std::shared_ptr<const SampleBuffer> SampleLoader::createBufferFromBase64(const QString& base64, sample_rate_t sampleRate)
 {
 	if (base64.isEmpty()) { return SampleBuffer::emptyBuffer(); }
 

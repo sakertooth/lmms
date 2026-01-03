@@ -30,7 +30,7 @@
 
 namespace lmms {
 
-SampleBuffer::SampleBuffer(const SampleFrame* data, size_t numFrames, int sampleRate)
+SampleBuffer::SampleBuffer(const SampleFrame* data, size_t numFrames, sample_rate_t sampleRate)
 	: m_data(data, data + numFrames)
 	, m_sampleRate(sampleRate)
 {
@@ -54,7 +54,7 @@ SampleBuffer::SampleBuffer(const QString& audioFile)
 		"Failed to decode audio file: Either the audio codec is unsupported, or the file is corrupted."};
 }
 
-SampleBuffer::SampleBuffer(const QString& base64, int sampleRate)
+SampleBuffer::SampleBuffer(const QString& base64, sample_rate_t sampleRate)
 	: m_sampleRate(sampleRate)
 {
 	// TODO: Replace with non-Qt equivalent
@@ -63,7 +63,7 @@ SampleBuffer::SampleBuffer(const QString& base64, int sampleRate)
 	std::memcpy(reinterpret_cast<char*>(m_data.data()), bytes, m_data.size() * sizeof(SampleFrame));
 }
 
-SampleBuffer::SampleBuffer(std::vector<SampleFrame> data, int sampleRate)
+SampleBuffer::SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRate)
 	: m_data(std::move(data))
 	, m_sampleRate(sampleRate)
 {

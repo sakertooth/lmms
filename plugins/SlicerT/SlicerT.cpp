@@ -363,7 +363,7 @@ void SlicerT::loadSettings(const QDomElement& element)
 	}
 	else if (auto sampleData = element.attribute("sampledata"); !sampleData.isEmpty())
 	{
-		auto buffer = gui::SampleLoader::createBufferFromBase64(sampleData);
+		auto buffer = gui::SampleLoader::createBufferFromBase64(sampleData, Engine::audioEngine()->outputSampleRate());
 		m_originalSample = Sample(std::move(buffer));
 	}
 

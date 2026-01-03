@@ -24,6 +24,7 @@
 
 #include "Metronome.h"
 
+#include "AudioEngine.h"
 #include "Engine.h"
 #include "SamplePlayHandle.h"
 

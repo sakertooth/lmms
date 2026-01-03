@@ -29,9 +29,8 @@
 #include <memory>
 #include <vector>
 
-#include "AudioEngine.h"
-#include "Engine.h"
 #include "LmmsTypes.h"
+#include "SampleFrame.h"
 #include "lmms_export.h"
 
 namespace lmms {
@@ -40,9 +39,9 @@ class LMMS_EXPORT SampleBuffer
 public:
 	SampleBuffer() = default;
 	explicit SampleBuffer(const QString& audioFile);
-	SampleBuffer(const QString& base64, int sampleRate);
-	SampleBuffer(std::vector<SampleFrame> data, int sampleRate);
-	SampleBuffer(const SampleFrame* data, size_t numFrames, int sampleRate = Engine::audioEngine()->outputSampleRate());
+	SampleBuffer(const QString& base64, sample_rate_t sampleRate);
+	SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRate);
+	SampleBuffer(const SampleFrame* data, f_cnt_t numFrames, sample_rate_t sampleRate);
 
 	auto toBase64() const -> QString;
 
@@ -58,7 +57,7 @@ public:
 private:
 	std::vector<SampleFrame> m_data;
 	QString m_audioFile;
-	sample_rate_t m_sampleRate = Engine::audioEngine()->outputSampleRate();
+	sample_rate_t m_sampleRate = 0;
 };
 
 } // namespace lmms

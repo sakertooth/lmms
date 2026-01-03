@@ -24,6 +24,8 @@
 
 #include "Sample.h"
 
+#include "Engine.h"
+
 namespace lmms {
 
 Sample::Sample(const QString& audioFile)
@@ -35,7 +37,7 @@ Sample::Sample(const QString& audioFile)
 {
 }
 
-Sample::Sample(const QByteArray& base64, int sampleRate)
+Sample::Sample(const QByteArray& base64, sample_rate_t sampleRate)
 	: m_buffer(std::make_shared<SampleBuffer>(base64, sampleRate))
 	, m_startFrame(0)
 	, m_endFrame(m_buffer->size())
@@ -44,7 +46,7 @@ Sample::Sample(const QByteArray& base64, int sampleRate)
 {
 }
 
-Sample::Sample(const SampleFrame* data, size_t numFrames, int sampleRate)
+Sample::Sample(const SampleFrame* data, size_t numFrames, sample_rate_t sampleRate)
 	: m_buffer(std::make_shared<SampleBuffer>(data, numFrames, sampleRate))
 	, m_startFrame(0)
 	, m_endFrame(m_buffer->size())

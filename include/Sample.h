@@ -25,8 +25,10 @@
 #ifndef LMMS_SAMPLE_H
 #define LMMS_SAMPLE_H
 
+#include <chrono>
 #include <memory>
 
+#include "AudioEngine.h"
 #include "AudioResampler.h"
 #include "Note.h"
 #include "SampleBuffer.h"
@@ -69,8 +71,8 @@ public:
 
 	Sample() = default;
 
-	Sample(const QByteArray& base64, int sampleRate = Engine::audioEngine()->outputSampleRate());
-	Sample(const SampleFrame* data, size_t numFrames, int sampleRate = Engine::audioEngine()->outputSampleRate());
+	Sample(const QByteArray& base64, sample_rate_t sampleRate);
+	Sample(const SampleFrame* data, size_t numFrames, sample_rate_t sampleRate);
 	Sample(const Sample& other);
 	Sample(Sample&& other) noexcept;
 	explicit Sample(const QString& audioFile);
