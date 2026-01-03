@@ -60,7 +60,8 @@ auto SampleBuffer::fromFile(const QString& path) -> std::optional<SampleBuffer>
 		// For the GUI, we should consider implementing a status bar and showing the error there somehow  (not a
 		// message box, since that would interrupt the user each time and lead to a restrictive workflow). Nevertheless,
 		// we should still log the error, so this is fine.
-		qWarning() << "Failed to decode sample at " << absolutePath << ", the sample may be corrupted or unsupported.";
+		qWarning() << "Failed to decode sample at " << absolutePath
+				   << ", the sample may be corrupted, unsupported, or not exist";
 		return std::nullopt;
 	}
 
@@ -71,9 +72,16 @@ auto SampleBuffer::fromFile(const QString& path) -> std::optional<SampleBuffer>
 auto SampleBuffer::fromBase64(const QString& str, sample_rate_t sampleRate) -> std::optional<SampleBuffer>
 {
 	const auto bytes = QByteArray::fromBase64(str.toUtf8());
+
+	if (bytes.size() % sizeof(SampleFrame) != 0)
+	{
+		qWarning() << "Failed to load Base64 sample, invalid size";
+		return std::nullopt;
+	}
+
 	const auto numFrames = bytes.size() / sizeof(SampleFrame);
 	auto buffer = std::make_unique<SampleFrame[]>(numFrames);
-	std::memcpy(buffer.get(), bytes, numFrames * sizeof(SampleFrame));
+	std::memcpy(buffer.get(), bytes, bytes.size());
 	return SampleBuffer{std::move(buffer), numFrames, sampleRate};
 }
 
