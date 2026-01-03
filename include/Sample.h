@@ -26,7 +26,6 @@
 #define LMMS_SAMPLE_H
 
 #include <chrono>
-#include <memory>
 
 #include "AudioEngine.h"
 #include "AudioResampler.h"
@@ -70,8 +69,6 @@ public:
 	};
 
 	Sample() = default;
-
-	Sample(const SampleFrame* data, size_t numFrames, sample_rate_t sampleRate);
 	Sample(const Sample& other);
 	Sample(Sample&& other) noexcept;
 	explicit Sample(const SampleBuffer& buffer);
