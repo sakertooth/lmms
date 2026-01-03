@@ -38,8 +38,8 @@ class LMMS_EXPORT SampleBuffer
 {
 public:
 	SampleBuffer() = default;
-	SampleBuffer(
-		std::unique_ptr<SampleFrame[]> data, f_cnt_t numFrames, sample_rate_t sampleRate, const QString& path = "");
+	SampleBuffer(std::unique_ptr<SampleFrame[]> data, f_cnt_t numFrames, sample_rate_t sampleRate,
+		const QString& path = QString{});
 
 	auto toBase64() const -> QString;
 	auto empty() const -> bool { return m_numFrames == 0; }
