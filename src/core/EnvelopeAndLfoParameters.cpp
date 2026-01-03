@@ -31,7 +31,6 @@
 #include "Engine.h"
 #include "Oscillator.h"
 #include "PathUtil.h"
-#include "SampleLoader.h"
 #include "Song.h"
 
 namespace lmms

@@ -29,7 +29,6 @@
 
 #include "PathUtil.h"
 #include "SampleClipView.h"
-#include "SampleLoader.h"
 #include "SampleTrack.h"
 #include "Song.h"
 

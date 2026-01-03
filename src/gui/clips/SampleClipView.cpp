@@ -28,12 +28,12 @@
 #include <QMenu>
 #include <QPainter>
 
+#include "FileDialog.h"
 #include "GuiApplication.h"
 #include "AutomationEditor.h"
 #include "embed.h"
 #include "PathUtil.h"
 #include "SampleClip.h"
-#include "SampleLoader.h"
 #include "SampleThumbnail.h"
 #include "Song.h"
 #include "StringPairDrag.h"
@@ -190,7 +190,7 @@ void SampleClipView::mouseDoubleClickEvent( QMouseEvent * )
 {
 	if (m_trackView->trackContainerView()->knifeMode()) { return; }
 
-	const QString selectedAudioFile = SampleLoader::openAudioFile();
+	const QString selectedAudioFile = FileDialog::openAudioFile();
 
 	if (selectedAudioFile.isEmpty()) { return; }
 	

@@ -33,7 +33,6 @@
 #include "EnvelopeGraph.h"
 #include "LfoGraph.h"
 #include "EnvelopeAndLfoParameters.h"
-#include "SampleLoader.h"
 #include "Knob.h"
 #include "LedCheckBox.h"
 #include "DataFile.h"

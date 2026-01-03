@@ -60,7 +60,6 @@
 #include "PresetPreviewPlayHandle.h"
 #include "Sample.h"
 #include "SampleClip.h"
-#include "SampleLoader.h"
 #include "SamplePlayHandle.h"
 #include "SampleTrack.h"
 #include "Song.h"

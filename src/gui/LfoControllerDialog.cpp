@@ -24,6 +24,7 @@
  */
 
 
+#include "FileDialog.h"
 #include "embed.h"
 
 
@@ -32,7 +33,6 @@
 #include "Knob.h"
 #include "TempoSyncKnob.h"
 #include "PixmapButton.h"
-#include "SampleLoader.h"
 
 namespace lmms::gui
 {
@@ -208,7 +208,7 @@ LfoControllerDialog::~LfoControllerDialog()
 
 void LfoControllerDialog::askUserDefWave()
 {
-	const auto fileName = SampleLoader::openWaveformFile();
+	const auto fileName = FileDialog::openWaveformFile();
 	if (fileName.isEmpty()) { return; }
 
 	auto lfoModel = dynamic_cast<LfoController*>(model());

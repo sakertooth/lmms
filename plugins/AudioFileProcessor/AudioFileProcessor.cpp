@@ -27,7 +27,6 @@
 
 #include "InstrumentTrack.h"
 #include "PathUtil.h"
-#include "SampleLoader.h"
 #include "Song.h"
 
 #include "LmmsTypes.h"

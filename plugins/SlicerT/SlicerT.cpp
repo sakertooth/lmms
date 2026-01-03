@@ -31,7 +31,6 @@
 #include "Engine.h"
 #include "InstrumentTrack.h"
 #include "PathUtil.h"
-#include "SampleLoader.h"
 #include "SlicerTView.h"
 #include "Song.h"
 #include "embed.h"
