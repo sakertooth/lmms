@@ -252,7 +252,7 @@ void TripleOscillator::saveSettings( QDomDocument & _doc, QDomElement & _this )
 		m_osc[i]->m_useWaveTableModel.saveSettings( _doc, _this,
 					"useWaveTable" + QString::number (i+1 ) );
 		_this.setAttribute( "userwavefile" + is,
-					m_osc[i]->m_sampleBuffer->audioFile() );
+					m_osc[i]->m_sampleBuffer->path() );
 	}
 }
 

@@ -42,13 +42,12 @@ public:
 	SampleBuffer(const SampleFrame* data, f_cnt_t numFrames, sample_rate_t sampleRate, const QString& path = "");
 
 	auto toBase64() const -> QString;
-
-	auto audioFile() const -> const QString& { return m_path; }
-	auto sampleRate() const -> sample_rate_t { return m_sampleRate; }
+	auto empty() const -> bool { return m_data.empty(); }
 
 	auto data() const -> const SampleFrame* { return m_data.data(); }
-	auto size() const -> f_cnt_t { return m_data.size(); }
-	auto empty() const -> bool { return m_data.empty(); }
+	auto sampleRate() const -> sample_rate_t { return m_sampleRate; }
+	auto numFrames() const -> f_cnt_t { return m_data.size(); }
+	auto path() const -> const QString& { return m_path; }
 
 	static auto emptyBuffer() -> std::shared_ptr<const SampleBuffer>;
 
