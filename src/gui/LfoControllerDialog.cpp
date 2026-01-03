@@ -212,8 +212,12 @@ void LfoControllerDialog::askUserDefWave()
 	if (fileName.isEmpty()) { return; }
 
 	auto lfoModel = dynamic_cast<LfoController*>(model());
-	lfoModel->m_userDefSampleBuffer = SampleBuffer::fromFile(fileName);
-	m_userWaveBtn->setToolTip(fileName);
+
+	if (const auto buffer = SampleBuffer::fromFile(fileName))
+	{
+		lfoModel->m_userDefSampleBuffer = *buffer;
+		m_userWaveBtn->setToolTip(fileName);
+	}
 }
 
 

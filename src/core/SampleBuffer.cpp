@@ -30,15 +30,10 @@
 
 namespace lmms {
 
-SampleBuffer::SampleBuffer(const SampleFrame* data, size_t numFrames, sample_rate_t sampleRate, const QString& path)
-	: m_data(data, data + numFrames)
-	, m_sampleRate(sampleRate)
-	, m_path(path)
-{
-}
-
-SampleBuffer::SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRate, const QString& path)
+SampleBuffer::SampleBuffer(
+	std::unique_ptr<SampleFrame[]> data, f_cnt_t numFrames, sample_rate_t sampleRate, const QString& path)
 	: m_data(std::move(data))
+	, m_numFrames(numFrames)
 	, m_sampleRate(sampleRate)
 	, m_path(path)
 {
@@ -46,35 +41,30 @@ SampleBuffer::SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRa
 
 QString SampleBuffer::toBase64() const
 {
-	const auto data = reinterpret_cast<const char*>(m_data.data());
-	const auto size = static_cast<int>(m_data.size() * sizeof(SampleFrame));
+	const auto data = reinterpret_cast<const char*>(m_data.get());
+	const auto size = static_cast<int>(m_numFrames * sizeof(SampleFrame));
 	const auto byteArray = QByteArray{data, size};
 	return byteArray.toBase64();
 }
 
-auto SampleBuffer::emptyBuffer() -> std::shared_ptr<const SampleBuffer>
-{
-	static auto s_buffer = std::make_shared<const SampleBuffer>();
-	return s_buffer;
-}
-
-auto SampleBuffer::fromFile(const QString& path) -> std::shared_ptr<const SampleBuffer>
+auto SampleBuffer::fromFile(const QString& path) -> std::optional<SampleBuffer>
 {
 	const auto absolutePath = PathUtil::toAbsolute(path);
-	const auto decodedResult = SampleDecoder::decode(absolutePath);
+	auto decodedResult = SampleDecoder::decode(absolutePath);
 
-	if (!decodedResult) { return SampleBuffer::emptyBuffer(); }
+	if (!decodedResult) { return std::nullopt; }
 
-	auto& [data, sampleRate] = *decodedResult;
-	return std::make_shared<SampleBuffer>(std::move(data), sampleRate, PathUtil::toShortestRelative(path));
+	auto& [data, numFrames, sampleRate] = *decodedResult;
+	return SampleBuffer{std::move(data), numFrames, sampleRate, PathUtil::toShortestRelative(path)};
 }
 
-auto SampleBuffer::fromBase64(const QString& str, sample_rate_t sampleRate) -> std::shared_ptr<const SampleBuffer>
+auto SampleBuffer::fromBase64(const QString& str, sample_rate_t sampleRate) -> std::optional<SampleBuffer>
 {
 	const auto bytes = QByteArray::fromBase64(str.toUtf8());
-	auto buffer = std::vector<SampleFrame>(bytes.size() / sizeof(SampleFrame));
-	std::memcpy(buffer.data(), bytes, buffer.size() * sizeof(SampleFrame));
-	return std::make_shared<SampleBuffer>(std::move(buffer), sampleRate);
+	const auto numFrames = bytes.size() / sizeof(SampleFrame);
+	auto buffer = std::make_unique<SampleFrame[]>(numFrames);
+	std::memcpy(buffer.get(), bytes, numFrames * sizeof(SampleFrame));
+	return SampleBuffer{std::move(buffer), numFrames, sampleRate};
 }
 
 } // namespace lmms

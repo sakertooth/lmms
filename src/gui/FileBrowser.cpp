@@ -766,9 +766,9 @@ void FileBrowserTreeWidget::previewFileItem(FileItem* file)
 			embed::getIconPixmap("sample_file", 24, 24), 0);
 		// TODO: this can be removed once we do this outside the event thread
 		qApp->processEvents(QEventLoop::ExcludeUserInputEvents);
-		if (auto buffer = SampleBuffer::fromFile(fileName))
+		if (const auto buffer = SampleBuffer::fromFile(fileName))
 		{
-			auto s = new SamplePlayHandle(new lmms::Sample{std::move(buffer)});
+			auto s = new SamplePlayHandle(new lmms::Sample{buffer.value()});
 			s->setDoneMayReturnTrue(false);
 			newPPH = s;
 		}

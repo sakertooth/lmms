@@ -241,11 +241,14 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 	QString value = StringPairDrag::decodeValue( _de );
 	if( type == "samplefile" )
 	{
-		m_params->m_userWave = SampleBuffer::fromFile(value);
-		m_userLfoBtn->model()->setValue( true );
-		m_params->m_lfoWaveModel.setValue(static_cast<int>(EnvelopeAndLfoParameters::LfoShape::UserDefinedWave));
-		_de->accept();
-		update();
+		if (const auto buffer = SampleBuffer::fromFile(value))
+		{
+			m_params->m_userWave = *buffer;
+			m_userLfoBtn->model()->setValue( true );
+			m_params->m_lfoWaveModel.setValue(static_cast<int>(EnvelopeAndLfoParameters::LfoShape::UserDefinedWave));
+			_de->accept();
+			update();
+		}
 	}
 	else if( type == QString( "clip_%1" ).arg( static_cast<int>(Track::Type::Sample) ) )
 	{
@@ -253,11 +256,15 @@ void EnvelopeAndLfoView::dropEvent( QDropEvent * _de )
 		auto file = dataFile.content().
 					firstChildElement().firstChildElement().
 					firstChildElement().attribute("src");
-		m_params->m_userWave = SampleBuffer::fromFile(file);
-		m_userLfoBtn->model()->setValue( true );
-		m_params->m_lfoWaveModel.setValue(static_cast<int>(EnvelopeAndLfoParameters::LfoShape::UserDefinedWave));
-		_de->accept();
-		update();
+
+		if (const auto buffer = SampleBuffer::fromFile(file))
+		{
+			m_params->m_userWave = *buffer;
+			m_userLfoBtn->model()->setValue( true );
+			m_params->m_lfoWaveModel.setValue(static_cast<int>(EnvelopeAndLfoParameters::LfoShape::UserDefinedWave));
+			_de->accept();
+			update();
+		}
 	}
 }
 
@@ -269,7 +276,7 @@ void EnvelopeAndLfoView::lfoUserWaveChanged()
 	if( static_cast<EnvelopeAndLfoParameters::LfoShape>(m_params->m_lfoWaveModel.value()) ==
 				EnvelopeAndLfoParameters::LfoShape::UserDefinedWave )
 	{
-		if (m_params->m_userWave->numFrames() <= 1)
+		if (m_params->m_userWave.empty())
 		{
 			TextFloat::displayMessage( tr( "Hint" ),
 				tr( "Drag and drop a sample into this window." ),

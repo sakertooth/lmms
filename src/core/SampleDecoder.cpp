@@ -74,8 +74,8 @@ auto decodeSampleSF(const QString& audioFile) -> std::optional<SampleDecoder::Re
 	sf_close(sndFile);
 	file.close();
 
-	auto result = std::vector<SampleFrame>(sfInfo.frames);
-	for (int i = 0; i < static_cast<int>(result.size()); ++i)
+	auto result = std::make_unique<SampleFrame[]>(sfInfo.frames);
+	for (int i = 0; i < sfInfo.frames; ++i)
 	{
 		if (sfInfo.channels == 1)
 		{
@@ -91,7 +91,8 @@ auto decodeSampleSF(const QString& audioFile) -> std::optional<SampleDecoder::Re
 		}
 	}
 
-	return SampleDecoder::Result{std::move(result), static_cast<sample_rate_t>(sfInfo.samplerate)};
+	return SampleDecoder::Result{
+		std::move(result), static_cast<f_cnt_t>(sfInfo.frames), static_cast<sample_rate_t>(sfInfo.samplerate)};
 }
 
 auto decodeSampleDS(const QString& audioFile) -> std::optional<SampleDecoder::Result>
@@ -106,10 +107,11 @@ auto decodeSampleDS(const QString& audioFile) -> std::optional<SampleDecoder::Re
 
 	if (frames <= 0 || !data) { return std::nullopt; }
 
-	auto result = std::vector<SampleFrame>(frames);
+	auto result = std::make_unique<SampleFrame[]>(frames);
 	src_short_to_float_array(data.get(), &result[0][0], frames * DEFAULT_CHANNELS);
 
-	return SampleDecoder::Result{std::move(result), static_cast<sample_rate_t>(engineRate)};
+	return SampleDecoder::Result{
+		std::move(result), static_cast<f_cnt_t>(frames), static_cast<sample_rate_t>(engineRate)};
 }
 
 #ifdef LMMS_HAVE_OGGVORBIS
@@ -172,15 +174,18 @@ auto decodeSampleOggVorbis(const QString& audioFile) -> std::optional<SampleDeco
 		totalSamplesRead += samplesRead;
 	}
 
-	auto result = std::vector<SampleFrame>(totalSamplesRead / numChannels);
-	for (auto i = std::size_t{0}; i < result.size(); ++i)
+	const auto numFrames = totalSamplesRead / numChannels;
+	auto result = std::make_unique<SampleFrame[]>(numFrames);
+
+	for (auto i = std::size_t{0}; i < numFrames; ++i)
 	{
 		if (numChannels == 1) { result[i] = {buffer[i], buffer[i]}; }
 		else if (numChannels > 1) { result[i] = {buffer[i * numChannels], buffer[i * numChannels + 1]}; }
 	}
 
 	ov_clear(&vorbisFile);
-	return SampleDecoder::Result{std::move(result), static_cast<sample_rate_t>(sampleRate)};
+	return SampleDecoder::Result{
+		std::move(result), static_cast<f_cnt_t>(numFrames), static_cast<sample_rate_t>(sampleRate)};
 }
 #endif // LMMS_HAVE_OGGVORBIS
 } // namespace

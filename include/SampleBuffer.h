@@ -27,7 +27,7 @@
 
 #include <QString>
 #include <memory>
-#include <vector>
+#include <optional>
 
 #include "LmmsTypes.h"
 #include "SampleFrame.h"
@@ -38,24 +38,24 @@ class LMMS_EXPORT SampleBuffer
 {
 public:
 	SampleBuffer() = default;
-	SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRate, const QString& path = "");
-	SampleBuffer(const SampleFrame* data, f_cnt_t numFrames, sample_rate_t sampleRate, const QString& path = "");
+	SampleBuffer(
+		std::unique_ptr<SampleFrame[]> data, f_cnt_t numFrames, sample_rate_t sampleRate, const QString& path = "");
 
 	auto toBase64() const -> QString;
-	auto empty() const -> bool { return m_data.empty(); }
+	auto empty() const -> bool { return m_numFrames == 0; }
 
-	auto data() const -> const SampleFrame* { return m_data.data(); }
+	auto data() const -> const SampleFrame* { return m_data.get(); }
 	auto sampleRate() const -> sample_rate_t { return m_sampleRate; }
-	auto numFrames() const -> f_cnt_t { return m_data.size(); }
+	auto numFrames() const -> f_cnt_t { return m_numFrames; }
 	auto path() const -> const QString& { return m_path; }
 
-	static auto emptyBuffer() -> std::shared_ptr<const SampleBuffer>;
-
-	static auto fromFile(const QString& path) -> std::shared_ptr<const SampleBuffer>;
-	static auto fromBase64(const QString& str, sample_rate_t sampleRate) -> std::shared_ptr<const SampleBuffer>;
+	static auto fromFile(const QString& path) -> std::optional<SampleBuffer>;
+	static auto fromBase64(const QString& str, sample_rate_t sampleRate) -> std::optional<SampleBuffer>;
 
 private:
-	std::vector<SampleFrame> m_data;
+	inline static const auto emptyBuffer = std::make_shared<SampleFrame[]>(0);
+	std::shared_ptr<const SampleFrame[]> m_data = emptyBuffer;
+	f_cnt_t m_numFrames = 0;
 	sample_rate_t m_sampleRate = 0;
 	QString m_path;
 };

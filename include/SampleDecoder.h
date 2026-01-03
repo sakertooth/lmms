@@ -26,6 +26,7 @@
 #define LMMS_SAMPLE_DECODER_H
 
 #include <QString>
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
@@ -38,7 +39,8 @@ class SampleDecoder
 public:
 	struct Result
 	{
-		std::vector<SampleFrame> data;
+		std::unique_ptr<SampleFrame[]> data;
+		f_cnt_t numFrames;
 		sample_rate_t sampleRate;
 	};
 

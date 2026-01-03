@@ -224,8 +224,10 @@ void AudioFileProcessor::loadSettings(const QDomElement& elem)
 	}
 	else if (auto sampleData = elem.attribute("sampledata"); !sampleData.isEmpty())
 	{
-		auto buffer = SampleBuffer::fromBase64(sampleData, Engine::audioEngine()->outputSampleRate());
-		m_sample = Sample{std::move(buffer)};
+		if (const auto buffer = SampleBuffer::fromBase64(sampleData, Engine::audioEngine()->outputSampleRate()))
+		{
+			m_sample = Sample{buffer.value()};
+		}
 	}
 
 	m_loopModel.loadSettings(elem, "looped");
@@ -319,9 +321,9 @@ void AudioFileProcessor::setAudioFile(const QString& _audio_file, bool _rename)
 	}
 	// else we don't touch the track-name, because the user named it self
 	
-	if (auto buffer = SampleBuffer::fromFile(_audio_file))
+	if (const auto buffer = SampleBuffer::fromFile(_audio_file))
 	{
-		m_sample = Sample{std::move(buffer)};
+		m_sample = Sample{buffer.value()};
 		loopPointChanged();
 		reverseModelChanged();
 		emit sampleUpdated();

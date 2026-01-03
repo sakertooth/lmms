@@ -29,9 +29,9 @@
 #include <QDateTime>
 #include <QRect>
 #include <memory>
+#include <span>
 
 #include "lmms_export.h"
-#include "SampleBuffer.h"
 #include "SampleFrame.h"
 
 class QPainter;
@@ -137,7 +137,7 @@ private:
 
 	using ThumbnailCache = std::vector<Thumbnail>;
 	std::shared_ptr<ThumbnailCache> m_thumbnailCache = std::make_shared<ThumbnailCache>();
-	std::shared_ptr<const SampleBuffer> m_buffer = SampleBuffer::emptyBuffer();
+	std::span<const SampleFrame> m_buffer;
 	inline static std::unordered_map<SampleThumbnailEntry, std::shared_ptr<ThumbnailCache>, Hash> s_sampleThumbnailCacheMap;
 };
 
