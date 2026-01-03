@@ -34,7 +34,7 @@ namespace lmms {
 
 SampleBuffer::SampleBuffer(
 	std::unique_ptr<SampleFrame[]> data, f_cnt_t numFrames, sample_rate_t sampleRate, const QString& path)
-	: m_data(std::move(data))
+	: m_data(data ? std::move(data) : emptyBuffer)
 	, m_numFrames(numFrames)
 	, m_sampleRate(sampleRate)
 	, m_path(path)
