@@ -85,13 +85,13 @@ public slots:
 private:
 	struct handle_data
 	{
+		const Sample* sample;
 		Sample::PlaybackState* state;
 		bool tuned;
-		std::shared_ptr<Sample> sample;
 	};
 
 	QString m_patchFile;
-	QVector<std::shared_ptr<Sample>> m_patchSamples;
+	std::vector<Sample> m_patchSamples;
 	BoolModel m_loopedModel;
 	BoolModel m_tunedModel;
 
