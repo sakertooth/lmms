@@ -23,6 +23,8 @@
  */
 
 #include "SampleBuffer.h"
+
+#include <QDebug>
 #include <cstring>
 
 #include "PathUtil.h"
@@ -52,7 +54,15 @@ auto SampleBuffer::fromFile(const QString& path) -> std::optional<SampleBuffer>
 	const auto absolutePath = PathUtil::toAbsolute(path);
 	auto decodedResult = SampleDecoder::decode(absolutePath);
 
-	if (!decodedResult) { return std::nullopt; }
+	if (!decodedResult)
+	{
+		// TODO: Revisit error handling. This only logs the error to the console and doesn't give the user any feedback.
+		// For the GUI, we should consider implementing a status bar and showing the error there somehow  (not a
+		// message box, since that would interrupt the user each time and lead to a restrictive workflow). Nevertheless,
+		// we should still log the error, so this is fine.
+		qWarning() << "Failed to decode sample at " << absolutePath << ", the sample may be corrupted or unsupported.";
+		return std::nullopt;
+	}
 
 	auto& [data, numFrames, sampleRate] = *decodedResult;
 	return SampleBuffer{std::move(data), numFrames, sampleRate, PathUtil::toShortestRelative(path)};
