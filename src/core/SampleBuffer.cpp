@@ -30,48 +30,22 @@
 
 namespace lmms {
 
-SampleBuffer::SampleBuffer(const SampleFrame* data, size_t numFrames, sample_rate_t sampleRate)
+SampleBuffer::SampleBuffer(const SampleFrame* data, size_t numFrames, sample_rate_t sampleRate, const QString& path)
 	: m_data(data, data + numFrames)
 	, m_sampleRate(sampleRate)
+	, m_path(path)
 {
 }
 
-SampleBuffer::SampleBuffer(const QString& audioFile)
-{
-	if (audioFile.isEmpty()) { throw std::runtime_error{"Failure loading audio file: Audio file path is empty."}; }
-	const auto absolutePath = PathUtil::toAbsolute(audioFile);
-
-	if (auto decodedResult = SampleDecoder::decode(absolutePath))
-	{
-		auto& [data, sampleRate] = *decodedResult;
-		m_data = std::move(data);
-		m_sampleRate = sampleRate;
-		m_audioFile = PathUtil::toShortestRelative(audioFile);
-		return;
-	}
-
-	throw std::runtime_error{
-		"Failed to decode audio file: Either the audio codec is unsupported, or the file is corrupted."};
-}
-
-SampleBuffer::SampleBuffer(const QString& base64, sample_rate_t sampleRate)
-	: m_sampleRate(sampleRate)
-{
-	// TODO: Replace with non-Qt equivalent
-	const auto bytes = QByteArray::fromBase64(base64.toUtf8());
-	m_data.resize(bytes.size() / sizeof(SampleFrame));
-	std::memcpy(reinterpret_cast<char*>(m_data.data()), bytes, m_data.size() * sizeof(SampleFrame));
-}
-
-SampleBuffer::SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRate)
+SampleBuffer::SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRate, const QString& path)
 	: m_data(std::move(data))
 	, m_sampleRate(sampleRate)
+	, m_path(path)
 {
 }
 
 QString SampleBuffer::toBase64() const
 {
-	// TODO: Replace with non-Qt equivalent
 	const auto data = reinterpret_cast<const char*>(m_data.data());
 	const auto size = static_cast<int>(m_data.size() * sizeof(SampleFrame));
 	const auto byteArray = QByteArray{data, size};
@@ -82,6 +56,25 @@ auto SampleBuffer::emptyBuffer() -> std::shared_ptr<const SampleBuffer>
 {
 	static auto s_buffer = std::make_shared<const SampleBuffer>();
 	return s_buffer;
+}
+
+auto SampleBuffer::fromFile(const QString& path) -> std::shared_ptr<const SampleBuffer>
+{
+	const auto absolutePath = PathUtil::toAbsolute(path);
+	const auto decodedResult = SampleDecoder::decode(absolutePath);
+
+	if (!decodedResult) { return SampleBuffer::emptyBuffer(); }
+
+	auto& [data, sampleRate] = *decodedResult;
+	return std::make_shared<SampleBuffer>(std::move(data), sampleRate, PathUtil::toShortestRelative(path));
+}
+
+auto SampleBuffer::fromBase64(const QString& str, sample_rate_t sampleRate) -> std::shared_ptr<const SampleBuffer>
+{
+	const auto bytes = QByteArray::fromBase64(str.toUtf8());
+	auto buffer = std::vector<SampleFrame>(bytes.size() / sizeof(SampleFrame));
+	std::memcpy(buffer.data(), bytes, buffer.size() * sizeof(SampleFrame));
+	return std::make_shared<SampleBuffer>(std::move(buffer), sampleRate);
 }
 
 } // namespace lmms

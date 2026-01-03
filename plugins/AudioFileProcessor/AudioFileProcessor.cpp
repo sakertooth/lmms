@@ -225,8 +225,8 @@ void AudioFileProcessor::loadSettings(const QDomElement& elem)
 	}
 	else if (auto sampleData = elem.attribute("sampledata"); !sampleData.isEmpty())
 	{
-		m_sample
-			= Sample(gui::SampleLoader::createBufferFromBase64(sampleData, Engine::audioEngine()->outputSampleRate()));
+		auto buffer = SampleBuffer::fromBase64(sampleData, Engine::audioEngine()->outputSampleRate());
+		m_sample = Sample{std::move(buffer)};
 	}
 
 	m_loopModel.loadSettings(elem, "looped");
@@ -319,11 +319,14 @@ void AudioFileProcessor::setAudioFile(const QString& _audio_file, bool _rename)
 		instrumentTrack()->setName( PathUtil::cleanName( _audio_file ) );
 	}
 	// else we don't touch the track-name, because the user named it self
-
-	m_sample = Sample(gui::SampleLoader::createBufferFromFile(_audio_file));
-	loopPointChanged();
-	reverseModelChanged();
-	emit sampleUpdated();
+	
+	if (auto buffer = SampleBuffer::fromFile(_audio_file))
+	{
+		m_sample = Sample{std::move(buffer)};
+		loopPointChanged();
+		reverseModelChanged();
+		emit sampleUpdated();
+	}
 }
 
 

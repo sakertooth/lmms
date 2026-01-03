@@ -26,9 +26,7 @@
 #define LMMS_GUI_SAMPLE_LOADER_H
 
 #include <QString>
-#include <memory>
 
-#include "SampleBuffer.h"
 #include "lmms_export.h"
 
 namespace lmms::gui {
@@ -37,8 +35,6 @@ class LMMS_EXPORT SampleLoader
 public:
 	static QString openAudioFile(const QString& previousFile = "");
 	static QString openWaveformFile(const QString& previousFile = "");
-	static std::shared_ptr<const SampleBuffer> createBufferFromFile(const QString& filePath);
-	static std::shared_ptr<const SampleBuffer> createBufferFromBase64(const QString& base64, sample_rate_t sampleRate);
 
 private:
 	static void displayError(const QString& message);
