@@ -60,7 +60,7 @@ QString SampleBuffer::toBase64() const
 	// TODO: Replace with non-Qt equivalent
 	const auto data = reinterpret_cast<const char*>(m_data.data());
 	const auto size = static_cast<int>(m_data.size() * sizeof(SampleFrame));
-	const auto byteArray = QByteArray{data, size};
+	const auto byteArray = QByteArray::fromRawData(data, size);
 	return byteArray.toBase64();
 }
 
