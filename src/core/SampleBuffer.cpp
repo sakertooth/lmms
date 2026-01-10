@@ -40,9 +40,9 @@ SampleBuffer::SampleBuffer(const SampleFrame* data, f_cnt_t numFrames, sample_ra
 {
 }
 
-SampleBuffer::SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRate, const QString& audioFile)
+SampleBuffer::SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRate, const QString& path)
 	: m_data(std::move(data))
-	, m_audioFile(audioFile)
+	, m_path(path)
 	, m_sampleRate(sampleRate)
 {
 }
