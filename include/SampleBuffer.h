@@ -27,7 +27,6 @@
 
 #include <QString>
 #include <memory>
-#include <span>
 #include <vector>
 
 #include "LmmsTypes.h"
