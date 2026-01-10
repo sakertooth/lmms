@@ -49,8 +49,6 @@ public:
 	auto frames() const -> f_cnt_t { return m_data.size(); }
 	auto sampleRate() const -> sample_rate_t { return m_sampleRate; }
 
-	static auto emptyBuffer() -> std::shared_ptr<const SampleBuffer>;
-
 	static std::shared_ptr<const SampleBuffer> fromFile(const QString& path);
 	static std::shared_ptr<const SampleBuffer> fromBase64(const QString& str, sample_rate_t sampleRate);
 

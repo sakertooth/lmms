@@ -110,7 +110,7 @@ public:
 
 private:
 	f_cnt_t render(SampleFrame* dst, f_cnt_t size, PlaybackState* state, Loop loop) const;
-	std::shared_ptr<const SampleBuffer> m_buffer = SampleBuffer::emptyBuffer();
+	std::shared_ptr<const SampleBuffer> m_buffer = std::make_shared<SampleBuffer>();
 	std::atomic<int> m_startFrame = 0;
 	std::atomic<int> m_endFrame = 0;
 	std::atomic<int> m_loopStartFrame = 0;
