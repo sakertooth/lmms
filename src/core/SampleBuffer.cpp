@@ -34,25 +34,17 @@
 
 namespace lmms {
 
-SampleBuffer::SampleBuffer(const SampleFrame* data, size_t numFrames, int sampleRate)
+SampleBuffer::SampleBuffer(const SampleFrame* data, f_cnt_t numFrames, sample_rate_t sampleRate)
 	: m_data(data, data + numFrames)
 	, m_sampleRate(sampleRate)
 {
 }
 
-SampleBuffer::SampleBuffer(std::vector<SampleFrame> data, int sampleRate, const QString& audioFile)
+SampleBuffer::SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRate, const QString& audioFile)
 	: m_data(std::move(data))
 	, m_audioFile(audioFile)
 	, m_sampleRate(sampleRate)
 {
-}
-
-void swap(SampleBuffer& first, SampleBuffer& second) noexcept
-{
-	using std::swap;
-	swap(first.m_data, second.m_data);
-	swap(first.m_audioFile, second.m_audioFile);
-	swap(first.m_sampleRate, second.m_sampleRate);
 }
 
 QString SampleBuffer::toBase64() const
@@ -102,7 +94,7 @@ std::shared_ptr<const SampleBuffer> SampleBuffer::fromFile(const QString& filePa
 	return std::make_shared<SampleBuffer>(std::move(data), sampleRate, storedPath);
 }
 
-std::shared_ptr<const SampleBuffer> SampleBuffer::fromBase64(const QString& str, int sampleRate)
+std::shared_ptr<const SampleBuffer> SampleBuffer::fromBase64(const QString& str, sample_rate_t sampleRate)
 {
 	if (str.isEmpty()) { return SampleBuffer::emptyBuffer(); }
 

@@ -362,8 +362,8 @@ void SlicerT::loadSettings(const QDomElement& element)
 	}
 	else if (auto sampleData = element.attribute("sampledata"); !sampleData.isEmpty())
 	{
-		auto buffer = SampleBuffer::fromBase64(sampleData);
-		m_originalSample = Sample(std::move(buffer));
+		auto buffer = SampleBuffer::fromBase64(sampleData, Engine::audioEngine()->outputSampleRate());
+		m_originalSample = Sample{std::move(buffer)};
 	}
 
 	if (!element.attribute("totalSlices").isEmpty())

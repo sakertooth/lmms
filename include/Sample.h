@@ -27,7 +27,9 @@
 
 #include <memory>
 
+#include "AudioEngine.h"
 #include "AudioResampler.h"
+#include "Engine.h"
 #include "Note.h"
 #include "SampleBuffer.h"
 #include "lmms_export.h"

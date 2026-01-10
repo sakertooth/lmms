@@ -129,7 +129,8 @@ void SampleClipView::dropEvent( QDropEvent * _de )
 	}
 	else if( StringPairDrag::decodeKey( _de ) == "sampledata" )
 	{
-		m_clip->setSampleBuffer(SampleBuffer::fromBase64(StringPairDrag::decodeValue(_de)));
+		auto buffer = SampleBuffer::fromBase64(StringPairDrag::decodeValue(_de), Engine::audioEngine()->outputSampleRate());
+		m_clip->setSampleBuffer(std::move(buffer));
 		m_clip->updateLength();
 		update();
 		_de->accept();
