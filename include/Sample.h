@@ -70,8 +70,6 @@ public:
 	};
 
 	Sample() = default;
-
-	Sample(const SampleFrame* data, size_t numFrames, int sampleRate = Engine::audioEngine()->outputSampleRate());
 	Sample(const Sample& other);
 	Sample(Sample&& other) noexcept;
 	explicit Sample(std::shared_ptr<const SampleBuffer> buffer);

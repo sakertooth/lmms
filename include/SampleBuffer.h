@@ -39,7 +39,6 @@ class LMMS_EXPORT SampleBuffer
 public:
 	SampleBuffer() = default;
 	SampleBuffer(std::vector<SampleFrame> data, sample_rate_t sampleRate, const QString& path = "");
-	SampleBuffer(const SampleFrame* data, f_cnt_t numFrames, sample_rate_t sampleRate);
 
 	auto toBase64() const -> QString;
 	auto empty() const -> bool { return m_data.empty(); }
