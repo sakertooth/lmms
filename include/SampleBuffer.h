@@ -42,12 +42,12 @@ public:
 	SampleBuffer(const SampleFrame* data, f_cnt_t numFrames, sample_rate_t sampleRate);
 
 	auto toBase64() const -> QString;
-	auto path() const -> const QString& { return m_path; }
-	auto sampleRate() const -> sample_rate_t { return m_sampleRate; }
+	auto empty() const -> bool { return m_data.empty(); }
 
 	auto data() const -> const SampleFrame* { return m_data.data(); }
-	auto size() const -> f_cnt_t { return m_data.size(); }
-	auto empty() const -> bool { return m_data.empty(); }
+	auto path() const -> const QString& { return m_path; }
+	auto frames() const -> f_cnt_t { return m_data.size(); }
+	auto sampleRate() const -> sample_rate_t { return m_sampleRate; }
 
 	static auto emptyBuffer() -> std::shared_ptr<const SampleBuffer>;
 
