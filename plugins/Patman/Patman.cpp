@@ -353,8 +353,7 @@ PatmanInstrument::LoadError PatmanInstrument::loadPatch(
 			}
 		}
 
-		auto psamplebuffer = std::make_shared<const SampleBuffer>(std::move(data), sample_rate);
-		auto psample = std::make_shared<Sample>(std::move(psamplebuffer));
+		auto psample = std::make_shared<Sample>(SampleBuffer{std::move(data), sample_rate});
 		psample->setFrequency(root_freq / 1000.0f);
 
 		if( modes & MODES_LOOPING )

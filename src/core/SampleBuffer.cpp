@@ -50,9 +50,9 @@ QString SampleBuffer::toBase64() const
 	return byteArray.toBase64();
 }
 
-std::shared_ptr<const SampleBuffer> SampleBuffer::fromFile(const QString& filePath)
+std::optional<SampleBuffer> SampleBuffer::fromFile(const QString& filePath)
 {
-	if (filePath.isEmpty()) { return std::make_shared<SampleBuffer>(); }
+	if (filePath.isEmpty()) { return std::nullopt; }
 
 	const auto absolutePath = PathUtil::toAbsolute(filePath);
 	const auto storedPath = PathUtil::toShortestRelative(filePath);
@@ -75,16 +75,16 @@ std::shared_ptr<const SampleBuffer> SampleBuffer::fromFile(const QString& filePa
 							  .arg(absolutePath);
 		}
 
-		return std::make_shared<SampleBuffer>();
+		return std::nullopt;
 	}
 
 	auto& [data, sampleRate] = *result;
-	return std::make_shared<SampleBuffer>(std::move(data), sampleRate, storedPath);
+	return SampleBuffer{std::move(data), sampleRate, storedPath};
 }
 
-std::shared_ptr<const SampleBuffer> SampleBuffer::fromBase64(const QString& str, sample_rate_t sampleRate)
+std::optional<SampleBuffer> SampleBuffer::fromBase64(const QString& str, sample_rate_t sampleRate)
 {
-	if (str.isEmpty()) { return std::make_shared<SampleBuffer>(); }
+	if (str.isEmpty()) { return std::nullopt; }
 
 	const auto bytes = QByteArray::fromBase64(str.toUtf8());
 
@@ -102,12 +102,12 @@ std::shared_ptr<const SampleBuffer> SampleBuffer::fromBase64(const QString& str,
 			qWarning() << QObject::tr("Failed to load Base64 sample, invalid size");
 		}
 
-		return std::make_shared<SampleBuffer>();
+		return std::nullopt;
 	}
 
 	auto data = std::vector<SampleFrame>(bytes.size() / sizeof(SampleFrame));
 	std::memcpy(reinterpret_cast<char*>(data.data()), bytes, bytes.size());
-	return std::make_shared<SampleBuffer>(std::move(data), sampleRate);
+	return SampleBuffer{std::move(data), sampleRate};
 }
 
 } // namespace lmms

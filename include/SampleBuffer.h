@@ -26,7 +26,7 @@
 #define LMMS_SAMPLE_BUFFER_H
 
 #include <QString>
-#include <memory>
+#include <optional>
 #include <vector>
 
 #include "LmmsTypes.h"
@@ -48,8 +48,8 @@ public:
 	auto frames() const -> f_cnt_t { return m_data.size(); }
 	auto sampleRate() const -> sample_rate_t { return m_sampleRate; }
 
-	static std::shared_ptr<const SampleBuffer> fromFile(const QString& path);
-	static std::shared_ptr<const SampleBuffer> fromBase64(const QString& str, sample_rate_t sampleRate);
+	static std::optional<SampleBuffer> fromFile(const QString& path);
+	static std::optional<SampleBuffer> fromBase64(const QString& str, sample_rate_t sampleRate);
 
 private:
 	std::vector<SampleFrame> m_data;
