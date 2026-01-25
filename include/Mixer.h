@@ -215,6 +215,9 @@ public:
 
 	MixerRouteVector m_mixerRoutes;
 
+signals:
+	void channelsSwapped(int fromIndex, int toIndex);
+
 private:
 	// the mixer channels in the mixer. index 0 is always master.
 	std::vector<MixerChannel*> m_mixerChannels;

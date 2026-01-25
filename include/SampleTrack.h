@@ -90,6 +90,7 @@ public slots:
 	void updateClips();
 	void setPlayingClips( bool isPlaying );
 	void updateMixerChannel();
+	void mixerChannelsSwapped(int fromIndex, int toIndex);
 
 private:
 	FloatModel m_volumeModel;

@@ -109,6 +109,7 @@ InstrumentTrack::InstrumentTrack(TrackContainer* tc) :
 	connect(&m_pitchModel, SIGNAL(dataChanged()), this, SLOT(updatePitch()), Qt::DirectConnection);
 	connect(&m_pitchRangeModel, SIGNAL(dataChanged()), this, SLOT(updatePitchRange()), Qt::DirectConnection);
 	connect(&m_mixerChannelModel, SIGNAL(dataChanged()), this, SLOT(updateMixerChannel()), Qt::DirectConnection);
+	connect(Engine::mixer(), &Mixer::channelsSwapped, this, &InstrumentTrack::mixerChannelsSwapped);
 
 	autoAssignMidiDevice(true);
 }
@@ -676,7 +677,11 @@ void InstrumentTrack::updateMixerChannel()
 	m_audioBusHandle.setNextMixerChannel(m_mixerChannelModel.value());
 }
 
-
+void InstrumentTrack::mixerChannelsSwapped(int fromIndex, int toIndex)
+{
+	if (m_mixerChannelModel.value() == fromIndex) { m_mixerChannelModel.setValue(toIndex); }
+	else if (m_mixerChannelModel.value() == toIndex) { m_mixerChannelModel.setValue(fromIndex); }
+}
 
 
 int InstrumentTrack::masterKey( int _midi_key ) const

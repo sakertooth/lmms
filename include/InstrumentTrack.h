@@ -261,6 +261,7 @@ protected slots:
 	void updatePitch();
 	void updatePitchRange();
 	void updateMixerChannel();
+	void mixerChannelsSwapped(int fromIndex, int toIndex);
 
 
 private:

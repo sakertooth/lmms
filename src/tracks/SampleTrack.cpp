@@ -57,6 +57,7 @@ SampleTrack::SampleTrack(TrackContainer* tc) :
 	m_mixerChannelModel.setRange(0, Engine::mixer()->numChannels()-1, 1);
 
 	connect(&m_mixerChannelModel, SIGNAL(dataChanged()), this, SLOT(updateMixerChannel()));
+	connect(Engine::mixer(), &Mixer::channelsSwapped, this, &SampleTrack::mixerChannelsSwapped);
 }
 
 
@@ -248,6 +249,12 @@ void SampleTrack::setPlayingClips( bool isPlaying )
 void SampleTrack::updateMixerChannel()
 {
 	m_audioBusHandle.setNextMixerChannel(m_mixerChannelModel.value());
+}
+
+void SampleTrack::mixerChannelsSwapped(int fromIndex, int toIndex)
+{
+	if (m_mixerChannelModel.value() == fromIndex) { m_mixerChannelModel.setValue(toIndex); }
+	else if (m_mixerChannelModel.value() == toIndex) { m_mixerChannelModel.setValue(fromIndex); }
 }
 
 

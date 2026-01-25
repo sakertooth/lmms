@@ -427,10 +427,8 @@ void Mixer::deleteChannel( int index )
 void Mixer::moveChannelLeft( int index )
 {
 	// can't move master or first channel
-	if (index <= 1 || static_cast<std::size_t>(index) >= m_mixerChannels.size())
-	{
-		return;
-	}
+	if (index <= 1 || static_cast<std::size_t>(index) >= m_mixerChannels.size()) { return; }
+
 	// channels to swap
 	int a = index - 1, b = index;
 
@@ -438,49 +436,14 @@ void Mixer::moveChannelLeft( int index )
 	if (m_lastSoloed == a) { m_lastSoloed = b; }
 	else if (m_lastSoloed == b) { m_lastSoloed = a; }
 
-	// go through every instrument and adjust for the channel index change
-	const TrackContainer::TrackList& songTrackList = Engine::getSong()->tracks();
-	const TrackContainer::TrackList& patternTrackList = Engine::patternStore()->tracks();
-
-	for (const auto& trackList : {songTrackList, patternTrackList})
-	{
-		for (const auto& track : trackList)
-		{
-			if (track->type() == Track::Type::Instrument)
-			{
-				auto inst = (InstrumentTrack*)track;
-				int val = inst->mixerChannelModel()->value(0);
-				if( val == a )
-				{
-					inst->mixerChannelModel()->setValue(b);
-				}
-				else if( val == b )
-				{
-					inst->mixerChannelModel()->setValue(a);
-				}
-			}
-			else if (track->type() == Track::Type::Sample)
-			{
-				auto strk = (SampleTrack*)track;
-				int val = strk->mixerChannelModel()->value(0);
-				if( val == a )
-				{
-					strk->mixerChannelModel()->setValue(b);
-				}
-				else if( val == b )
-				{
-					strk->mixerChannelModel()->setValue(a);
-				}
-			}
-		}
-	}
-
 	// Swap positions in array
-	qSwap(m_mixerChannels[index], m_mixerChannels[index - 1]);
+	std::swap(m_mixerChannels[index], m_mixerChannels[index - 1]);
 
 	// Update m_channelIndex of both channels
 	m_mixerChannels[index]->setIndex(index);
 	m_mixerChannels[index - 1]->setIndex(index - 1);
+
+	emit channelsSwapped(index, index - 1);
 }
 
 
