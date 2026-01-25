@@ -91,6 +91,7 @@ public slots:
 	void setPlayingClips( bool isPlaying );
 	void updateMixerChannel();
 	void mixerChannelsSwapped(int fromIndex, int toIndex);
+	void mixerChannelDeleted(int index);
 
 private:
 	FloatModel m_volumeModel;

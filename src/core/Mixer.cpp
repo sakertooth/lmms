@@ -336,50 +336,6 @@ void Mixer::deleteChannel( int index )
 	// channel deletion is performed between mixer rounds
 	Engine::audioEngine()->requestChangeInModel();
 
-	// go through every instrument and adjust for the channel index change
-	TrackContainer::TrackList tracks;
-
-	auto& songTracks = Engine::getSong()->tracks();
-	auto& patternStoreTracks = Engine::patternStore()->tracks();
-	tracks.insert(tracks.end(), songTracks.begin(), songTracks.end());
-	tracks.insert(tracks.end(), patternStoreTracks.begin(), patternStoreTracks.end());
-
-	for( Track* t : tracks )
-	{
-		if( t->type() == Track::Type::Instrument )
-		{
-			auto inst = dynamic_cast<InstrumentTrack*>(t);
-			int val = inst->mixerChannelModel()->value(0);
-			if( val == index )
-			{
-				// we are deleting this track's channel send
-				// send to master
-				inst->mixerChannelModel()->setValue(0);
-			}
-			else if( val > index )
-			{
-				// subtract 1 to make up for the missing channel
-				inst->mixerChannelModel()->setValue(val-1);
-			}
-		}
-		else if( t->type() == Track::Type::Sample )
-		{
-			auto strk = dynamic_cast<SampleTrack*>(t);
-			int val = strk->mixerChannelModel()->value(0);
-			if( val == index )
-			{
-				// we are deleting this track's channel send
-				// send to master
-				strk->mixerChannelModel()->setValue(0);
-			}
-			else if( val > index )
-			{
-				// subtract 1 to make up for the missing channel
-				strk->mixerChannelModel()->setValue(val-1);
-			}
-		}
-	}
-
 	MixerChannel * ch = m_mixerChannels[index];
 
 	// delete all of this channel's sends and receives
@@ -418,6 +374,8 @@ void Mixer::deleteChannel( int index )
 			r->updateName();
 		}
 	}
+
+	emit channelDeleted(index);
 
 	Engine::audioEngine()->doneChangeInModel();
 }

@@ -216,6 +216,7 @@ public:
 	MixerRouteVector m_mixerRoutes;
 
 signals:
+	void channelDeleted(int index);
 	void channelsSwapped(int fromIndex, int toIndex);
 
 private:

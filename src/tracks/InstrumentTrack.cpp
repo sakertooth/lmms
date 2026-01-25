@@ -110,6 +110,7 @@ InstrumentTrack::InstrumentTrack(TrackContainer* tc) :
 	connect(&m_pitchRangeModel, SIGNAL(dataChanged()), this, SLOT(updatePitchRange()), Qt::DirectConnection);
 	connect(&m_mixerChannelModel, SIGNAL(dataChanged()), this, SLOT(updateMixerChannel()), Qt::DirectConnection);
 	connect(Engine::mixer(), &Mixer::channelsSwapped, this, &InstrumentTrack::mixerChannelsSwapped);
+	connect(Engine::mixer(), &Mixer::channelDeleted, this, &InstrumentTrack::mixerChannelDeleted);
 
 	autoAssignMidiDevice(true);
 }
@@ -681,6 +682,12 @@ void InstrumentTrack::mixerChannelsSwapped(int fromIndex, int toIndex)
 {
 	if (m_mixerChannelModel.value() == fromIndex) { m_mixerChannelModel.setValue(toIndex); }
 	else if (m_mixerChannelModel.value() == toIndex) { m_mixerChannelModel.setValue(fromIndex); }
+}
+
+void InstrumentTrack::mixerChannelDeleted(int index)
+{
+	if (m_mixerChannelModel.value() == index) { m_mixerChannelModel.setValue(0); }
+	else if (m_mixerChannelModel.value() > index) { m_mixerChannelModel.setValue(m_mixerChannelModel.value() - 1); }
 }
 
 
