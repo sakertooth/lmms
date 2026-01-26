@@ -124,8 +124,6 @@ private:
 	QWidget* m_racksWidget;
 	Mixer* m_mixer;
 
-	void updateMaxChannelSelector();
-
 	friend class MixerChannelView;
 } ;
 

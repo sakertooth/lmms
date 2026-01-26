@@ -59,6 +59,7 @@ SampleTrack::SampleTrack(TrackContainer* tc) :
 	connect(&m_mixerChannelModel, SIGNAL(dataChanged()), this, SLOT(updateMixerChannel()));
 	connect(Engine::mixer(), &Mixer::channelsSwapped, this, &SampleTrack::mixerChannelsSwapped);
 	connect(Engine::mixer(), &Mixer::channelDeleted, this, &SampleTrack::mixerChannelDeleted);
+	connect(Engine::mixer(), &Mixer::channelCreated, this, &SampleTrack::mixerChannelCreated);
 
 }
 
@@ -263,7 +264,12 @@ void SampleTrack::mixerChannelDeleted(int index)
 {
 	if (m_mixerChannelModel.value() == index) { m_mixerChannelModel.setValue(0); }
 	else if (m_mixerChannelModel.value() > index) { m_mixerChannelModel.setValue(m_mixerChannelModel.value() - 1); }
+	m_mixerChannelModel.setRange(0, m_mixerChannelModel.maxValue() - 1);
 }
 
+void SampleTrack::mixerChannelCreated(int index)
+{
+	m_mixerChannelModel.setRange(0, m_mixerChannelModel.maxValue() + 1);
+}
 
 } // namespace lmms

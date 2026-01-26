@@ -276,6 +276,7 @@ int Mixer::createChannel()
 		m_mixerChannels[index]->m_muteModel.setValue(true);
 	}
 
+	emit channelCreated(index);
 	return index;
 }
 

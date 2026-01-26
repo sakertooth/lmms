@@ -263,7 +263,7 @@ protected slots:
 	void updateMixerChannel();
 	void mixerChannelsSwapped(int fromIndex, int toIndex);
 	void mixerChannelDeleted(int index);
-
+	void mixerChannelCreated(int index);
 
 private:
 	void processCCEvent(int controller);

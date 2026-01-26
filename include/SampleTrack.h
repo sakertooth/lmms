@@ -92,6 +92,7 @@ public slots:
 	void updateMixerChannel();
 	void mixerChannelsSwapped(int fromIndex, int toIndex);
 	void mixerChannelDeleted(int index);
+	void mixerChannelCreated(int index);
 
 private:
 	FloatModel m_volumeModel;
