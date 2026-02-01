@@ -126,18 +126,22 @@ AudioPortAudio::AudioPortAudio(bool& successful, AudioEngine* engine)
 
 	const auto sampleRate = engine->baseSampleRate();
 	const auto framesPerBuffer = engine->framesPerPeriod();
+	const auto inputLatency
+		= inputDeviceIndex == paNoDevice ? 0. : Pa_GetDeviceInfo(inputDeviceIndex)->defaultLowInputLatency;
+	const auto outputLatency
+		= outputDeviceIndex == paNoDevice ? 0. : Pa_GetDeviceInfo(outputDeviceIndex)->defaultLowOutputLatency;
 
 	auto inputParameters = PaStreamParameters{.device = inputDeviceIndex,
 		.channelCount = inputDeviceChannels,
 		.sampleFormat = paFloat32,
-		.suggestedLatency = Pa_GetDeviceInfo(outputDeviceIndex)->defaultLowInputLatency,
+		.suggestedLatency = inputLatency,
 		.hostApiSpecificStreamInfo = nullptr
 	};
 	
 	auto outputParameters = PaStreamParameters{.device = outputDeviceIndex,
 		.channelCount = outputDeviceChannels,
 		.sampleFormat = paFloat32,
-		.suggestedLatency = Pa_GetDeviceInfo(outputDeviceIndex)->defaultLowOutputLatency,
+		.suggestedLatency = outputLatency,
 		.hostApiSpecificStreamInfo = nullptr
 	};
 
