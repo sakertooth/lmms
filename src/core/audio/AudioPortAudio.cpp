@@ -124,6 +124,13 @@ AudioPortAudio::AudioPortAudio(bool& successful, AudioEngine* engine)
 		if (deviceInfo->name == outputDeviceName && hostApiInfo->name == backend) { outputDeviceIndex = i; }
 	}
 
+	if (outputDeviceIndex != paNoDevice)
+	{
+		std::cout << "Device Name: " << Pa_GetDeviceInfo(outputDeviceIndex)->name << '\n';
+		std::cout << "Max Channels: " << Pa_GetDeviceInfo(outputDeviceIndex)->maxOutputChannels << '\n';
+		std::cout << "Default Sample Rate: " << Pa_GetDeviceInfo(outputDeviceIndex)->defaultSampleRate << '\n';
+	}
+
 	const auto sampleRate = engine->baseSampleRate();
 	const auto framesPerBuffer = engine->framesPerPeriod();
 	const auto inputLatency
