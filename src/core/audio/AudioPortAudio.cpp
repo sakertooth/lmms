@@ -188,27 +188,26 @@ int AudioPortAudio::processCallback(const void*, void* output, unsigned long fra
 	const PaStreamCallbackTimeInfo*, PaStreamCallbackFlags, void* userData)
 {
 	const auto device = static_cast<AudioPortAudio*>(userData);
-
 	const auto outputBuffer = static_cast<float*>(output);
+
+	const float frequency = 440.0f;	
+	const float sampleRate = 44100.0f;
+	const float amplitude = 0.2f;
+
 	for (auto frame = std::size_t{0}; frame < frameCount; ++frame)
 	{
-		if (device->m_outBufPos == 0 && device->getNextBuffer(device->m_outBuf.data()) == 0)
-		{
-			std::fill(outputBuffer + frame * device->channels(), outputBuffer + frameCount * device->channels(), 0.f);
-			return paComplete;
-		}
+		float sample = amplitude * std::sin(device->m_phase);
 
-		if (device->channels() == 1)
-		{
-			outputBuffer[frame] = device->m_outBuf[device->m_outBufPos].average();
-		}
+		if (device->channels() == 1) { outputBuffer[frame] = sample; }
 		else
 		{
-			outputBuffer[frame * device->channels()] = device->m_outBuf[device->m_outBufPos][0];
-			outputBuffer[frame * device->channels() + 1] = device->m_outBuf[device->m_outBufPos][1];
+			outputBuffer[frame * 2] = sample;
+			outputBuffer[frame * 2 + 1] = sample;
 		}
 
-		device->m_outBufPos = (device->m_outBufPos + 1) % device->m_outBuf.size();
+		device->m_phase += (2.0f * M_PI * frequency) / sampleRate;
+
+		if (device->m_phase >= 2.0f * M_PI) { device->m_phase -= 2.0f * M_PI; }
 	}
 
 	return paContinue;

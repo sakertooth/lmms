@@ -87,6 +87,7 @@ private:
 	PaStream* m_paStream = nullptr;
 	std::vector<SampleFrame> m_outBuf;
 	std::size_t m_outBufPos = 0;
+	double m_phase = 0.;
 };
 } // namespace lmms
 
