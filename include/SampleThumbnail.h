@@ -28,11 +28,9 @@
 
 #include <QDateTime>
 #include <QRect>
-#include <memory>
 
 #include "lmms_export.h"
 #include "SampleBuffer.h"
-#include "SampleFrame.h"
 
 class QPainter;
 
@@ -45,29 +43,32 @@ class Sample;
 
    On construction, thumbnails will be generated
    at logarathmic intervals of downsampling. Those cached thumbnails will then be further downsampled on the fly and
-   transformed in various ways to create the desired waveform.
-
-   Given that we are dealing with far less data to generate
-   the visualization however (i.e., we are not reading from original sample data when drawing), this provides a
-   significant performance boost that wouldn't be possible otherwise.
+   transformed in various ways to create the desired thumbnail. Using cached thumbnails provides a performance boost
+   compared to rendering using the raw samples directly.
  */
 class LMMS_EXPORT SampleThumbnail
 {
 public:
 	struct VisualizeParameters
 	{
-		QRect sampleRect; //!< A rectangle that covers the entire range of samples.
+		//!< A rectangle that covers the entire range of samples.
+		QRect sampleRect;
 
-		QRect viewportRect; //!< Specifies the location in `sampleRect` where the waveform will be drawn. Equals
-							//!< `sampleRect` when null.
+		//!< Specifies the location in `sampleRect` where the thumbnail will be drawn.
+		//!< Equals `sampleRect` when null.
+		QRect viewportRect;
 
-		float amplification = 1.0f; //!< The amount of amplification to apply to the waveform.
+		//!< The amount of amplification to apply to the thumbnail.
+		float amplification = 1.0f;
 
-		float sampleStart = 0.0f; //!< Where the sample begins for drawing.
+		//!< At what sample to begin drawing the thumbnail [from 0 to 1].
+		float sampleStart = 0.0f;
 
-		float sampleEnd = 1.0f; //!< Where the sample ends for drawing.
+		//!< At what sample to stop drawing the thumbnail [from 0 to 1].
+		float sampleEnd = 1.0f;
 
-		bool reversed = false; //!< Determines if the waveform is drawn in reverse or not.
+		//!< Determines if the thumbnail is drawn in reverse or not.
+		bool reversed = false;
 	};
 
 	SampleThumbnail() = default;
