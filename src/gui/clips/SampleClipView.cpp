@@ -65,7 +65,7 @@ void SampleClipView::updateSample()
 {
 	update();
 
-	m_sampleThumbnail = SampleThumbnail{m_clip->m_sample};
+	m_sampleThumbnail = SampleThumbnail{*m_clip->m_sample.buffer()};
 
 	// set tooltip to filename so that user can see what sample this
 	// sample-clip contains
@@ -295,7 +295,7 @@ void SampleClipView::paintEvent( QPaintEvent * pe )
 			.reversed = sample.reversed()
 		};
 
-		m_sampleThumbnail.visualize(param, p);
+		m_sampleThumbnail.visualize(p, param);
 	}
 
 	QString name = PathUtil::cleanName(m_clip->m_sample.sampleFile());
