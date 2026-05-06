@@ -46,7 +46,7 @@ bool isSilent(std::span<sample_t> buffer);
  * Only performs sanitization when it is enabled.
  *
  * @note Zeroing out the entire buffer, rather than just the problematic samples, is done due to needing to mitigate
- * potentially loud, errorneous output before an inf or NaN occur.
+ * potentially loud, erroneous output before an inf or NaN occur.
  *
  * @returns true if inf or NaN was detected
  * @returns false when an inf or NaN was not dectected or sanitzation is disabled.
