@@ -1481,7 +1481,11 @@ void MainWindow::exportProject(bool multiExport)
 
 		if (efd.exec() == QDialog::Accepted)
 		{
-			auto epd = ExportProjectDialog{efd.selectedFiles()[0], this, multiExport};
+			auto epd = ExportProjectDialog(
+				efd.selectedFiles()[0],
+				multiExport ? ExportProjectDialog::Mode::ExportTracks : ExportProjectDialog::Mode::ExportProject,
+				this
+			);
 			epd.exec();
 		}
 	}
@@ -1525,11 +1529,11 @@ void MainWindow::exportProject(bool multiExport)
 
 		if (efd.exec() == QDialog::Accepted)
 		{
-			auto epd = ExportProjectDialog{
+			auto epd = ExportProjectDialog(
 				efd.selectedFiles()[0],
 				multiExport ? ExportProjectDialog::Mode::ExportTracks : ExportProjectDialog::Mode::ExportProject,
 				this
-			};
+			);
 			epd.exec();
 		}
 	}
