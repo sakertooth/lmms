@@ -65,13 +65,14 @@ void SampleClipView::updateSample()
 {
 	update();
 
-	m_sampleThumbnail = SampleThumbnail{m_clip->m_sample};
+	m_sampleThumbnail = SampleThumbnail{m_clip->sampleFile(),
+		InterleavedBufferView<const float, 2>{m_clip->m_sampleBuffer->data(), m_clip->m_sampleBuffer->size()}};
 
 	// set tooltip to filename so that user can see what sample this
 	// sample-clip contains
 	setToolTip(
-		!m_clip->m_sample.sampleFile().isEmpty()
-			? PathUtil::toAbsolute(m_clip->m_sample.sampleFile())
+		!m_clip->m_sampleBuffer->audioFile().isEmpty()
+			? PathUtil::toAbsolute(m_clip->m_sampleBuffer->audioFile())
 			: tr("Double-click to open sample")
 	);
 }
@@ -282,23 +283,23 @@ void SampleClipView::paintEvent( QPaintEvent * pe )
 	float offsetStart = m_clip->startTimeOffset() / ticksPerBar * pixelsPerBar();
 	float sampleLength = m_clip->sampleLength() * ppb / ticksPerBar;
 
-	const auto& sample = m_clip->m_sample;
+	const auto& sampleBuffer = m_clip->m_sampleBuffer;
 
 	const auto sampleRextX = static_cast<int>(offsetStart) - m_paintPixmapXPosition;
 
-	if (sample.sampleSize() > 0)
+	if (sampleBuffer->size() > 0)
 	{
 		const auto param = SampleThumbnail::VisualizeParameters{
 			.sampleRect = QRect(sampleRextX, spacing, sampleLength, height() - spacing),
 			.viewportRect = viewPortRect,
-			.amplification = sample.amplification(),
-			.reversed = sample.reversed()
+			.amplification = 1.f,
+			.reversed = m_clip->m_isReversed
 		};
 
 		m_sampleThumbnail.visualize(param, p);
 	}
 
-	QString name = PathUtil::cleanName(m_clip->m_sample.sampleFile());
+	QString name = PathUtil::cleanName(m_clip->m_sampleBuffer->audioFile());
 	paintTextLabel(name, p);
 
 	// disable antialiasing for borders, since its not needed
@@ -355,7 +356,7 @@ void SampleClipView::paintEvent( QPaintEvent * pe )
 
 void SampleClipView::reverseSample()
 {
-	m_clip->m_sample.setReversed(!m_clip->m_sample.reversed());
+	m_clip->setIsReversed(!m_clip->isReversed());
 	m_clip->setStartTimeOffset(m_clip->length() - m_clip->startTimeOffset() - m_clip->sampleLength());
 	Engine::getSong()->setModified();
 	update();

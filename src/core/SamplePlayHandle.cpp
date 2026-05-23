@@ -27,15 +27,17 @@
 #include "AudioBusHandle.h"
 #include "Engine.h"
 #include "PatternTrack.h"
+#include "SampleBuffer.h"
 #include "SampleClip.h"
 #include "SampleTrack.h"
 
 namespace lmms
 {
 
-SamplePlayHandle::SamplePlayHandle(Sample* sample, bool ownAudioBusHandle)
+SamplePlayHandle::SamplePlayHandle(
+	std::shared_ptr<const SampleBuffer> sampleBuffer, bool ownAudioBusHandle)
 	: PlayHandle(Type::SamplePlayHandle)
-	, m_sample(sample)
+	, m_sample(InterleavedBufferView<const float, 2>{sampleBuffer->data(), sampleBuffer->size()}, sampleBuffer->sampleRate())
 	, m_ownAudioBusHandle(ownAudioBusHandle)
 {
 	if (ownAudioBusHandle)
@@ -48,7 +50,7 @@ SamplePlayHandle::SamplePlayHandle(Sample* sample, bool ownAudioBusHandle)
 
 
 SamplePlayHandle::SamplePlayHandle( const QString& sampleFile ) :
-	SamplePlayHandle(new Sample(SampleBuffer::fromFile(sampleFile)), true)
+	SamplePlayHandle(SampleBuffer::fromFile(sampleFile), true)
 {
 }
 
@@ -56,7 +58,7 @@ SamplePlayHandle::SamplePlayHandle( const QString& sampleFile ) :
 
 
 SamplePlayHandle::SamplePlayHandle( SampleClip* clip ) :
-	SamplePlayHandle(&clip->sample(), false)
+	SamplePlayHandle(clip->sampleBuffer(), false)
 {
 	m_track = clip->getTrack();
 	setAudioBusHandle(((SampleTrack *)clip->getTrack())->audioBusHandle());
@@ -70,7 +72,6 @@ SamplePlayHandle::~SamplePlayHandle()
 	if(m_ownAudioBusHandle)
 	{
 		delete audioBusHandle();
-		delete m_sample;
 	}
 }
 
@@ -106,7 +107,7 @@ void SamplePlayHandle::play( SampleFrame* buffer )
 				m_volumeModel->value() / DefaultVolume } };*/
 		// SamplePlayHandle always plays the sample at its original pitch;
 		// it is used only for previews, SampleTracks and the metronome.
-		if (!m_sample->play(workingBuffer, &m_state, frames))
+		if (!m_sample.process(InterleavedBufferView<float, 2>{workingBuffer, frames}))
 		{
 			zeroSampleFrames(workingBuffer, frames);
 		}
@@ -136,8 +137,8 @@ bool SamplePlayHandle::isFromTrack( const Track * _track ) const
 
 f_cnt_t SamplePlayHandle::totalFrames() const
 {
-	return (m_sample->endFrame() - m_sample->startFrame()) *
-			(static_cast<float>(Engine::audioEngine()->outputSampleRate()) / m_sample->sampleRate());
+	return (m_sample.endFrame() - m_sample.startFrame()) *
+			(static_cast<float>(Engine::audioEngine()->outputSampleRate()) / m_sample.sampleRate());
 }
 
 

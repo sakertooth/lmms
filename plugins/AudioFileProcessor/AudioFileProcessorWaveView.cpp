@@ -24,7 +24,8 @@
 
 #include "AudioFileProcessorWaveView.h"
 
-#include "Sample.h"
+#include "AudioFileProcessor.h"
+#include "AudioFileProcessorView.h"
 #include "ConfigManager.h"
 #include "DeprecationHelper.h"
 #include "SampleThumbnail.h"
@@ -44,17 +45,17 @@ namespace gui
 
 void AudioFileProcessorWaveView::updateSampleRange()
 {
-	if (m_sample->sampleSize() > 1)
+	if (m_model->numFrames() > 1)
 	{
-		const auto marging = (m_sample->endFrame() - m_sample->startFrame()) * 0.1;
-		setFrom(m_sample->startFrame() - marging);
-		setTo(m_sample->endFrame() + marging);
+		const auto marging = (m_model->endFrame() - m_model->startFrame()) * 0.1;
+		setFrom(m_model->startFrame() - marging);
+		setTo(m_model->endFrame() + marging);
 	}
 }
 
 void AudioFileProcessorWaveView::setTo(int to)
 {
-	m_to = std::min(to, static_cast<int>(m_sample->sampleSize()));
+	m_to = std::min(to, static_cast<int>(m_model->numFrames()));
 }
 
 void AudioFileProcessorWaveView::setFrom(int from)
@@ -67,24 +68,24 @@ int AudioFileProcessorWaveView::range() const
 	return m_to - m_from;
 }
 
-AudioFileProcessorWaveView::AudioFileProcessorWaveView(QWidget* parent, int w, int h, Sample const* buf,
-	knob* start, knob* end, knob* loop) :
-	QWidget(parent),
-	m_sample(buf),
-	m_graph(QPixmap(w - 2 * s_padding, h - 2 * s_padding)),
-	m_from(0),
-	m_to(m_sample->sampleSize()),
-	m_last_from(0),
-	m_last_to(0),
-	m_last_amp(0),
-	m_startKnob(start),
-	m_endKnob(end),
-	m_loopKnob(loop),
-	m_isDragging(false),
-	m_reversed(false),
-	m_framesPlayed(0),
-	m_animation(ConfigManager::inst()->value("ui", "animateafp").toInt()),
-	m_sampleThumbnail(*buf)
+AudioFileProcessorWaveView::AudioFileProcessorWaveView(
+	QWidget* parent, AudioFileProcessor* model, int w, int h, knob* start, knob* end, knob* loop)
+	: QWidget(parent)
+	, m_model(model)
+	, m_graph(QPixmap(w - 2 * s_padding, h - 2 * s_padding))
+	, m_from(0)
+	, m_to(m_model->endFrame())
+	, m_last_from(0)
+	, m_last_to(0)
+	, m_last_amp(0)
+	, m_startKnob(start)
+	, m_endKnob(end)
+	, m_loopKnob(loop)
+	, m_isDragging(false)
+	, m_reversed(false)
+	, m_framesPlayed(0)
+	, m_animation(ConfigManager::inst()->value("ui", "animateafp").toInt())
+	, m_sampleThumbnail(m_model->path(), m_model->sampleView())
 {
 	setFixedSize(w, h);
 	setMouseTracking(true);
@@ -210,11 +211,11 @@ void AudioFileProcessorWaveView::paintEvent(QPaintEvent * pe)
 
 	const QRect graph_rect(s_padding, s_padding, width() - 2 * s_padding, height() - 2 * s_padding);
 	const auto frames = range();
-	m_startFrameX = graph_rect.x() + (m_sample->startFrame() - m_from) *
+	m_startFrameX = graph_rect.x() + (m_model->startFrame() - m_from) *
 						double(graph_rect.width()) / frames;
-	m_endFrameX = graph_rect.x() + (m_sample->endFrame() - m_from) *
+	m_endFrameX = graph_rect.x() + (m_model->endFrame() - m_from) *
 						double(graph_rect.width()) / frames;
-	m_loopFrameX = graph_rect.x() + (m_sample->loopStartFrame() - m_from) *
+	m_loopFrameX = graph_rect.x() + (m_model->loopFrame() - m_from) *
 						double(graph_rect.width()) / frames;
 	const int played_width_px = (m_framesPlayed - m_from) *
 						double(graph_rect.width()) / frames;
@@ -289,7 +290,7 @@ void AudioFileProcessorWaveView::paintEvent(QPaintEvent * pe)
 	p.setFont(adjustedToPixelSize(font(), SMALL_FONT_SIZE));
 
 	QString length_text;
-	const int length = m_sample->sampleDuration().count();
+	const int length = m_model->sampleDuration().count();
 
 	if (length > 20000)
 	{
@@ -313,47 +314,51 @@ void AudioFileProcessorWaveView::paintEvent(QPaintEvent * pe)
 
 void AudioFileProcessorWaveView::updateGraph()
 {
+	const auto startFrame = m_model->startPointModel().value() * m_model->numFrames();
+	const auto endFrame = m_model->endPointModel().value() * m_model->numFrames();
+	const auto amplification = m_model->ampModel().value() / 100.0f;
+
 	if (m_to == 1)
 	{
-		setTo(m_sample->sampleSize() * 0.7);
+		setTo(m_model->numFrames() * 0.7);
 		slideSamplePointToFrames(Point::End, m_to * 0.7);
 	}
 
-	if (m_from > m_sample->startFrame())
+	if (m_from > startFrame)
 	{
-		setFrom(m_sample->startFrame());
+		setFrom(startFrame);
 	}
 
-	if (m_to < m_sample->endFrame())
+	if (m_to < endFrame)
 	{
-		setTo(m_sample->endFrame());
+		setTo(endFrame);
 	}
 
-	if (m_sample->reversed() != m_reversed)
+	if (m_model->reverseModel().value() != m_reversed)
 	{
 		reverse();
 	}
-	else if (m_last_from == m_from && m_last_to == m_to && m_sample->amplification() == m_last_amp)
+	else if (m_last_from == m_from && m_last_to == m_to && m_model->ampModel().value() == m_last_amp)
 	{
 		return;
 	}
 
 	m_last_from = m_from;
 	m_last_to = m_to;
-	m_last_amp = m_sample->amplification();
+	m_last_amp = amplification;
 
 	m_graph.fill(Qt::transparent);
 	QPainter p(&m_graph);
 	p.setPen(QColor(255, 255, 255));
 
-	m_sampleThumbnail = SampleThumbnail{*m_sample};
+	m_sampleThumbnail = SampleThumbnail{m_model->path(), InterleavedBufferView<const float>{}};
 
 	const auto param = SampleThumbnail::VisualizeParameters{
 		.sampleRect = m_graph.rect(),
-		.amplification = m_sample->amplification(),
-		.sampleStart = static_cast<float>(m_from) / m_sample->sampleSize(),
-		.sampleEnd = static_cast<float>(m_to) / m_sample->sampleSize(),
-		.reversed = m_sample->reversed(),
+		.amplification = amplification,
+		.sampleStart = static_cast<float>(m_from) / m_model->numFrames(),
+		.sampleEnd = static_cast<float>(m_to) / m_model->numFrames(),
+		.reversed = m_model->reverseModel().value(),
 	};
 
 	m_sampleThumbnail.visualize(param, p);
@@ -361,9 +366,9 @@ void AudioFileProcessorWaveView::updateGraph()
 
 void AudioFileProcessorWaveView::zoom(const bool out)
 {
-	const auto start = m_sample->startFrame();
-	const auto end = m_sample->endFrame();
-	const auto frames = m_sample->sampleSize();
+	const auto start = static_cast<int>(m_model->startFrame());
+	const auto end = static_cast<int>(m_model->endFrame());
+	const auto frames = static_cast<int>(m_model->numFrames());
 
 	const auto dFrom = start - m_from;
 	const auto dTo = m_to - end;
@@ -386,7 +391,7 @@ void AudioFileProcessorWaveView::zoom(const bool out)
 		? std::clamp(m_to + fromStep, static_cast<double>(end), static_cast<double>(frames))
 		: boundedTo;
 
-	if ((newTo - newFrom) / m_sample->sampleRate() > 0.05)
+	if ((newTo - newFrom) / m_model->sampleRate() > 0.05)
 	{
 		setFrom(newFrom);
 		setTo(newTo);
@@ -398,11 +403,11 @@ void AudioFileProcessorWaveView::slide(int px)
 	const double fact = qAbs(double(px) / width());
 	auto step = range() * fact * (px > 0 ? 1 : -1);
 
-	const auto sampleStart = static_cast<double>(m_sample->startFrame());
-	const auto sampleEnd = static_cast<double>(m_sample->endFrame());
+	const auto sampleStart = static_cast<double>(m_model->startFrame());
+	const auto sampleEnd = static_cast<double>(m_model->endFrame());
 
-	const auto stepFrom = std::clamp(sampleStart + step, 0.0, static_cast<double>(m_sample->sampleSize())) - sampleStart;
-	const auto stepTo = std::clamp(sampleEnd + step, sampleStart + 1.0, static_cast<double>(m_sample->sampleSize())) - sampleEnd;
+	const auto stepFrom = std::clamp(sampleStart + step, 0.0, static_cast<double>(m_model->numFrames())) - sampleStart;
+	const auto stepTo = std::clamp(sampleEnd + step, sampleStart + 1.0, static_cast<double>(m_model->numFrames())) - sampleEnd;
 	step = std::abs(stepFrom) < std::abs(stepTo) ? stepFrom : stepTo;
 
 	slideSampleByFrames(step);
@@ -436,7 +441,7 @@ void AudioFileProcessorWaveView::slideSamplePointByFrames(Point point, long fram
 	}
 	else
 	{
-		const double v = static_cast<double>(frameOffset) / m_sample->sampleSize();
+		const double v = static_cast<double>(frameOffset) / m_model->numFrames();
 		if (slideTo)
 		{
 			a_knob->slideTo(v);
@@ -453,11 +458,11 @@ void AudioFileProcessorWaveView::slideSamplePointByFrames(Point point, long fram
 
 void AudioFileProcessorWaveView::slideSampleByFrames(long frameOffset)
 {
-	if (m_sample->sampleSize() <= 1)
+	if (m_model->numFrames() <= 1)
 	{
 		return;
 	}
-	const double v = static_cast<double>(frameOffset) / m_sample->sampleSize();
+	const double v = static_cast<double>(frameOffset) / m_model->numFrames();
 	// update knobs in the right order
 	// to avoid them clamping each other
 	if (v < 0)
@@ -476,16 +481,12 @@ void AudioFileProcessorWaveView::slideSampleByFrames(long frameOffset)
 
 void AudioFileProcessorWaveView::reverse()
 {
-	slideSampleByFrames(
-		m_sample->sampleSize()
-			- m_sample->endFrame()
-			- m_sample->startFrame()
-	);
-	
+	slideSampleByFrames(m_model->numFrames() - m_model->endFrame() - m_model->startFrame());
+
 	const int fromTmp = m_from;
 
-	setFrom(m_sample->sampleSize() - m_to);
-	setTo(m_sample->sampleSize() - fromTmp);
+	setFrom(m_model->numFrames() - m_to);
+	setTo(m_model->numFrames() - fromTmp);
 	m_reversed = ! m_reversed;
 }
 
@@ -539,7 +540,7 @@ void AudioFileProcessorWaveView::knob::slideTo(double v, bool check_bound)
 float AudioFileProcessorWaveView::knob::getValue(const QPoint & p)
 {
 	const double dec_fact = ! m_waveView ? 1 :
-		static_cast<double>(m_waveView->m_to - m_waveView->m_from) / m_waveView->m_sample->sampleSize();
+		static_cast<double>(m_waveView->m_to - m_waveView->m_from) / m_waveView->m_model->numFrames();
 	const float inc = Knob::getValue(p) * dec_fact;
 
 	return inc;
@@ -557,12 +558,12 @@ bool AudioFileProcessorWaveView::knob::checkBound(double v) const
 		return false;
 
 	const double d1 = qAbs(m_relatedKnob->model()->value() - model()->value())
-		* (m_waveView->m_sample->sampleSize())
-		/ m_waveView->m_sample->sampleRate();
+		* (m_waveView->m_model->numFrames())
+		/ m_waveView->m_model->sampleRate();
 
 	const double d2 = qAbs(m_relatedKnob->model()->value() - v)
-		* (m_waveView->m_sample->sampleSize())
-		/ m_waveView->m_sample->sampleRate();
+		* (m_waveView->m_model->numFrames())
+		/ m_waveView->m_model->sampleRate();
 
 	return d1 < d2 || d2 > 0.005;
 }

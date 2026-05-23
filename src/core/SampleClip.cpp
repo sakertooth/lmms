@@ -35,9 +35,9 @@
 namespace lmms
 {
 
-SampleClip::SampleClip(Track* _track, Sample sample, bool isPlaying)
+SampleClip::SampleClip(Track* _track, std::shared_ptr<const SampleBuffer> sampleBuffer, bool isPlaying)
 	: Clip(_track)
-	, m_sample(std::move(sample))
+	, m_sampleBuffer(std::move(sampleBuffer))
 	, m_isPlaying(false)
 {
 	saveJournallingState( false );
@@ -69,13 +69,13 @@ SampleClip::SampleClip(Track* _track, Sample sample, bool isPlaying)
 }
 
 SampleClip::SampleClip(Track* track)
-	: SampleClip(track, Sample(), false)
+	: SampleClip(track, SampleBuffer::emptyBuffer(), false)
 {
 }
 
 SampleClip::SampleClip(const SampleClip& orig) :
 	Clip(orig),
-	m_sample(std::move(orig.m_sample)),
+	m_sampleBuffer(std::move(orig.m_sampleBuffer)),
 	m_isPlaying(orig.m_isPlaying)
 {
 	saveJournallingState( false );
@@ -130,19 +130,19 @@ void SampleClip::changeLength( const TimePos & _length )
 
 const QString& SampleClip::sampleFile() const
 {
-	return m_sample.sampleFile();
+	return m_sampleBuffer->audioFile();
 }
 
 bool SampleClip::hasSampleFileLoaded(const QString & filename) const
 {
-	return m_sample.sampleFile() == filename;
+	return m_sampleBuffer->audioFile() == filename;
 }
 
 void SampleClip::setSampleBuffer(std::shared_ptr<const SampleBuffer> sb)
 {
 	{
 		const auto guard = Engine::audioEngine()->requestChangesGuard();
-		m_sample = Sample(std::move(sb));
+		m_sampleBuffer = std::move(sb);
 	}
 	updateLength();
 
@@ -157,7 +157,7 @@ void SampleClip::setSampleFile(const QString& sf)
 	setStartTimeOffset(0);
 	if (!sf.isEmpty())
 	{
-		m_sample = Sample(SampleBuffer::fromFile(sf));
+		m_sampleBuffer = SampleBuffer::fromFile(sf);
 		updateLength();
 	}
 	else
@@ -203,23 +203,35 @@ void SampleClip::updateTrackClips()
 	}
 }
 
+f_cnt_t SampleClip::startFrame() const
+{
+	return m_startFrame;
+}
 
-
+f_cnt_t SampleClip::endFrame() const
+{
+	return m_endFrame;
+}
 
 bool SampleClip::isPlaying() const
 {
 	return m_isPlaying;
 }
 
-
-
+bool SampleClip::isReversed() const
+{
+	return m_isReversed;
+}
 
 void SampleClip::setIsPlaying(bool isPlaying)
 {
 	m_isPlaying = isPlaying;
 }
 
-
+void SampleClip::setIsReversed(bool isReversed)
+{
+	m_isReversed = isReversed;
+}
 
 
 void SampleClip::updateLength()
@@ -241,7 +253,7 @@ void SampleClip::updateLength()
 
 TimePos SampleClip::sampleLength() const
 {
-	return static_cast<int>(m_sample.sampleSize() / Engine::framesPerTick(m_sample.sampleRate()));
+	return static_cast<int>(m_sampleBuffer->size() / Engine::framesPerTick(m_sampleBuffer->sampleRate()));
 }
 
 
@@ -249,7 +261,7 @@ TimePos SampleClip::sampleLength() const
 
 void SampleClip::setSampleStartFrame(f_cnt_t startFrame)
 {
-	m_sample.setStartFrame(startFrame);
+	m_startFrame = startFrame;
 }
 
 
@@ -257,7 +269,7 @@ void SampleClip::setSampleStartFrame(f_cnt_t startFrame)
 
 void SampleClip::setSamplePlayLength(f_cnt_t length)
 {
-	m_sample.setEndFrame(length);
+	m_endFrame = length;
 }
 
 
@@ -281,15 +293,15 @@ void SampleClip::saveSettings( QDomDocument & _doc, QDomElement & _this )
 	if( sampleFile() == "" )
 	{
 		QString s;
-		_this.setAttribute("data", m_sample.toBase64());
+		_this.setAttribute("data", m_sampleBuffer->toBase64());
 	}
 
-	_this.setAttribute( "sample_rate", m_sample.sampleRate());
+	_this.setAttribute( "sample_rate", m_sampleBuffer->sampleRate());
 	if (const auto& c = color())
 	{
 		_this.setAttribute("color", c->name());
 	}
-	if (m_sample.reversed())
+	if (m_isReversed)
 	{
 		_this.setAttribute("reversed", "true");
 	}
@@ -321,7 +333,7 @@ void SampleClip::loadSettings( const QDomElement & _this )
 			Engine::audioEngine()->outputSampleRate();
 
 		auto buffer = SampleBuffer::fromBase64(_this.attribute("data"), sampleRate);
-		m_sample = Sample(std::move(buffer));
+		m_sampleBuffer = std::move(buffer);
 	}
 	changeLength( _this.attribute( "len" ).toInt() );
 	setMuted( _this.attribute( "muted" ).toInt() );
@@ -335,7 +347,7 @@ void SampleClip::loadSettings( const QDomElement & _this )
 
 	if(_this.hasAttribute("reversed"))
 	{
-		m_sample.setReversed(true);
+		m_isReversed = true;
 		emit wasReversed(); // tell SampleClipView to update the view
 	}
 }

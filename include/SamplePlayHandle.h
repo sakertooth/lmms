@@ -28,6 +28,7 @@
 
 #include "Sample.h"
 #include "PlayHandle.h"
+#include "SampleBuffer.h"
 
 namespace lmms
 {
@@ -41,7 +42,7 @@ class Track;
 class LMMS_EXPORT SamplePlayHandle : public PlayHandle
 {
 public:
-	SamplePlayHandle(Sample* sample, bool ownAudioBusHandle = true);
+	SamplePlayHandle(std::shared_ptr<const SampleBuffer> sampleBuffer, bool ownAudioBusHandle = true);
 	SamplePlayHandle( const QString& sampleFile );
 	SamplePlayHandle( SampleClip* clip );
 	~SamplePlayHandle() override;
@@ -73,9 +74,8 @@ public:
 	}
 
 private:
-	Sample::PlaybackState m_state;
 	f_cnt_t m_frame = 0;
-	Sample* m_sample = nullptr;
+	Sample m_sample;
 	Track* m_track = nullptr;
 	PatternTrack* m_patternTrack = nullptr;
 	bool m_doneMayReturnTrue = true;

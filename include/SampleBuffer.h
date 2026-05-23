@@ -53,6 +53,8 @@ public:
 	SampleBuffer(
 		const SampleFrame* data, size_t numFrames, int sampleRate = Engine::audioEngine()->outputSampleRate());
 
+	auto duration() const -> std::chrono::milliseconds;
+
 	friend void swap(SampleBuffer& first, SampleBuffer& second) noexcept;
 	auto toBase64() const -> QString;
 

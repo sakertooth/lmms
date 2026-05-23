@@ -1019,7 +1019,10 @@ void AutomationEditor::setGhostSample(SampleClip* newGhostSample)
 	// Expects a pointer to a Sample buffer or nullptr.
 	m_ghostSample = newGhostSample;
 	m_renderSample = true;
-	m_sampleThumbnail = SampleThumbnail{newGhostSample->sample()};
+
+	const auto buffer = newGhostSample->sampleBuffer();
+	m_sampleThumbnail = SampleThumbnail{
+		newGhostSample->sampleFile(), InterleavedBufferView<const float, 2>{buffer->data(), buffer->size()}};
 }
 
 void AutomationEditor::paintEvent(QPaintEvent * pe )
@@ -1197,9 +1200,9 @@ void AutomationEditor::paintEvent(QPaintEvent * pe )
 		}
 
 		// draw ghost sample
-		if (m_ghostSample != nullptr && m_ghostSample->sample().sampleSize() > 1 && m_renderSample)
+		if (m_ghostSample != nullptr && m_ghostSample->sampleBuffer()->size() > 1 && m_renderSample)
 		{
-			int sampleFrames = m_ghostSample->sample().sampleSize();
+			int sampleFrames = m_ghostSample->sampleBuffer()->size();
 			int length = static_cast<float>(sampleFrames) / Engine::framesPerTick();
 			int editorHeight = grid_bottom - TOP_MARGIN;
 
@@ -1210,15 +1213,15 @@ void AutomationEditor::paintEvent(QPaintEvent * pe )
 
 			p.setPen(m_ghostSampleColor);
 
-			const auto& sample = m_ghostSample->sample();
+			const auto& sampleBuffer = m_ghostSample->sampleBuffer();
 
 			const auto param = SampleThumbnail::VisualizeParameters{
 				.sampleRect = QRect(startPos, yOffset, sampleWidth, sampleHeight),
 				.viewportRect = rect(),
-				.amplification = sample.amplification(),
-				.sampleStart = static_cast<float>(sample.startFrame()) / sample.sampleSize(),
-				.sampleEnd = static_cast<float>(sample.endFrame()) / sample.sampleSize(),
-				.reversed = sample.reversed()
+				.amplification = 1.f,
+				.sampleStart = static_cast<float>(m_ghostSample->startFrame()) / sampleBuffer->size(),
+				.sampleEnd = static_cast<float>(m_ghostSample->endFrame()) / sampleBuffer->size(),
+				.reversed = m_ghostSample->isReversed()
 			};
 
 			m_sampleThumbnail.visualize(param, p);

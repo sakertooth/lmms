@@ -130,4 +130,9 @@ std::shared_ptr<const SampleBuffer> SampleBuffer::fromBase64(const QString& str,
 	return std::make_shared<SampleBuffer>(std::move(data), sampleRate);
 }
 
+auto SampleBuffer::duration() const -> std::chrono::milliseconds
+{
+	return std::chrono::milliseconds{m_data.size() / m_sampleRate};
+}
+
 } // namespace lmms

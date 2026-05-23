@@ -31,8 +31,8 @@
 #include "ComboBoxModel.h"
 
 #include "Instrument.h"
-#include "Sample.h"
 #include "LmmsTypes.h"
+#include "SampleBuffer.h"
 
 
 namespace lmms
@@ -64,7 +64,17 @@ public:
 
 	gui::PluginView* instantiateView( QWidget * _parent ) override;
 
-	Sample const & sample() const { return m_sample; }
+	auto startFrame() const -> f_cnt_t { return m_startPointModel.value() * m_sampleBuffer->size(); }
+	auto endFrame() const -> f_cnt_t { return m_endPointModel.value() * m_sampleBuffer->size(); }
+	auto loopFrame() const -> f_cnt_t { return m_loopPointModel.value() * m_sampleBuffer->size(); }
+	auto numFrames() const -> f_cnt_t { return m_sampleBuffer->size(); }
+
+	auto sampleDuration() const -> std::chrono::milliseconds { return m_sampleBuffer->duration(); }
+	auto sampleRate() const -> sample_rate_t { return m_sampleBuffer->sampleRate(); }
+	auto sampleView() const -> InterleavedBufferView<const float>
+	{ return InterleavedBufferView<const float, 2>{m_sampleBuffer->data(), m_sampleBuffer->size()}; }
+
+	auto path() const -> const QString& { return m_sampleBuffer->audioFile(); }
 
 	FloatModel & ampModel() { return m_ampModel; }
 	FloatModel & startPointModel() { return m_startPointModel; }
@@ -94,7 +104,7 @@ signals:
 	void sampleUpdated();
 
 private:
-	Sample m_sample;
+	std::shared_ptr<const SampleBuffer> m_sampleBuffer;
 
 	FloatModel m_ampModel;
 	FloatModel m_startPointModel;

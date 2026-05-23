@@ -182,7 +182,7 @@ void AudioFileProcessorView::newWaveView()
 		delete m_waveView;
 		m_waveView = 0;
 	}
-	m_waveView = new AudioFileProcessorWaveView(this, 245, 75, &castModel<AudioFileProcessor>()->sample(),
+	m_waveView = new AudioFileProcessorWaveView(this, castModel<AudioFileProcessor>(), 245, 75,
 		dynamic_cast<AudioFileProcessorWaveView::knob*>(m_startKnob),
 		dynamic_cast<AudioFileProcessorWaveView::knob*>(m_endKnob),
 		dynamic_cast<AudioFileProcessorWaveView::knob*>(m_loopKnob));
@@ -224,7 +224,7 @@ void AudioFileProcessorView::paintEvent(QPaintEvent*)
 
 	QString file_name = "";
 
-	int idx = a->sample().sampleFile().length();
+	int idx = a->path().length();
 
 	p.setFont(adjustedToPixelSize(font(), SMALL_FONT_SIZE));
 
@@ -235,7 +235,7 @@ void AudioFileProcessorView::paintEvent(QPaintEvent*)
 	while(idx > 0 &&
 		fm.size(Qt::TextSingleLine, file_name + "...").width() < 210)
 	{
-		file_name = a->sample().sampleFile()[--idx] + file_name;
+		file_name = a->path()[--idx] + file_name;
 	}
 
 	if (idx > 0)

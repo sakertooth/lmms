@@ -33,7 +33,7 @@
 namespace lmms
 {
 
-class Sample;
+class AudioFileProcessor;
 
 namespace gui
 {
@@ -123,7 +123,7 @@ private:
 		SampleLoop
 	} ;
 
-	Sample const* m_sample;
+	AudioFileProcessor* m_model;
 	QPixmap m_graph;
 	int m_from;
 	int m_to;
@@ -147,9 +147,7 @@ private:
 	friend class AudioFileProcessorView;
 
 public:
-	AudioFileProcessorWaveView(QWidget* parent, int w, int h, Sample const* buf,
-		knob* start, knob* end, knob* loop);
-
+	AudioFileProcessorWaveView(QWidget* parent, AudioFileProcessor* model, int w, int h, knob* start, knob* end, knob* loop);
 
 	void updateSampleRange();
 private:

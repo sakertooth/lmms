@@ -47,7 +47,7 @@ class SampleClip : public Clip
 	Q_OBJECT
 	mapPropertyFromModel(bool,isRecord,setRecord,m_recordModel);
 public:
-	SampleClip(Track* track, Sample sample, bool isPlaying);
+	SampleClip(Track* _track, std::shared_ptr<const SampleBuffer> sampleBuffer, bool isPlaying);
 	SampleClip(Track* track);
 	~SampleClip() override;
 
@@ -64,19 +64,21 @@ public:
 		return "sampleclip";
 	}
 
-	Sample& sample()
-	{
-		return m_sample;
-	}
+	std::shared_ptr<const SampleBuffer> sampleBuffer() { return m_sampleBuffer; }
 
 	TimePos sampleLength() const;
 	void setSampleStartFrame( f_cnt_t startFrame );
 	void setSamplePlayLength( f_cnt_t length );
 	gui::ClipView * createView( gui::TrackView * _tv ) override;
 
+	f_cnt_t startFrame() const;
+	f_cnt_t endFrame() const;
 
 	bool isPlaying() const;
+	bool isReversed() const;
+
 	void setIsPlaying(bool isPlaying);
+	void setIsReversed(bool isReversed);
 	void setSampleBuffer(std::shared_ptr<const SampleBuffer> sb);
 
 	SampleClip* clone() override
@@ -95,8 +97,11 @@ protected:
 	SampleClip( const SampleClip& orig );
 
 private:
-	Sample m_sample;
+	std::shared_ptr<const SampleBuffer> m_sampleBuffer;
+	f_cnt_t m_startFrame;
+	f_cnt_t m_endFrame;
 	BoolModel m_recordModel;
+	bool m_isReversed;
 	bool m_isPlaying;
 
 	friend class gui::SampleClipView;

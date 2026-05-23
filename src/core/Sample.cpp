@@ -23,169 +23,120 @@
  */
 
 #include "Sample.h"
+#include "AudioChannelMatrix.h"
 
 namespace lmms {
 
-Sample::Sample(const SampleFrame* data, size_t numFrames, int sampleRate)
-	: m_buffer(std::make_shared<SampleBuffer>(data, numFrames, sampleRate))
-	, m_startFrame(0)
-	, m_endFrame(m_buffer->size())
-	, m_loopStartFrame(0)
-	, m_loopEndFrame(m_buffer->size())
+Sample::Sample(InterleavedBufferView<const float> buffer, sample_rate_t rate)
+	: m_buffer{buffer}
+	, m_sampleRate{rate}
+	, m_endFrame{buffer.frames()}
+	, m_loopEndFrame{buffer.frames()}
 {
 }
 
-Sample::Sample(std::shared_ptr<const SampleBuffer> buffer)
-	: m_buffer(buffer)
-	, m_startFrame(0)
-	, m_endFrame(m_buffer->size())
-	, m_loopStartFrame(0)
-	, m_loopEndFrame(m_buffer->size())
+f_cnt_t Sample::process(InterleavedBufferView<float> output)
 {
-}
+	const auto channelConversionMatrix = fetchChannelMatrix(m_buffer.channels(), output.channels());
+	if (channelConversionMatrix == std::nullopt) { return 0; }
 
-Sample::Sample(const Sample& other)
-	: m_buffer(other.m_buffer)
-	, m_startFrame(other.startFrame())
-	, m_endFrame(other.endFrame())
-	, m_loopStartFrame(other.loopStartFrame())
-	, m_loopEndFrame(other.loopEndFrame())
-	, m_amplification(other.amplification())
-	, m_frequency(other.frequency())
-	, m_reversed(other.reversed())
-{
-}
+	std::fill_n(output.data(), output.frames() * output.channels(), 0.f);
 
-Sample::Sample(Sample&& other) noexcept
-	: m_buffer(std::move(other.m_buffer))
-	, m_startFrame(other.startFrame())
-	, m_endFrame(other.endFrame())
-	, m_loopStartFrame(other.loopStartFrame())
-	, m_loopEndFrame(other.loopEndFrame())
-	, m_amplification(other.amplification())
-	, m_frequency(other.frequency())
-	, m_reversed(other.reversed())
-{
-}
-
-auto Sample::operator=(const Sample& other) -> Sample&
-{
-	m_buffer = other.m_buffer;
-	m_startFrame = other.startFrame();
-	m_endFrame = other.endFrame();
-	m_loopStartFrame = other.loopStartFrame();
-	m_loopEndFrame = other.loopEndFrame();
-	m_amplification = other.amplification();
-	m_frequency = other.frequency();
-	m_reversed = other.reversed();
-
-	return *this;
-}
-
-auto Sample::operator=(Sample&& other) noexcept -> Sample&
-{
-	m_buffer = std::move(other.m_buffer);
-	m_startFrame = other.startFrame();
-	m_endFrame = other.endFrame();
-	m_loopStartFrame = other.loopStartFrame();
-	m_loopEndFrame = other.loopEndFrame();
-	m_amplification = other.amplification();
-	m_frequency = other.frequency();
-	m_reversed = other.reversed();
-
-	return *this;
-}
-
-bool Sample::play(SampleFrame* dst, PlaybackState* state, size_t numFrames, Loop loop, double ratio) const
-{
-	state->m_frameIndex = std::max<int>(m_startFrame, state->m_frameIndex);
-
-	const auto sampleRateRatio = static_cast<double>(Engine::audioEngine()->outputSampleRate()) / m_buffer->sampleRate();
-	const auto freqRatio = frequency() / DefaultBaseFreq;
-	state->m_resampler.setRatio(sampleRateRatio * freqRatio * ratio);
-
-	// TODO: These kind of playback pipelines/graphs are repeated within other parts of the codebase that work with
-	// audio samples. We should find a way to unify this but the right abstraction is not so clear yet.
-	while (numFrames > 0)
+	return std::visit([&](auto&& matrix)
 	{
-		if (state->m_bufferView.empty())
+		for (f_cnt_t i = 0; i < output.frames(); ++i)
 		{
-			const auto rendered = render(state->m_buffer.data(), state->m_buffer.size(), state, loop);
-			state->m_bufferView = {state->m_buffer.data(), rendered};
+			switch (m_loopMode)
+			{
+			case LoopMode::Off:
+				if (m_frameIndex < 0 || m_frameIndex >= m_endFrame) { return i; }
+				break;
+			case LoopMode::On:
+				if (m_frameIndex < m_loopStartFrame && m_backwards)
+				{
+					m_frameIndex = m_loopEndFrame - 1;
+				}
+				else if (m_frameIndex >= m_loopEndFrame) { m_frameIndex = m_loopStartFrame; }
+				break;
+			case LoopMode::PingPong:
+				if (m_frameIndex < m_loopStartFrame && m_backwards)
+				{
+					m_frameIndex = m_loopStartFrame;
+					m_backwards = false;
+				}
+				else if (m_frameIndex >= m_loopEndFrame)
+				{
+					m_frameIndex = m_loopEndFrame - 1;
+					m_backwards = true;
+				}
+				break;
+			default:
+				break;
+			}
+
+			const auto index = static_cast<double>(m_reversed ? m_buffer.frames() - m_frameIndex - 1 : m_frameIndex);
+
+			for (auto srcChannel = 0; srcChannel < m_buffer.channels(); ++srcChannel)
+			{
+				const auto sample = interpolate(index, srcChannel);
+				for (auto dstChannel = 0; dstChannel < output.channels(); ++dstChannel)
+				{
+					output[i][dstChannel] += sample * matrix[srcChannel][dstChannel] * m_amplification;
+				}
+			}
+
+			m_backwards ? m_frameIndex -= m_phase : m_frameIndex += m_phase;
 		}
- 
-		const auto [inputFramesUsed, outputFramesGenerated] = state->m_resampler.process(
-			{&state->m_bufferView.data()[0][0], 2, state->m_bufferView.size()}, {&dst[0][0], 2, numFrames});
-
-		if (inputFramesUsed == 0 && outputFramesGenerated == 0)
-		{
-			std::fill_n(dst, numFrames, SampleFrame{});
-			break;
-		}
-
-		state->m_bufferView = state->m_bufferView.subspan(inputFramesUsed);
-		dst += outputFramesGenerated;
-		numFrames -= outputFramesGenerated;
-	}
-
-	return numFrames < Engine::audioEngine()->framesPerPeriod();
+		return output.frames();
+	}, channelConversionMatrix.value());
 }
 
-f_cnt_t Sample::render(SampleFrame* dst, f_cnt_t size, PlaybackState* state, Loop loop) const
+auto Sample::duration() const -> std::chrono::milliseconds
 {
-	for (f_cnt_t frame = 0; frame < size; ++frame)
-	{
-		switch (loop)
-		{
-		case Loop::Off:
-			if (state->m_frameIndex < 0 || state->m_frameIndex >= m_endFrame) { return frame; }
-			break;
-		case Loop::On:
-			if (state->m_frameIndex < m_loopStartFrame && state->m_backwards)
-			{
-				state->m_frameIndex = m_loopEndFrame - 1;
-			}
-			else if (state->m_frameIndex >= m_loopEndFrame) { state->m_frameIndex = m_loopStartFrame; }
-			break;
-		case Loop::PingPong:
-			if (state->m_frameIndex < m_loopStartFrame && state->m_backwards)
-			{
-				state->m_frameIndex = m_loopStartFrame;
-				state->m_backwards = false;
-			}
-			else if (state->m_frameIndex >= m_loopEndFrame)
-			{
-				state->m_frameIndex = m_loopEndFrame - 1;
-				state->m_backwards = true;
-			}
-			break;
-		default:
-			break;
-		}
-
-		const auto value
-			= m_buffer->data()[m_reversed ? m_buffer->size() - state->m_frameIndex - 1 : state->m_frameIndex]
-			* m_amplification;
-		dst[frame] = value;
-		state->m_backwards ? --state->m_frameIndex : ++state->m_frameIndex;
-	}
-
-	return size;
-}
-
-auto Sample::sampleDuration() const -> std::chrono::milliseconds
-{
-	const auto numFrames = endFrame() - startFrame();
-	const auto duration = numFrames / static_cast<float>(m_buffer->sampleRate()) * 1000;
+	const auto duration = (m_endFrame - m_startFrame) / static_cast<float>(m_sampleRate) * 1000;
 	return std::chrono::milliseconds{static_cast<int>(duration)};
 }
 
-void Sample::setAllPointFrames(int startFrame, int endFrame, int loopStartFrame, int loopEndFrame)
+void Sample::setBuffer(InterleavedBufferView<const float> buffer, sample_rate_t rate)
 {
-	setStartFrame(startFrame);
-	setEndFrame(endFrame);
-	setLoopStartFrame(loopStartFrame);
-	setLoopEndFrame(loopEndFrame);
+	if (m_buffer.data() == buffer.data() && m_buffer.frames() == buffer.frames()
+		&& m_buffer.channels() == buffer.channels() && m_sampleRate == rate)
+	{
+		return;
+	}
+
+	m_buffer = buffer;
+	m_sampleRate = rate;
+
+	m_startFrame = std::clamp(m_startFrame, f_cnt_t{0}, buffer.frames());
+	m_endFrame = std::clamp(m_endFrame, f_cnt_t{0}, buffer.frames());
+	m_frameIndex = std::clamp(m_frameIndex, static_cast<double>(m_startFrame), static_cast<double>(m_endFrame));
+	m_loopStartFrame = std::clamp(m_loopStartFrame, m_startFrame, m_endFrame);
+	m_loopEndFrame = std::clamp(m_loopEndFrame, m_startFrame, m_endFrame);
+}
+
+float Sample::interpolate(double index, ch_cnt_t channel)
+{
+	switch (m_interpolationMode)
+	{
+	case InterpolationMode::ZeroOrderHold:
+		return m_buffer[static_cast<f_cnt_t>(index)][channel];
+	case InterpolationMode::Linear:
+	{
+		const auto frameIndex = static_cast<f_cnt_t>(index);
+		const auto t = index - frameIndex;
+		const auto a = m_buffer[frameIndex][channel];
+		const auto b = frameIndex < m_buffer.frames() ? m_buffer[frameIndex + 1][channel] : 0.f;
+		return std::lerp(a, b, t);
+	}
+	case InterpolationMode::Sinc:
+	{
+		// for now
+		return m_buffer[static_cast<f_cnt_t>(index)][channel];
+	}
+	}
+
+	return 0.f;
 }
 
 } // namespace lmms
