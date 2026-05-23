@@ -104,7 +104,7 @@ signals:
 	void sampleUpdated();
 
 private:
-	std::shared_ptr<const SampleBuffer> m_sampleBuffer;
+	std::shared_ptr<const SampleBuffer> m_sampleBuffer = SampleBuffer::emptyBuffer();
 
 	FloatModel m_ampModel;
 	FloatModel m_startPointModel;

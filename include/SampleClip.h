@@ -27,7 +27,7 @@
 
 #include <memory>
 #include "Clip.h"
-#include "Sample.h"
+#include "SampleBuffer.h"
 
 namespace lmms
 {
@@ -97,7 +97,7 @@ protected:
 	SampleClip( const SampleClip& orig );
 
 private:
-	std::shared_ptr<const SampleBuffer> m_sampleBuffer;
+	std::shared_ptr<const SampleBuffer> m_sampleBuffer = SampleBuffer::emptyBuffer();
 	f_cnt_t m_startFrame;
 	f_cnt_t m_endFrame;
 	BoolModel m_recordModel;
