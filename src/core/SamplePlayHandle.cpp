@@ -34,10 +34,9 @@
 namespace lmms
 {
 
-SamplePlayHandle::SamplePlayHandle(
-	std::shared_ptr<const SampleBuffer> sampleBuffer, bool ownAudioBusHandle)
+SamplePlayHandle::SamplePlayHandle(std::shared_ptr<const SampleBuffer> sampleBuffer, bool ownAudioBusHandle)
 	: PlayHandle(Type::SamplePlayHandle)
-	, m_sample(InterleavedBufferView<const float, 2>{sampleBuffer->data(), sampleBuffer->size()}, sampleBuffer->sampleRate())
+	, m_sample(InterleavedBufferView{sampleBuffer->data(), sampleBuffer->size()}, sampleBuffer->sampleRate())
 	, m_ownAudioBusHandle(ownAudioBusHandle)
 {
 	if (ownAudioBusHandle)
@@ -107,7 +106,7 @@ void SamplePlayHandle::play( SampleFrame* buffer )
 				m_volumeModel->value() / DefaultVolume } };*/
 		// SamplePlayHandle always plays the sample at its original pitch;
 		// it is used only for previews, SampleTracks and the metronome.
-		if (!m_sample.play(InterleavedBufferView<float, 2>{workingBuffer, frames}))
+		if (!m_sample.play(InterleavedBufferView{workingBuffer, frames}))
 		{
 			zeroSampleFrames(workingBuffer, frames);
 		}

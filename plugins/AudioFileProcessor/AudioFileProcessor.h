@@ -72,7 +72,7 @@ public:
 	auto sampleDuration() const -> std::chrono::milliseconds { return m_sampleBuffer->duration(); }
 	auto sampleRate() const -> sample_rate_t { return m_sampleBuffer->sampleRate(); }
 	auto sampleView() const -> InterleavedBufferView<const float>
-	{ return InterleavedBufferView<const float, 2>{m_sampleBuffer->data(), m_sampleBuffer->size()}; }
+	{ return InterleavedBufferView{m_sampleBuffer->data(), m_sampleBuffer->size()}; }
 
 	auto path() const -> const QString& { return m_sampleBuffer->audioFile(); }
 

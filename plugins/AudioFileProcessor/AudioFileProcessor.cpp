@@ -147,7 +147,7 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 				break;
 		}
 
-		const auto bufferView = InterleavedBufferView<const float, 2>{m_sampleBuffer->data(), m_sampleBuffer->size()};
+		const auto bufferView = InterleavedBufferView{m_sampleBuffer->data(), m_sampleBuffer->size()};
 		const auto sample = static_cast<Sample*>(_n->m_pluginData);
 		_n->m_pluginData = new Sample(bufferView, Engine::audioEngine()->outputSampleRate());
 

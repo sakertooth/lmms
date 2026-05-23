@@ -126,7 +126,7 @@ float Sample::interpolate(double index, ch_cnt_t channel)
 		const auto frameIndex = static_cast<f_cnt_t>(index);
 		const auto t = index - frameIndex;
 		const auto a = m_buffer[frameIndex][channel];
-		const auto b = frameIndex < m_buffer.frames() ? m_buffer[frameIndex + 1][channel] : 0.f;
+		const auto b = (frameIndex + 1) < m_buffer.frames() ? m_buffer[frameIndex + 1][channel] : 0.f;
 		return std::lerp(a, b, t);
 	}
 	case InterpolationMode::Sinc:

@@ -66,7 +66,7 @@ void SampleClipView::updateSample()
 	update();
 
 	m_sampleThumbnail = SampleThumbnail{m_clip->sampleFile(),
-		InterleavedBufferView<const float, 2>{m_clip->m_sampleBuffer->data(), m_clip->m_sampleBuffer->size()}};
+		InterleavedBufferView{m_clip->m_sampleBuffer->data(), m_clip->m_sampleBuffer->size()}};
 
 	// set tooltip to filename so that user can see what sample this
 	// sample-clip contains

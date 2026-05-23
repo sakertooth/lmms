@@ -1021,8 +1021,8 @@ void AutomationEditor::setGhostSample(SampleClip* newGhostSample)
 	m_renderSample = true;
 
 	const auto buffer = newGhostSample->sampleBuffer();
-	m_sampleThumbnail = SampleThumbnail{
-		newGhostSample->sampleFile(), InterleavedBufferView<const float, 2>{buffer->data(), buffer->size()}};
+	const auto view = InterleavedBufferView{buffer->data(), buffer->size()};
+	m_sampleThumbnail = SampleThumbnail{newGhostSample->sampleFile(), view};
 }
 
 void AutomationEditor::paintEvent(QPaintEvent * pe )
