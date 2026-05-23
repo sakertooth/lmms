@@ -314,24 +314,20 @@ void AudioFileProcessorWaveView::paintEvent(QPaintEvent * pe)
 
 void AudioFileProcessorWaveView::updateGraph()
 {
-	const auto startFrame = m_model->startPointModel().value() * m_model->numFrames();
-	const auto endFrame = m_model->endPointModel().value() * m_model->numFrames();
-	const auto amplification = m_model->ampModel().value() / 100.0f;
-
 	if (m_to == 1)
 	{
 		setTo(m_model->numFrames() * 0.7);
 		slideSamplePointToFrames(Point::End, m_to * 0.7);
 	}
 
-	if (m_from > startFrame)
+	if (m_from > m_model->startFrame())
 	{
-		setFrom(startFrame);
+		setFrom(m_model->startFrame());
 	}
 
-	if (m_to < endFrame)
+	if (m_to < m_model->endFrame())
 	{
-		setTo(endFrame);
+		setTo(m_model->endFrame());
 	}
 
 	if (m_model->reverseModel().value() != m_reversed)
@@ -345,17 +341,17 @@ void AudioFileProcessorWaveView::updateGraph()
 
 	m_last_from = m_from;
 	m_last_to = m_to;
-	m_last_amp = amplification;
+	m_last_amp = m_model->ampModel().value() / 100.0f;
 
 	m_graph.fill(Qt::transparent);
 	QPainter p(&m_graph);
 	p.setPen(QColor(255, 255, 255));
 
-	m_sampleThumbnail = SampleThumbnail{m_model->path(), InterleavedBufferView<const float>{}};
+	m_sampleThumbnail = SampleThumbnail{m_model->path(), m_model->sampleView()};
 
 	const auto param = SampleThumbnail::VisualizeParameters{
 		.sampleRect = m_graph.rect(),
-		.amplification = amplification,
+		.amplification = m_last_amp,
 		.sampleStart = static_cast<float>(m_from) / m_model->numFrames(),
 		.sampleEnd = static_cast<float>(m_to) / m_model->numFrames(),
 		.reversed = m_model->reverseModel().value(),
