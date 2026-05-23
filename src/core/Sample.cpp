@@ -35,7 +35,7 @@ Sample::Sample(InterleavedBufferView<const float> buffer, sample_rate_t rate)
 {
 }
 
-f_cnt_t Sample::process(InterleavedBufferView<float> output)
+f_cnt_t Sample::play(InterleavedBufferView<float> output)
 {
 	const auto channelConversionMatrix = fetchChannelMatrix(m_buffer.channels(), output.channels());
 	if (channelConversionMatrix == std::nullopt) { return 0; }

@@ -176,7 +176,7 @@ void AudioFileProcessor::playNote( NotePlayHandle * _n,
 	if( ! _n->isFinished() )
 	{
 		const auto workingBufferView = InterleavedBufferView<float, 2>{_working_buffer + offset, frames};
-		if (static_cast<Sample*>(_n->m_pluginData)->process(workingBufferView))
+		if (static_cast<Sample*>(_n->m_pluginData)->play(workingBufferView))
 		{
 			applyRelease( _working_buffer, _n );
 			emit isPlaying(static_cast<Sample*>(_n->m_pluginData)->frameIndex());

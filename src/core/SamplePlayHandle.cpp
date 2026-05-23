@@ -107,7 +107,7 @@ void SamplePlayHandle::play( SampleFrame* buffer )
 				m_volumeModel->value() / DefaultVolume } };*/
 		// SamplePlayHandle always plays the sample at its original pitch;
 		// it is used only for previews, SampleTracks and the metronome.
-		if (!m_sample.process(InterleavedBufferView<float, 2>{workingBuffer, frames}))
+		if (!m_sample.play(InterleavedBufferView<float, 2>{workingBuffer, frames}))
 		{
 			zeroSampleFrames(workingBuffer, frames);
 		}

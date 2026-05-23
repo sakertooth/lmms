@@ -51,7 +51,7 @@ public:
 
 	Sample(InterleavedBufferView<const float> buffer, sample_rate_t rate);
 
-	auto process(InterleavedBufferView<float> output) -> f_cnt_t;
+	auto play(InterleavedBufferView<float> output) -> f_cnt_t;
 
 	auto frames() const -> f_cnt_t { return m_buffer.frames(); }
 	auto duration() const -> std::chrono::milliseconds;
