@@ -24,10 +24,10 @@
 
 #include "FileBrowserModel.h"
 
+#include <QDir>
+#include <QFileInfo>
 #include <QPixmap>
-#include <filesystem>
 
-#include "PathUtil.h"
 #include "embed.h"
 
 namespace lmms {
@@ -49,46 +49,39 @@ FileBrowserModel::FileBrowserModel(const QStringList& rootPaths, RootPathsType r
 
 void FileBrowserModel::expand(Node* node, const QStringList& paths)
 {
-	if (paths.isEmpty() && node->path.isEmpty()) { return; }
+	auto items = QStringList{};
 
-	const auto& pathsToUse = paths.isEmpty() ? QStringList{node->path} : paths;
-	auto entries = QStringList{};
-
-	for (const auto& path : pathsToUse)
+	for (const auto& path : paths)
 	{
-		const auto fsPath = PathUtil::fsConvert(path);
-		if (!std::filesystem::is_directory(fsPath)) { continue; }
+		const auto dir = QDir{path};
+		const auto entries = dir.entryList(QDir::AllEntries | QDir::NoDotAndDotDot);
 
-		for (const auto& entry : std::filesystem::directory_iterator{fsPath})
+		for (const auto& entry : entries)
 		{
-			const auto entryPath = PathUtil::fsConvert(entry.path());
-			entries.append(entryPath);
+			items.append(dir.absoluteFilePath(entry));
 		}
 	}
 
-	insert(node, entries);
+	insert(node, items);
 }
 
 void FileBrowserModel::insert(Node* node, const QStringList& paths)
 {
-	if (paths.isEmpty() && node->path.isEmpty()) { return; }
-
-	const auto& pathsToUse = paths.isEmpty() ? QStringList{node->path} : paths;
 	const auto firstRow = node->children.size();
-	const auto lastRow = firstRow + pathsToUse.size() - 1;
+	const auto lastRow = firstRow + paths.size() - 1;
 
 	beginInsertRows(indexForNode(node), firstRow, lastRow);
 
-	for (const auto& path : pathsToUse)
+	for (const auto& path : paths)
 	{
-		const auto fsPath = PathUtil::fsConvert(path);
 		const auto type = determineType(path);
-
 		if (type == Node::Type::Unknown) { continue; }
+
+		const auto info = QFileInfo{path};
 
 		auto child = std::make_unique<Node>();
 		child->parent = node;
-		child->name = PathUtil::fsConvert(fsPath.filename());
+		child->name = info.fileName();
 		child->path = path;
 		child->type = type;
 		child->row = node->children.size();
@@ -192,10 +185,6 @@ QPixmap FileBrowserModel::fetchPixmap(Node* node)
 
 auto FileBrowserModel::determineType(const QString& path) -> Node::Type
 {
-	const auto fsPath = PathUtil::fsConvert(path);
-	if (!std::filesystem::exists(fsPath)) { return Node::Type::Unknown; }
-	if (std::filesystem::is_directory(fsPath)) { return Node::Type::Directory; }
-
 	const auto projectFilters = QStringList{".mmp", ".mpt", ".mmpz"};
 	const auto presetFilters = QStringList{".xpf", ".xml", ".xiz", ".lv2"};
 	const auto soundFontFilters = QStringList{".sf2", ".sf3"};
@@ -210,7 +199,9 @@ auto FileBrowserModel::determineType(const QString& path) -> Node::Type
 	auto audioFilters
 		= QStringList{".wav", ".ogg", ".mp3", ".ds", ".flac", ".spx", ".voc", ".aif", ".aiff", ".au", ".raw"};
 
-	const auto extension = PathUtil::fsConvert(fsPath.extension());
+	const auto info = QFileInfo{path};
+	const auto extension = info.completeSuffix();
+
 	if (projectFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Project; }
 	if (presetFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Preset; }
 	if (soundFontFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::SoundFont; }
@@ -233,7 +224,7 @@ void FileBrowserModel::fetchMore(const QModelIndex& parent)
 	if (!parent.isValid()) { return; }
 
 	const auto node = static_cast<Node*>(parent.internalPointer());
-	expand(node);
+	expand(node, QStringList{node->path});
 }
 
 auto FileBrowserModel::canFetchMore(const QModelIndex& parent) const -> bool
@@ -244,7 +235,7 @@ auto FileBrowserModel::canFetchMore(const QModelIndex& parent) const -> bool
 	return node->type == Node::Type::Directory && node->children.empty();
 }
 
-auto FileBrowserModel::hasChildren(const QModelIndex &parent) const -> bool
+auto FileBrowserModel::hasChildren(const QModelIndex& parent) const -> bool
 {
 	if (!parent.isValid()) { return true; }
 

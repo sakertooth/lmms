@@ -43,13 +43,12 @@ public:
 	FileBrowserModel(const QStringList& rootPaths, RootPathsType rootPathsType, QObject* parent = nullptr);
 
 	/**
-	 * @brief Expands @a paths and adds the new entries as children of @a node. If @a paths is
-	 * empty, then the node's stored path (if it has one) is expanded instead. Regular files are ignored.
+	 * @brief Expands @a paths and adds the new entries as children of @a node.
 	 *
 	 * @param node
 	 * @param paths
 	 */
-	void expand(Node* node, const QStringList& paths = {});
+	void expand(Node* node, const QStringList& paths);
 
 	/**
 	 * @brief Insert the files (and folders) from the given @a paths as children of @a node.
@@ -57,7 +56,7 @@ public:
 	 * @param node 
 	 * @param paths 
 	 */
-	void insert(Node* node, const QStringList& paths = {});
+	void insert(Node* node, const QStringList& paths);
 
 	auto index(int row, int column, const QModelIndex& parent = QModelIndex()) const -> QModelIndex override;
 	auto parent(const QModelIndex& child) const -> QModelIndex override;
