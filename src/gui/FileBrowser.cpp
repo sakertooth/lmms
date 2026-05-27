@@ -48,6 +48,7 @@
 #include "DeprecationHelper.h"
 #include "Engine.h"
 #include "FileBrowser.h"
+#include "FileBrowserModel.h"
 #include "FileRevealer.h"
 #include "GuiApplication.h"
 #include "ImportFilter.h"
@@ -122,12 +123,21 @@ FileBrowser::FileBrowser(Type type, const QString& directories, const QString& f
 
 	addContentWidget( searchWidget );
 
-	m_fileBrowserTreeWidget = new FileBrowserTreeWidget( contentParent() );
-	addContentWidget( m_fileBrowserTreeWidget );
+	m_fileBrowserTreeWidget = new FileBrowserTreeWidget(nullptr);
+	// addContentWidget( m_fileBrowserTreeWidget );
 
-	m_searchTreeWidget = new FileBrowserTreeWidget(contentParent());
-	m_searchTreeWidget->hide();
-	addContentWidget(m_searchTreeWidget);
+	const auto browserModel = new FileBrowserModel(directories.split("*"), FileBrowserModel::RootPathsType::Directories, contentParent());
+	const auto browserTree = new QTreeView(contentParent());
+	browserTree->setModel(browserModel);
+	browserTree->setHeaderHidden(true);
+	browserTree->setMouseTracking(true);
+	browserTree->setAllColumnsShowFocus(true);
+
+	addContentWidget(browserTree);
+
+	m_searchTreeWidget = new FileBrowserTreeWidget(nullptr);
+	// m_searchTreeWidget->hide();
+	// addContentWidget(m_searchTreeWidget);
 
 	m_searchIndicator = new QProgressBar(this);
 	m_searchIndicator->setRange(0, 1);

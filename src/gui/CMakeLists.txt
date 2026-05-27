@@ -14,6 +14,7 @@ SET(LMMS_SRCS
 	gui/EffectView.cpp
 	gui/embed.cpp
 	gui/FileBrowser.cpp
+	gui/FileBrowserModel.cpp
 	gui/FileRevealer.cpp
 	gui/FileSearchJob.cpp
 	gui/GuiApplication.cpp
