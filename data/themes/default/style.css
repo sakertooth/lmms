@@ -12,18 +12,18 @@ QTreeView {
 	alternate-background-color: #111314;
 }
 
-QTreeWidget::item {
+QTreeView::item {
 	padding: 1px;
 }
 
-QTreeWidget::item:hover,
-QTreeWidget::branch:hover {
+QTreeView::item:hover,
+QTreeView::branch:hover {
 	background-color: #3C444E;
 	padding-left: 0px;
 }
 
-QTreeWidget::item:selected,
-QTreeWidget::branch:selected {
+QTreeView::item:selected,
+QTreeView::branch:selected {
 	background-color: #17793b;
 	padding-left: 0px;
 }
