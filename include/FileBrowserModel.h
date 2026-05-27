@@ -34,13 +34,13 @@ class FileBrowserModel : public QAbstractItemModel
 	struct Node;
 
 public:
-	enum class RootPathsType
+	enum class PathsType
 	{
-		Directories, //< Treat paths as browsable roots
-		Items		 //< Treat paths as direct child items
+		Roots, //< Treat paths as browsable roots
+		Items  //< Treat paths as child items
 	};
 
-	FileBrowserModel(const QStringList& rootPaths, RootPathsType rootPathsType, QObject* parent = nullptr);
+	FileBrowserModel(const QStringList& paths, PathsType pathsType, QObject* parent = nullptr);
 
 	/**
 	 * @brief Expands @a paths and adds the new entries as children of @a node.

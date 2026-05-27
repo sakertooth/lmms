@@ -32,17 +32,17 @@
 
 namespace lmms {
 
-FileBrowserModel::FileBrowserModel(const QStringList& rootPaths, RootPathsType rootPathsType, QObject* parent)
+FileBrowserModel::FileBrowserModel(const QStringList& paths, PathsType pathsType, QObject* parent)
 	: QAbstractItemModel(parent)
 	, m_root(std::make_unique<Node>())
 {
-	switch (rootPathsType)
+	switch (pathsType)
 	{
-	case RootPathsType::Directories:
-		expand(m_root.get(), rootPaths);
+	case PathsType::Roots:
+		expand(m_root.get(), paths);
 		break;
-	case RootPathsType::Items:
-		insert(m_root.get(), rootPaths);
+	case PathsType::Items:
+		insert(m_root.get(), paths);
 		break;
 	}
 }

@@ -126,7 +126,7 @@ FileBrowser::FileBrowser(Type type, const QString& directories, const QString& f
 	m_fileBrowserTreeWidget = new FileBrowserTreeWidget(nullptr);
 	// addContentWidget( m_fileBrowserTreeWidget );
 
-	const auto browserModel = new FileBrowserModel(directories.split("*"), FileBrowserModel::RootPathsType::Directories, contentParent());
+	const auto browserModel = new FileBrowserModel(directories.split("*"), FileBrowserModel::PathsType::Roots, contentParent());
 	const auto browserTree = new QTreeView(contentParent());
 	browserTree->setModel(browserModel);
 	browserTree->setHeaderHidden(true);
