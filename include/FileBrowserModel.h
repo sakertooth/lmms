@@ -32,7 +32,6 @@ namespace lmms {
 class FileBrowserModel : public QAbstractItemModel
 {
 	struct Node;
-
 public:
 	enum class PathsType
 	{
