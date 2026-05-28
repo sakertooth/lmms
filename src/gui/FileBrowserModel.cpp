@@ -185,29 +185,33 @@ QPixmap FileBrowserModel::fetchPixmap(Node* node)
 
 auto FileBrowserModel::determineType(const QString& path) -> Node::Type
 {
-	const auto projectFilters = QStringList{".mmp", ".mpt", ".mmpz"};
-	const auto presetFilters = QStringList{".xpf", ".xml", ".xiz", ".lv2"};
-	const auto soundFontFilters = QStringList{".sf2", ".sf3"};
-	const auto patchFilters = QStringList{".pat"};
-	const auto midiFilters = QStringList{".mid", ".midi", ".rmi"};
+	const auto info = QFileInfo{path};
+	if (!info.exists()) { return Node::Type::Unknown; }
+	if (info.isDir()) { return Node::Type::Directory; }
 
-	auto vstPluginFilters = QStringList{".dll"};
+	static const auto s_projectFilters = QStringList{"mmp", "mpt", "mmpz"};
+	static const auto s_presetFilters = QStringList{"xpf", "xml", "xiz", "lv2"};
+	static const auto s_soundFontFilters = QStringList{"sf2", "sf3"};
+	static const auto s_patchFilters = QStringList{"pat"};
+	static const auto s_midiFilters = QStringList{"mid", "midi", "rmi"};
+
 #ifdef LMMS_BUILD_LINUX
-	vstPluginFilters.append(".so");
+	static const auto s_vstPluginFilters = QStringList{"dll", "so"};
+#else
+	static const auto s_vstPluginFilters = QStringList{"dll"};
 #endif
 
 	auto audioFilters
-		= QStringList{".wav", ".ogg", ".mp3", ".ds", ".flac", ".spx", ".voc", ".aif", ".aiff", ".au", ".raw"};
+		= QStringList{"wav", "ogg", "mp3", "ds", "flac", "spx", "voc", "aif", "aiff", "au", "raw"};
 
-	const auto info = QFileInfo{path};
 	const auto extension = info.completeSuffix();
 
-	if (projectFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Project; }
-	if (presetFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Preset; }
-	if (soundFontFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::SoundFont; }
-	if (patchFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Patch; }
-	if (midiFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Midi; }
-	if (vstPluginFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::VstPlugin; }
+	if (s_projectFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Project; }
+	if (s_presetFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Preset; }
+	if (s_soundFontFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::SoundFont; }
+	if (s_patchFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Patch; }
+	if (s_midiFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Midi; }
+	if (s_vstPluginFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::VstPlugin; }
 	if (audioFilters.contains(extension, Qt::CaseInsensitive)) { return Node::Type::Sample; }
 
 	return Node::Type::Unknown;
