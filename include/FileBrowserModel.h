@@ -27,7 +27,7 @@
 
 #include <QAbstractItemModel>
 
-namespace lmms {
+namespace lmms::gui {
 
 class FileBrowserModel : public QAbstractItemModel
 {

@@ -30,7 +30,7 @@
 
 #include "embed.h"
 
-namespace lmms {
+namespace lmms::gui {
 
 FileBrowserModel::FileBrowserModel(const QStringList& paths, PathsType pathsType, QObject* parent)
 	: QAbstractItemModel(parent)
