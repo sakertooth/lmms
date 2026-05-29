@@ -48,7 +48,7 @@
 #include "DeprecationHelper.h"
 #include "Engine.h"
 #include "FileBrowser.h"
-#include "FileBrowserModel.h"
+#include "FileBrowserTreeModel.h"
 #include "FileRevealer.h"
 #include "GuiApplication.h"
 #include "ImportFilter.h"
@@ -126,7 +126,7 @@ FileBrowser::FileBrowser(Type type, const QString& directories, const QString& f
 	m_fileBrowserTreeWidget = new FileBrowserTreeWidget(nullptr);
 	// addContentWidget( m_fileBrowserTreeWidget );
 
-	const auto browserModel = new FileBrowserModel(directories.split("*"), FileBrowserModel::PathsType::Roots, contentParent());
+	const auto browserModel = new FileBrowserTreeModel(directories.split("*"), FileBrowserTreeModel::PathsType::Roots, contentParent());
 	const auto browserTree = new QTreeView(contentParent());
 	browserTree->setModel(browserModel);
 	browserTree->setHeaderHidden(true);

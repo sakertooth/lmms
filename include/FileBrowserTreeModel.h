@@ -22,14 +22,14 @@
  *
  */
 
-#ifndef LMMS_FILE_BROWSER_MODEL_H
-#define LMMS_FILE_BROWSER_MODEL_H
+#ifndef LMMS_FILE_BROWSER_TREE_MODEL_H
+#define LMMS_FILE_BROWSER_TREE_MODEL_H
 
 #include <QAbstractItemModel>
 
 namespace lmms::gui {
 
-class FileBrowserModel : public QAbstractItemModel
+class FileBrowserTreeModel : public QAbstractItemModel
 {
 	struct Node;
 public:
@@ -39,7 +39,7 @@ public:
 		Items  //< Treat paths as child items
 	};
 
-	FileBrowserModel(const QStringList& paths, PathsType pathsType, QObject* parent = nullptr);
+	FileBrowserTreeModel(const QStringList& paths, PathsType pathsType, QObject* parent = nullptr);
 
 	/**
 	 * @brief Expands @a paths and adds the new entries as children of @a node.
@@ -99,4 +99,4 @@ private:
 };
 } // namespace lmms
 
-#endif // LMMS_FILE_BROWSER_MODEL_H
+#endif // LMMS_FILE_BROWSER_TREE_MODEL_H

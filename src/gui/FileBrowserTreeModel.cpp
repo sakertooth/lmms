@@ -22,7 +22,7 @@
  *
  */
 
-#include "FileBrowserModel.h"
+#include "FileBrowserTreeModel.h"
 
 #include <QDir>
 #include <QFileInfo>
@@ -32,7 +32,7 @@
 
 namespace lmms::gui {
 
-FileBrowserModel::FileBrowserModel(const QStringList& paths, PathsType pathsType, QObject* parent)
+FileBrowserTreeModel::FileBrowserTreeModel(const QStringList& paths, PathsType pathsType, QObject* parent)
 	: QAbstractItemModel(parent)
 	, m_root(std::make_unique<Node>())
 {
@@ -47,7 +47,7 @@ FileBrowserModel::FileBrowserModel(const QStringList& paths, PathsType pathsType
 	}
 }
 
-void FileBrowserModel::expand(Node* node, const QStringList& paths)
+void FileBrowserTreeModel::expand(Node* node, const QStringList& paths)
 {
 	auto items = QStringList{};
 
@@ -65,7 +65,7 @@ void FileBrowserModel::expand(Node* node, const QStringList& paths)
 	insert(node, items);
 }
 
-void FileBrowserModel::insert(Node* node, const QStringList& paths)
+void FileBrowserTreeModel::insert(Node* node, const QStringList& paths)
 {
 	const auto firstRow = node->children.size();
 	const auto lastRow = firstRow + paths.size() - 1;
@@ -92,7 +92,7 @@ void FileBrowserModel::insert(Node* node, const QStringList& paths)
 	endInsertRows();
 }
 
-QModelIndex FileBrowserModel::index(int row, int column, const QModelIndex& parent) const
+QModelIndex FileBrowserTreeModel::index(int row, int column, const QModelIndex& parent) const
 {
 	if (!hasIndex(row, column, parent)) { return {}; }
 
@@ -103,7 +103,7 @@ QModelIndex FileBrowserModel::index(int row, int column, const QModelIndex& pare
 	return createIndex(row, column, const_cast<void*>(child));
 }
 
-QModelIndex FileBrowserModel::parent(const QModelIndex& child) const
+QModelIndex FileBrowserTreeModel::parent(const QModelIndex& child) const
 {
 	if (!child.isValid()) { return {}; }
 
@@ -114,7 +114,7 @@ QModelIndex FileBrowserModel::parent(const QModelIndex& child) const
 	return createIndex(parentNode->row, 0, parentNode);
 }
 
-int FileBrowserModel::rowCount(const QModelIndex& parent) const
+int FileBrowserTreeModel::rowCount(const QModelIndex& parent) const
 {
 	if (!parent.isValid()) { return m_root->children.size(); }
 
@@ -122,13 +122,13 @@ int FileBrowserModel::rowCount(const QModelIndex& parent) const
 	return node->children.size();
 }
 
-int FileBrowserModel::columnCount(const QModelIndex& parent) const
+int FileBrowserTreeModel::columnCount(const QModelIndex& parent) const
 {
 	Q_UNUSED(parent);
 	return 1;
 }
 
-QVariant FileBrowserModel::data(const QModelIndex& index, int role) const
+QVariant FileBrowserTreeModel::data(const QModelIndex& index, int role) const
 {
 	if (!index.isValid()) { return {}; }
 
@@ -145,7 +145,7 @@ QVariant FileBrowserModel::data(const QModelIndex& index, int role) const
 	return QVariant{};
 }
 
-QPixmap FileBrowserModel::fetchPixmap(Node* node)
+QPixmap FileBrowserTreeModel::fetchPixmap(Node* node)
 {
 	constexpr auto pixmapWidth = 16;
 	constexpr auto pixmapHeight = 16;
@@ -183,7 +183,7 @@ QPixmap FileBrowserModel::fetchPixmap(Node* node)
 	return QPixmap{};
 }
 
-auto FileBrowserModel::determineType(const QString& path) -> Node::Type
+auto FileBrowserTreeModel::determineType(const QString& path) -> Node::Type
 {
 	const auto info = QFileInfo{path};
 	if (!info.exists()) { return Node::Type::Unknown; }
@@ -217,13 +217,13 @@ auto FileBrowserModel::determineType(const QString& path) -> Node::Type
 	return Node::Type::Unknown;
 }
 
-auto FileBrowserModel::indexForNode(Node* node) -> QModelIndex
+auto FileBrowserTreeModel::indexForNode(Node* node) -> QModelIndex
 {
 	if (node == m_root.get()) { return {}; }
 	return index(node->row, 0, indexForNode(node->parent));
 }
 
-void FileBrowserModel::fetchMore(const QModelIndex& parent)
+void FileBrowserTreeModel::fetchMore(const QModelIndex& parent)
 {
 	if (!parent.isValid()) { return; }
 
@@ -231,7 +231,7 @@ void FileBrowserModel::fetchMore(const QModelIndex& parent)
 	expand(node, QStringList{node->path});
 }
 
-auto FileBrowserModel::canFetchMore(const QModelIndex& parent) const -> bool
+auto FileBrowserTreeModel::canFetchMore(const QModelIndex& parent) const -> bool
 {
 	if (!parent.isValid()) { return false; }
 
@@ -239,7 +239,7 @@ auto FileBrowserModel::canFetchMore(const QModelIndex& parent) const -> bool
 	return node->type == Node::Type::Directory && node->children.empty();
 }
 
-auto FileBrowserModel::hasChildren(const QModelIndex& parent) const -> bool
+auto FileBrowserTreeModel::hasChildren(const QModelIndex& parent) const -> bool
 {
 	if (!parent.isValid()) { return true; }
 
