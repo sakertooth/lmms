@@ -38,14 +38,38 @@ public:
     void render(InterleavedBufferView<float> dst);
     void render(PlanarBufferView<float> dst);
 
-	auto addAudioTrack(std::unique_ptr<AudioTrack> track) -> int;
-	void removeAudioTrack(int id);
-	void submitAuioTrackEvent(AudioTrackEvent event);
+	auto addTrack(std::unique_ptr<AudioTrack> track) -> int;
+	void removeTrack(int id);
 
     void addRoute(int fromTrackID, int toTrackID);
     void removeRoute(int fromTrackID, int toTrackID);
 
+    void submitTrackEvent(AudioTrackEvent event);
+
 private:
+    struct AddTrackCommand
+    {
+    };
+
+    struct RemoveTrackCommand
+    {
+    };
+
+    struct AddRouteCommand
+    {
+    };
+
+    struct RemoveRouteCommand
+    {
+    };
+
+    using Message = std::variant<
+        AudioTrackEvent,
+        AddTrackCommand,
+        RemoveTrackCommand,
+        AddRouteCommand,
+        RemoveRouteCommand>;
+
 	ArrayVector<std::unique_ptr<AudioTrack>, 1024> m_audioTracks;
 	ArrayVector<AudioBuffer, 1024> m_audioTrackBuses;
     ArrayVector<AudioTrackRoute, 8192> m_audioTrackRoutes;
