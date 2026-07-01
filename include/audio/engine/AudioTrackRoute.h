@@ -1,5 +1,5 @@
 /*
- * AudioEngine.h
+ * AudioTrackRoute.h
  *
  * Copyright (c) 2026 saker <sakertooth@gmail.com>
  *
@@ -22,34 +22,15 @@
  *
  */
 
-#ifndef LMMS_AUDIO_ENGINE_V2
-#define LMMS_AUDIO_ENGINE_V2
-
-#include <memory>
-
-#include "audio/engine/AudioTrack.h"
-#include "audio/engine/AudioTrackEvents.h"
-#include "audio/engine/AudioTrackRoute.h"
+#ifndef LMMS_AUDIO_TRACK_ROUTE_H
+#define LMMS_AUDIO_TRACK_ROUTE_H
 
 namespace lmms {
-class AudioEngineV2
+struct AudioTrackRoute
 {
-public:
-    void render(InterleavedBufferView<float> dst);
-    void render(PlanarBufferView<float> dst);
-
-	auto addAudioTrack(std::unique_ptr<AudioTrack> track) -> int;
-	void removeAudioTrack(int id);
-	void submitAuioTrackEvent(AudioTrackEvent event);
-
-    void addRoute(int fromTrackID, int toTrackID);
-    void removeRoute(int fromTrackID, int toTrackID);
-
-private:
-	ArrayVector<std::unique_ptr<AudioTrack>, 1024> m_audioTracks;
-	ArrayVector<AudioBuffer, 1024> m_audioTrackBuses;
-    ArrayVector<AudioTrackRoute, 8192> m_audioTrackRoutes;
+	int fromTrackID;
+	int toTrackID;
 };
 } // namespace lmms
 
-#endif // LMMS_AUDIO_ENGINE_V2
+#endif // LMMS_AUDIO_TRACK_ROUTE_H
