@@ -315,7 +315,44 @@ void AudioEngine::renderStageMix()
 	AutomatableModel::incrementPeriodCounter();
 }
 
+void AudioEngine::processCommandQueue()
+{
+	auto cmd = AudioEngineCommand{};
+	while (m_audioCommandQueue.try_dequeue(cmd))
+	{
+		std::visit(
+			[&](AudioEngineTransportCommand& cmd) {
+				switch (cmd.type)
+				{
+				case AudioEngineTransportCommand::Type::Play:
+					m_playing = true;
+					break;
+				case AudioEngineTransportCommand::Type::Pause:
+					m_playing = false;
+					break;
+				case AudioEngineTransportCommand::Type::Seek:
+					m_framePosition.store(cmd.framePosition, std::memory_order_relaxed);
+					break;
+				case AudioEngineTransportCommand::Type::SetLoopMarkers:
+					m_loopBegin = cmd.loopBegin;
+					m_loopEnd = cmd.loopEnd;
+					break;
+				case AudioEngineTransportCommand::Type::EnableLoop:
+					m_looping = true;
+					break;
+				case AudioEngineTransportCommand::Type::DisableLoop:
+					m_looping = false;
+					break;
+				}
+			},
+			cmd);
+	}
+}
 
+auto AudioEngine::framePosition() const -> f_cnt_t
+{
+	return m_framePosition.load(std::memory_order_relaxed);
+}
 
 std::span<const SampleFrame> AudioEngine::renderNextPeriod()
 {
@@ -324,6 +361,7 @@ std::span<const SampleFrame> AudioEngine::renderNextPeriod()
 	m_profiler.startPeriod();
 	s_renderingThread = true;
 
+	processCommandQueue();
 	renderStageNoteSetup();     // STAGE 0: clear old play handles and buffers, setup new play handles
 	renderStageInstruments();   // STAGE 1: run and render all play handles
 	renderStageEffects();       // STAGE 2: process effects of all instrument- and sampletracks
@@ -379,6 +417,16 @@ void AudioEngine::clearInternal()
 		{
 			m_playHandlesToRemove.push_back(ph);
 		}
+	}
+}
+
+void AudioEngine::submitCommand(AudioEngineCommand command)
+{
+	if (!m_audioCommandQueue.try_enqueue(std::move(command)))
+	{
+#ifdef LMMS_DEBUG
+		qDebug() << "Error: Not enough space to submit audio engine command into queue";
+#endif
 	}
 }
 

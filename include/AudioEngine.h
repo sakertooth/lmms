@@ -25,22 +25,21 @@
 #ifndef LMMS_AUDIO_ENGINE_H
 #define LMMS_AUDIO_ENGINE_H
 
-#include <mutex>
-
 #include <QThread>
-#include <samplerate.h>
-
 #include <memory>
+#include <mutex>
+#include <samplerate.h>
 #include <vector>
 
 #include "AudioBufferView.h"
 #include "AudioDevice.h"
-#include "LmmsTypes.h"
-#include "SampleFrame.h"
-#include "LocklessList.h"
+#include "AudioEngineCommands.h"
 #include "AudioEngineProfiler.h"
+#include "LmmsTypes.h"
+#include "LocklessList.h"
 #include "PlayHandle.h"
-
+#include "SampleFrame.h"
+#include "readerwriterqueue.h"
 
 namespace lmms
 {
@@ -289,6 +288,13 @@ public:
 	//! @copydoc renderNextBuffer(InterleavedBufferView<float>)
 	void renderNextBuffer(PlanarBufferView<float> dst) { renderNextBuffer<PlanarBufferView<float>>(dst); }
 
+	//! Submits @a command into the command queue.
+	//! Commands should be submitted when the engine needs to know of discrete events that change its state.
+	void submitCommand(AudioEngineCommand command);
+
+	//! @returns the current transport frame position
+	auto framePosition() const -> f_cnt_t;
+
 	//! Block until a change in model can be done (i.e. wait for audio thread)
 	void requestChangeInModel();
 	void doneChangeInModel();
@@ -314,6 +320,8 @@ signals:
 
 
 private:
+	void processCommandQueue();
+
 	void renderNextBuffer(AudioBufferView<float> auto dst)
 	{
 		for (auto frame = f_cnt_t{0}; frame < dst.frames(); ++frame)
@@ -366,6 +374,13 @@ private:
 	void swapBuffers();
 
 	void clearInternal();
+
+	moodycamel::ReaderWriterQueue<AudioEngineCommand> m_audioCommandQueue;
+	std::atomic<f_cnt_t> m_framePosition = 0;
+	f_cnt_t m_loopBegin = 0;
+	f_cnt_t m_loopEnd = 0;
+	bool m_playing = false;
+	bool m_looping = false;
 
 	bool m_renderOnly;
 
