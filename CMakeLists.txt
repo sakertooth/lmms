@@ -44,6 +44,7 @@ INCLUDE(CheckIncludeFiles)
 INCLUDE(FindPkgConfig)
 INCLUDE(GenerateExportHeader)
 include(StaticDependencies)
+include(FetchContent)
 
 STRING(TOUPPER          "${CMAKE_PROJECT_NAME}" PROJECT_NAME_UCASE)
 
