@@ -339,7 +339,7 @@ void AudioEngine::processCommandQueue()
 				case AudioEngineTransportCommand::Type::Play:
 					m_playing = true;
 					break;
-				case AudioEngineTransportCommand::Type::Pause:
+				case AudioEngineTransportCommand::Type::Stop:
 					m_playing = false;
 					break;
 				case AudioEngineTransportCommand::Type::Seek:

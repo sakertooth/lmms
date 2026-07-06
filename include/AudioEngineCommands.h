@@ -35,7 +35,7 @@ struct AudioEngineTransportCommand
 	enum class Type
 	{
 		Play,
-		Pause,
+		Stop,
 		Seek,
 		SetLoopMarkers,
 		EnableLoop,
