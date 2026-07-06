@@ -236,6 +236,18 @@ void AudioEngine::renderStageNoteSetup()
 	Mixer * mixer = Engine::mixer();
 	mixer->prepareMasterMix();
 
+	auto framePosition = m_framePosition.load(std::memory_order_relaxed);
+	if (m_playing)
+	{
+		if (m_looping)
+		{
+			framePosition = std::max(framePosition, m_loopBegin);
+			if (framePosition >= m_loopEnd) { framePosition = m_loopBegin; }
+		}
+
+		m_framePosition.store(framePosition + m_framesPerPeriod, std::memory_order_relaxed);
+	}
+
 	// create play-handles for new notes, samples etc.
 	Engine::getSong()->processNextBuffer();
 
@@ -349,6 +361,16 @@ void AudioEngine::processCommandQueue()
 	}
 }
 
+void AudioEngine::submitCommand(AudioEngineCommand command)
+{
+	if (!m_audioCommandQueue.try_enqueue(std::move(command)))
+	{
+#ifdef LMMS_DEBUG
+		qDebug() << "Error: Not enough space to submit audio engine command into queue";
+#endif
+	}
+}
+
 auto AudioEngine::framePosition() const -> f_cnt_t
 {
 	return m_framePosition.load(std::memory_order_relaxed);
@@ -420,15 +442,6 @@ void AudioEngine::clearInternal()
 	}
 }
 
-void AudioEngine::submitCommand(AudioEngineCommand command)
-{
-	if (!m_audioCommandQueue.try_enqueue(std::move(command)))
-	{
-#ifdef LMMS_DEBUG
-		qDebug() << "Error: Not enough space to submit audio engine command into queue";
-#endif
-	}
-}
 
 void AudioEngine::doSetAudioDevice( AudioDevice * _dev )
 {
