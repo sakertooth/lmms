@@ -37,9 +37,9 @@ struct AudioEngineTransportCommand
 		Play,
 		Stop,
 		Seek,
-		SetLoopMarkers,
-		EnableLoop,
-		DisableLoop
+		LoopOn,
+		LoopOff,
+		SetLoopMarkers
 	};
 
 	Type type;

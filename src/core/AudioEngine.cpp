@@ -349,10 +349,10 @@ void AudioEngine::processCommandQueue()
 					m_loopBegin = cmd.loopBegin;
 					m_loopEnd = cmd.loopEnd;
 					break;
-				case AudioEngineTransportCommand::Type::EnableLoop:
+				case AudioEngineTransportCommand::Type::LoopOn:
 					m_looping = true;
 					break;
-				case AudioEngineTransportCommand::Type::DisableLoop:
+				case AudioEngineTransportCommand::Type::LoopOff:
 					m_looping = false;
 					break;
 				}
