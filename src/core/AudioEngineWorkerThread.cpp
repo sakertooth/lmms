@@ -36,63 +36,19 @@
 namespace lmms
 {
 
-void AudioEngineWorkerThread::JobQueue::reset( OperationMode _opMode )
-{
-	// TODO: Reimplement using dependency graph
-}
-
-
-
-
-void AudioEngineWorkerThread::JobQueue::addJob( ThreadableJob * _job )
-{
-	// TODO: Reimplement using dependency graph
-}
-
-
-
-void AudioEngineWorkerThread::JobQueue::run()
-{
-	// TODO: Reimplement using dependency graph
-}
-
-
-
-
-void AudioEngineWorkerThread::JobQueue::wait()
-{
-	while (m_itemsDone < m_writeIndex) { busyWaitHint(); }
-}
-
-
-
-
-
-
-
-AudioEngineWorkerThread::AudioEngineWorkerThread( AudioEngine* audioEngine ) :
-	QThread( audioEngine ),
-	m_quit( false )
+AudioEngineWorkerThread::AudioEngineWorkerThread(AudioEngine* audioEngine)
+	: QThread(audioEngine)
 {
 }
-
-
-
 
 AudioEngineWorkerThread::~AudioEngineWorkerThread()
 {
 }
 
-
-
-
 void AudioEngineWorkerThread::quit()
 {
 	m_quit.store(true, std::memory_order_relaxed);
 }
-
-
-
 
 void AudioEngineWorkerThread::startAndWaitForJobs()
 {
