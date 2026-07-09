@@ -125,7 +125,7 @@ AudioEngine::~AudioEngine()
 		m_workers[w]->quit();
 	}
 
-	AudioEngineWorkerThread::startAndWaitForJobs();
+	AudioEngineWorkerThread::execute();
 
 	for( int w = 0; w < m_numWorkers; ++w )
 	{
@@ -256,7 +256,7 @@ void AudioEngine::renderStageInstruments()
 	AudioEngineProfiler::Probe profilerProbe(m_profiler, AudioEngineProfiler::DetailType::Instruments);
 
 	AudioEngineWorkerThread::fillJobQueue(m_playHandles);
-	AudioEngineWorkerThread::startAndWaitForJobs();
+	AudioEngineWorkerThread::execute();
 }
 
 
@@ -267,7 +267,7 @@ void AudioEngine::renderStageEffects()
 
 	// STAGE 2: process effects of all instrument- and sampletracks
 	AudioEngineWorkerThread::fillJobQueue(m_audioBusHandles);
-	AudioEngineWorkerThread::startAndWaitForJobs();
+	AudioEngineWorkerThread::execute();
 
 	// removed all play handles which are done
 	for( PlayHandleList::Iterator it = m_playHandles.begin();

@@ -44,11 +44,12 @@ public:
 	AudioEngineWorkerThread(AudioEngine* audioEngine);
 	~AudioEngineWorkerThread() override;
 
-	virtual void quit();
+	static void addJob(ThreadableJob* job);
 
-	static void resetJobQueue();
-	static void addJob(ThreadableJob* _job);
-	static void startAndWaitForJobs();
+	static void reset();
+	static void execute();
+
+	virtual void quit();
 
 	// a convenient helper function allowing to pass a container with pointers
 	// to ThreadableJob objects

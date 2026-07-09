@@ -676,7 +676,7 @@ void Mixer::masterMix( SampleFrame* _buf )
 	// also instantly add all muted channels as they don't need to care
 	// about their senders, and can just increment the deps of their
 	// recipients right away.
-	AudioEngineWorkerThread::resetJobQueue();
+	AudioEngineWorkerThread::reset();
 	for( MixerChannel * ch : m_mixerChannels )
 	{
 		ch->m_muted = ch->m_muteModel.value();
@@ -708,7 +708,7 @@ void Mixer::masterMix( SampleFrame* _buf )
 		{
 			break;
 		}
-		AudioEngineWorkerThread::startAndWaitForJobs();
+		AudioEngineWorkerThread::execute();
 	}
 
 	auto buffer = m_mixerChannels[0]->m_buffer.interleavedBuffer().asSampleFrames();
