@@ -62,11 +62,14 @@ void AudioEngineWorkerThread::addJob(ThreadableJob *_job)
 
 void AudioEngineWorkerThread::addConnection(ThreadableJob* from, ThreadableJob* to)
 {
-	const auto it = s_workNodes.find(from);
-	if (it == s_workNodes.end()) { return; }
-	if (s_workNodes.find(to) == s_workNodes.end()) { return; }
+	const auto fromIt = s_workNodes.find(from);
+	if (fromIt == s_workNodes.end()) { return; }
 
-	it->second.dependents.emplace_back(to);
+	const auto toIt = s_workNodes.find(to);
+	if (toIt == s_workNodes.end()) { return; }
+
+	fromIt->second.dependents.emplace_back(to);
+	++toIt->second.totalDependencies;
 }
 
 void AudioEngineWorkerThread::reset()
