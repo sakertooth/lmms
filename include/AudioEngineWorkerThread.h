@@ -74,6 +74,23 @@ public:
 private:
 	struct WorkNode
 	{
+		~WorkNode() = default;
+		WorkNode(const WorkNode&) = delete;
+		WorkNode& operator=(const WorkNode&) = delete;
+		WorkNode& operator=(WorkNode&&) = delete;
+
+		explicit WorkNode(ThreadableJob* job)
+			: job(job)
+		{
+		}
+
+		WorkNode(WorkNode&& node) noexcept
+			: job{std::move(node.job)}
+			, dependents{std::move(node.dependents)}
+			, totalDependencies{std::move(node.totalDependencies)}
+		{
+		}
+
 		ThreadableJob* job = nullptr;
 		ArrayVector<ThreadableJob*, 256> dependents;
 		std::size_t totalDependencies = 0;
@@ -86,6 +103,8 @@ private:
 		auto enqueue(WorkNode* node) -> bool;
 		auto dequeue() -> WorkNode*;
 		auto steal() -> WorkNode*;
+		void reset();
+
 	private:
 		std::array<WorkNode*, 256> m_queue{};
 		std::atomic_size_t m_topIndex = 0;
@@ -98,7 +117,7 @@ private:
 	std::thread m_thread;
 	WorkQueue m_workQueue;
 
-	inline static std::vector<WorkNode> s_workNodes;
+	inline static std::unordered_map<ThreadableJob*, WorkNode> s_workNodes;
 	static std::vector<WorkQueue*> s_workQueues;
 	static WorkQueue s_executorWorkQueue;
 };

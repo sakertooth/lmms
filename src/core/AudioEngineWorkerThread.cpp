@@ -53,17 +53,31 @@ AudioEngineWorkerThread::~AudioEngineWorkerThread()
 
 void AudioEngineWorkerThread::addJob(ThreadableJob *_job)
 {
-	// TODO: Reimplement using dependency graph
+	const auto it = s_workNodes.find(_job);
+	if (it == s_workNodes.end())
+	{
+		s_workNodes.try_emplace(_job, _job);
+	}
 }
 
 void AudioEngineWorkerThread::addConnection(ThreadableJob* from, ThreadableJob* to)
 {
-	// TODO: Reimplement using dependency graph
+	const auto it = s_workNodes.find(from);
+	if (it == s_workNodes.end()) { return; }
+	if (s_workNodes.find(to) == s_workNodes.end()) { return; }
+
+	it->second.dependents.emplace_back(to);
 }
 
 void AudioEngineWorkerThread::reset()
 {
-	// TODO: Reimplement using dependency graph
+	s_workNodes.clear();
+	s_executorWorkQueue.reset();
+
+	for (auto& workQueue : s_workQueues)
+	{
+		workQueue->reset();
+	}
 }
 
 void AudioEngineWorkerThread::execute()
@@ -79,6 +93,27 @@ void AudioEngineWorkerThread::run()
 	{
 		// TODO: Reimplement using dependency graph
 	}
+}
+
+auto AudioEngineWorkerThread::WorkQueue::enqueue(WorkNode* node) -> bool
+{
+	// TODO: Reimplement using dependency graph
+}
+
+auto AudioEngineWorkerThread::WorkQueue::dequeue() -> WorkNode*
+{
+	// TODO: Reimplement using dependency graph
+}
+
+auto AudioEngineWorkerThread::WorkQueue::steal() -> WorkNode*
+{
+	// TODO: Reimplement using dependency graph
+}
+
+void AudioEngineWorkerThread::WorkQueue::reset()
+{
+	m_topIndex.store(0, std::memory_order_relaxed);
+	m_bottomIndex.store(0, std::memory_order_relaxed);
 }
 
 } // namespace lmms
