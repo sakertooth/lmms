@@ -28,6 +28,7 @@
 #include <QThread>
 
 #include <atomic>
+#include "ArrayVector.h"
 
 class QWaitCondition;
 
@@ -71,9 +72,35 @@ public:
 	}
 
 private:
+	struct WorkNode
+	{
+		ThreadableJob* job = nullptr;
+		ArrayVector<ThreadableJob*, 256> dependents;
+		std::size_t totalDependencies = 0;
+		std::atomic_size_t remainingDependencies = 0;
+	};
+
+	class WorkQueue
+	{
+	public:
+		auto enqueue(WorkNode* node) -> bool;
+		auto dequeue() -> WorkNode*;
+		auto steal() -> WorkNode*;
+	private:
+		std::array<WorkNode*, 256> m_queue{};
+		std::atomic_size_t m_topIndex = 0;
+		std::atomic_size_t m_bottomIndex = 0;
+	};
+
 	void run();
+
 	std::atomic<bool> m_quit = false;
 	std::thread m_thread;
+	WorkQueue m_workQueue;
+
+	inline static std::vector<WorkNode> s_workNodes;
+	static std::vector<WorkQueue*> s_workQueues;
+	static WorkQueue s_executorWorkQueue;
 };
 
 } // namespace lmms
