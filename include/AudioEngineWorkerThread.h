@@ -68,7 +68,11 @@ public:
 	template<typename T>
 	static void fillJobQueue(const T & _vec)
 	{
-		// TODO: Reimplement using dependency graph
+		reset();
+		for (auto& job : _vec)
+		{
+			addJob(job);
+		}
 	}
 
 private:
