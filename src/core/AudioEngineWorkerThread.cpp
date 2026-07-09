@@ -52,6 +52,11 @@ void AudioEngineWorkerThread::addJob(ThreadableJob *_job)
 	// TODO: Reimplement using dependency graph
 }
 
+void AudioEngineWorkerThread::addDependency(ThreadableJob* from, ThreadableJob* to)
+{
+	// TODO: Reimplement using dependency graph
+}
+
 void AudioEngineWorkerThread::reset()
 {
 	// TODO: Reimplement using dependency graph
