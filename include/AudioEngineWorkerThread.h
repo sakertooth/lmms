@@ -96,7 +96,7 @@ private:
 		}
 
 		ThreadableJob* job = nullptr;
-		ArrayVector<ThreadableJob*, 256> dependents;
+		ArrayVector<WorkNode*, 256> dependents;
 		std::size_t totalDependencies = 0;
 		std::atomic_size_t remainingDependencies = 0;
 	};
@@ -104,23 +104,26 @@ private:
 	class WorkQueue
 	{
 	public:
-		auto enqueue(WorkNode* node) -> bool;
-		auto dequeue() -> WorkNode*;
+		auto push(WorkNode* node) -> bool;
+		auto pop() -> WorkNode*;
 		auto steal() -> WorkNode*;
 		void reset();
 
 	private:
 		std::array<WorkNode*, 256> m_queue{};
-		std::atomic_size_t m_topIndex = 0;
-		std::atomic_size_t m_bottomIndex = 0;
+		std::atomic_uint64_t m_topIndex = 1;
+		std::atomic_uint64_t m_bottomIndex = 1;
 	};
 
 	void run();
+	static void processQueue(WorkQueue* queue);
 
 	std::atomic<bool> m_quit = false;
 	std::thread m_thread;
 	WorkQueue m_workQueue;
 
+	inline static std::atomic_flag s_executionFlag;
+	inline static std::atomic_size_t s_jobsCompleted = 0;
 	inline static std::unordered_map<ThreadableJob*, WorkNode> s_workNodes;
 	static std::vector<WorkQueue*> s_workQueues;
 	static WorkQueue s_executorWorkQueue;

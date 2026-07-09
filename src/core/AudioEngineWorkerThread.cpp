@@ -68,7 +68,7 @@ void AudioEngineWorkerThread::addConnection(ThreadableJob* from, ThreadableJob* 
 	const auto toIt = s_workNodes.find(to);
 	if (toIt == s_workNodes.end()) { return; }
 
-	fromIt->second.dependents.emplace_back(to);
+	fromIt->second.dependents.emplace_back(&toIt->second);
 	++toIt->second.totalDependencies;
 }
 
@@ -85,7 +85,24 @@ void AudioEngineWorkerThread::reset()
 
 void AudioEngineWorkerThread::execute()
 {
-	// TODO: Reimplement using dependency graph
+	auto nextWorkQueue = 0;
+	for (auto& [job, workNode] : s_workNodes)
+	{
+		workNode.remainingDependencies.store(workNode.totalDependencies, std::memory_order_relaxed);
+
+		auto& workQueue = s_workQueues[nextWorkQueue];
+		if (workNode.totalDependencies == 0) { workQueue->push(&workNode); }
+		nextWorkQueue = (nextWorkQueue + 1) % s_workQueues.size();
+	}
+
+	s_jobsCompleted.store(0, std::memory_order_relaxed);
+	s_executionFlag.test_and_set(std::memory_order_release);
+	s_executionFlag.notify_all();
+
+	while (s_jobsCompleted.load(std::memory_order_relaxed) < s_workQueues.size())
+	{
+		processQueue(&s_executorWorkQueue);
+	}
 }
 
 void AudioEngineWorkerThread::run()
@@ -94,29 +111,76 @@ void AudioEngineWorkerThread::run()
 
 	while (!m_quit.load(std::memory_order_relaxed))
 	{
-		// TODO: Reimplement using dependency graph
+		s_executionFlag.wait(false, std::memory_order_acquire);
+		processQueue(&m_workQueue);
 	}
 }
 
-auto AudioEngineWorkerThread::WorkQueue::enqueue(WorkNode* node) -> bool
+void AudioEngineWorkerThread::processQueue(WorkQueue* workQueue)
 {
-	// TODO: Reimplement using dependency graph
+	auto node = workQueue->pop();
+
+	if (!node)
+	{
+		for (auto& queue : s_workQueues)
+		{
+			if (workQueue == queue) { continue; }
+			if ((node = workQueue->steal())) { break; }
+		}
+	}
+
+	if (!node) { return; }
+
+	node->job->queue();
+	node->job->process();
+	s_jobsCompleted.fetch_add(1, std::memory_order_relaxed);
+
+	for (auto& dependent : node->dependents)
+	{
+		if (dependent->remainingDependencies.fetch_sub(1, std::memory_order_acq_rel) == 1)
+		{
+			workQueue->push(dependent);
+		}
+	}
 }
 
-auto AudioEngineWorkerThread::WorkQueue::dequeue() -> WorkNode*
+auto AudioEngineWorkerThread::WorkQueue::push(WorkNode* node) -> bool
 {
-	// TODO: Reimplement using dependency graph
+	const auto topIndex = m_topIndex.load(std::memory_order_acquire);
+	const auto bottomIndex = m_bottomIndex.load(std::memory_order_relaxed);
+	if (m_queue.size() <= bottomIndex - topIndex + 1) { return false; }
+
+	m_queue[bottomIndex % m_queue.size()] = node;
+	m_bottomIndex.store(bottomIndex + 1, std::memory_order_release);
+	return true;
+}
+
+auto AudioEngineWorkerThread::WorkQueue::pop() -> WorkNode*
+{
+	const auto bottomIndex = m_bottomIndex.fetch_sub(1, std::memory_order_release) - 1;
+	auto topIndex = m_topIndex.load(std::memory_order_acquire);
+
+	if (bottomIndex < topIndex) { return nullptr; }
+	if (bottomIndex > topIndex) { return m_queue[bottomIndex % m_queue.size()]; }
+
+	const auto node = m_queue[topIndex % m_queue.size()];
+	return m_topIndex.compare_exchange_strong(topIndex, topIndex + 1) ? node : nullptr;
 }
 
 auto AudioEngineWorkerThread::WorkQueue::steal() -> WorkNode*
 {
-	// TODO: Reimplement using dependency graph
+	auto topIndex = m_topIndex.load(std::memory_order_acquire);
+	const auto bottomIndex = m_bottomIndex.load(std::memory_order_acquire);
+	if (bottomIndex <= topIndex) { return nullptr; }
+
+	const auto node = m_queue[topIndex % m_queue.size()];
+	return m_topIndex.compare_exchange_strong(topIndex, topIndex + 1) ? node : nullptr;
 }
 
 void AudioEngineWorkerThread::WorkQueue::reset()
 {
-	m_topIndex.store(0, std::memory_order_relaxed);
-	m_bottomIndex.store(0, std::memory_order_relaxed);
+	m_topIndex.store(1, std::memory_order_relaxed);
+	m_bottomIndex.store(1, std::memory_order_relaxed);
 }
 
 } // namespace lmms
