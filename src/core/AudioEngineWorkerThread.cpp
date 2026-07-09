@@ -48,8 +48,6 @@ AudioEngineWorkerThread::AudioEngineWorkerThread()
 AudioEngineWorkerThread::~AudioEngineWorkerThread()
 {
 	m_quit.store(true, std::memory_order_release);
-	s_executionFlag.test_and_set(std::memory_order_release);
-	s_executionFlag.notify_all();
 	m_thread.join();
 }
 
@@ -90,14 +88,13 @@ void AudioEngineWorkerThread::execute()
 	auto nextWorkQueue = 0;
 	for (auto& [job, workNode] : s_workNodes)
 	{
-		workNode.remainingDependencies.store(workNode.totalDependencies, std::memory_order_relaxed);
-
 		auto& workQueue = s_workQueues[nextWorkQueue];
 		if (workNode.totalDependencies == 0) { workQueue->push(&workNode); }
 		nextWorkQueue = (nextWorkQueue + 1) % s_workQueues.size();
+		workNode.remainingDependencies.store(workNode.totalDependencies, std::memory_order_relaxed);
 	}
 
-	s_jobsCompleted.store(0, std::memory_order_relaxed);
+	s_jobsCompleted.store(0, std::memory_order_release);
 	s_executionFlag.test_and_set(std::memory_order_release);
 	s_executionFlag.notify_all();
 
@@ -107,6 +104,7 @@ void AudioEngineWorkerThread::execute()
 	}
 
 	s_executionFlag.clear(std::memory_order_release);
+	s_executionFlag.notify_all();
 }
 
 void AudioEngineWorkerThread::run()
@@ -141,7 +139,7 @@ void AudioEngineWorkerThread::processQueue(WorkQueue* workQueue)
 
 	for (auto& dependent : node->dependents)
 	{
-		if (dependent->remainingDependencies.fetch_sub(1, std::memory_order_acq_rel) == 1)
+		if (dependent->remainingDependencies.fetch_sub(1, std::memory_order_relaxed) == 1)
 		{
 			workQueue->push(dependent);
 		}
@@ -151,7 +149,7 @@ void AudioEngineWorkerThread::processQueue(WorkQueue* workQueue)
 auto AudioEngineWorkerThread::WorkQueue::push(WorkNode* node) -> bool
 {
 	const auto topIndex = m_topIndex.load(std::memory_order_acquire);
-	const auto bottomIndex = m_bottomIndex.load(std::memory_order_relaxed);
+	const auto bottomIndex = m_bottomIndex.load(std::memory_order_acquire);
 	if (m_queue.size() <= bottomIndex - topIndex + 1) { return false; }
 
 	m_queue[bottomIndex % m_queue.size()] = node;
@@ -164,18 +162,18 @@ auto AudioEngineWorkerThread::WorkQueue::pop() -> WorkNode*
 	const auto bottomIndex = m_bottomIndex.fetch_sub(1, std::memory_order_acquire) - 1;
 	auto topIndex = m_topIndex.load(std::memory_order_acquire);
 
-	if (bottomIndex > topIndex)
-	{
-		// Normal case, we have more than one element in the queue
-		return m_queue[bottomIndex % m_queue.size()];
-	}
-
 	if (bottomIndex < topIndex)
 	{
 		// The queue was empty, so we did not pop anything
 		// Correct the bottom index and return nullptr
 		m_bottomIndex.store(bottomIndex + 1, std::memory_order_release);
 		return nullptr;
+	}
+
+	if (bottomIndex > topIndex)
+	{
+		// Normal case, we have more than one element in the queue
+		return m_queue[bottomIndex % m_queue.size()];
 	}
 
 	const auto node = m_queue[topIndex % m_queue.size()];
