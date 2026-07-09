@@ -44,12 +44,15 @@ public:
 	AudioEngineWorkerThread(AudioEngine* audioEngine);
 	~AudioEngineWorkerThread() override;
 
+	//! Adds @a job as a node to the execution graph
+	//! @a job may failed to be added under sufficient load
 	static void addJob(ThreadableJob* job);
 
+	//! Clears the graph to have no nodes and edges
 	static void reset();
-	static void execute();
 
-	virtual void quit();
+	//! Executes the nodes within the graph, respecting the dependency relationships made between them
+	static void execute();
 
 	// a convenient helper function allowing to pass a container with pointers
 	// to ThreadableJob objects
@@ -58,6 +61,8 @@ public:
 	{
 		// TODO: Reimplement using dependency graph
 	}
+
+	virtual void quit();
 
 private:
 	void run() override;
