@@ -36,9 +36,13 @@
 namespace lmms
 {
 
+AudioEngineWorkerThread::WorkQueue AudioEngineWorkerThread::s_executorWorkQueue;
+std::vector<AudioEngineWorkerThread::WorkQueue*> AudioEngineWorkerThread::s_workQueues = {&s_executorWorkQueue};
+
 AudioEngineWorkerThread::AudioEngineWorkerThread()
 	: m_thread{[this] { run(); }}
 {
+	s_workQueues.emplace_back(&m_workQueue);
 }
 
 AudioEngineWorkerThread::~AudioEngineWorkerThread()
