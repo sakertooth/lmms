@@ -72,7 +72,7 @@ public:
 
 private:
 	void run();
-	std::atomic<bool> m_quit;
+	std::atomic<bool> m_quit = false;
 	std::thread m_thread;
 };
 
