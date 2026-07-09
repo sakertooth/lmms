@@ -80,8 +80,6 @@ AudioEngine::AudioEngine(bool renderOnly)
 	, m_outputBufferRead(nullptr)
 	, m_outputBufferWrite(nullptr)
 	, m_outputBufferReadIndex(0)
-	, m_workers()
-	, m_numWorkers(QThread::idealThreadCount() - 1)
 	, m_newPlayHandles(PlayHandle::MaxNumber)
 	, m_masterGain(1.0f)
 	, m_audioDev(nullptr)
@@ -103,15 +101,11 @@ AudioEngine::AudioEngine(bool renderOnly)
 	m_outputBufferRead = std::make_unique<SampleFrame[]>(m_framesPerPeriod);
 	m_outputBufferWrite = std::make_unique<SampleFrame[]>(m_framesPerPeriod);
 
-
-	for( int i = 0; i < m_numWorkers+1; ++i )
+	const auto numWorkers = QThread::idealThreadCount() - 1;
+	m_workers.reserve(numWorkers);
+	for (auto i = 0; i < numWorkers; ++i)
 	{
-		auto wt = new AudioEngineWorkerThread(this);
-		if( i < m_numWorkers )
-		{
-			wt->start( QThread::TimeCriticalPriority );
-		}
-		m_workers.push_back( wt );
+		m_workers.emplace_back(std::make_unique<AudioEngineWorkerThread>());
 	}
 }
 
@@ -120,21 +114,8 @@ AudioEngine::AudioEngine(bool renderOnly)
 
 AudioEngine::~AudioEngine()
 {
-	for( int w = 0; w < m_numWorkers; ++w )
-	{
-		m_workers[w]->quit();
-	}
-
-	AudioEngineWorkerThread::execute();
-
-	for( int w = 0; w < m_numWorkers; ++w )
-	{
-		m_workers[w]->wait( 500 );
-	}
-
 	delete m_midiClient;
 	delete m_audioDev;
-
 
 	for (const auto& input : m_inputBuffer)
 	{

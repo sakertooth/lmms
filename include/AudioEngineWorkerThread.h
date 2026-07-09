@@ -37,12 +37,16 @@ namespace lmms
 class AudioEngine;
 class ThreadableJob;
 
-class AudioEngineWorkerThread : public QThread
+class AudioEngineWorkerThread
 {
-	Q_OBJECT
 public:
-	AudioEngineWorkerThread(AudioEngine* audioEngine);
-	~AudioEngineWorkerThread() override;
+	AudioEngineWorkerThread();
+	~AudioEngineWorkerThread();
+
+	AudioEngineWorkerThread(const AudioEngineWorkerThread&) = delete;
+	AudioEngineWorkerThread(AudioEngineWorkerThread&&) = delete;
+	AudioEngineWorkerThread& operator=(const AudioEngineWorkerThread&) = delete;
+	AudioEngineWorkerThread& operator=(AudioEngineWorkerThread&&) = delete;
 
 	//! Adds @a job as a node to the execution graph
 	//! @a job may fail to be added under sufficient load
@@ -66,12 +70,11 @@ public:
 		// TODO: Reimplement using dependency graph
 	}
 
-	virtual void quit();
-
 private:
-	void run() override;
+	void run();
 	std::atomic<bool> m_quit;
-} ;
+	std::thread m_thread;
+};
 
 } // namespace lmms
 

@@ -36,20 +36,16 @@
 namespace lmms
 {
 
-AudioEngineWorkerThread::AudioEngineWorkerThread(AudioEngine* audioEngine)
-	: QThread(audioEngine)
+AudioEngineWorkerThread::AudioEngineWorkerThread()
+	: m_thread{[this] { run(); }}
 {
 }
 
 AudioEngineWorkerThread::~AudioEngineWorkerThread()
 {
-}
-
-void AudioEngineWorkerThread::quit()
-{
 	m_quit.store(true, std::memory_order_relaxed);
+	m_thread.join();
 }
-
 
 void AudioEngineWorkerThread::addJob(ThreadableJob *_job)
 {
