@@ -47,7 +47,9 @@ AudioEngineWorkerThread::AudioEngineWorkerThread()
 
 AudioEngineWorkerThread::~AudioEngineWorkerThread()
 {
-	m_quit.store(true, std::memory_order_relaxed);
+	m_quit.store(true, std::memory_order_release);
+	s_executionFlag.test_and_set(std::memory_order_release);
+	s_executionFlag.notify_all();
 	m_thread.join();
 }
 
@@ -99,10 +101,12 @@ void AudioEngineWorkerThread::execute()
 	s_executionFlag.test_and_set(std::memory_order_release);
 	s_executionFlag.notify_all();
 
-	while (s_jobsCompleted.load(std::memory_order_relaxed) < s_workQueues.size())
+	while (s_jobsCompleted.load(std::memory_order_relaxed) < s_workNodes.size())
 	{
 		processQueue(&s_executorWorkQueue);
 	}
+
+	s_executionFlag.clear(std::memory_order_release);
 }
 
 void AudioEngineWorkerThread::run()
@@ -125,7 +129,7 @@ void AudioEngineWorkerThread::processQueue(WorkQueue* workQueue)
 		for (auto& queue : s_workQueues)
 		{
 			if (workQueue == queue) { continue; }
-			if ((node = workQueue->steal())) { break; }
+			if ((node = queue->steal())) { break; }
 		}
 	}
 
@@ -160,10 +164,16 @@ auto AudioEngineWorkerThread::WorkQueue::pop() -> WorkNode*
 	const auto bottomIndex = m_bottomIndex.fetch_sub(1, std::memory_order_release) - 1;
 	auto topIndex = m_topIndex.load(std::memory_order_acquire);
 
-	if (bottomIndex < topIndex) { return nullptr; }
+	if (bottomIndex < topIndex)
+	{
+		m_bottomIndex.store(bottomIndex + 1, std::memory_order_release);
+		return nullptr;
+	}
+
 	if (bottomIndex > topIndex) { return m_queue[bottomIndex % m_queue.size()]; }
 
 	const auto node = m_queue[topIndex % m_queue.size()];
+	m_bottomIndex.store(bottomIndex + 1, std::memory_order_relaxed);
 	return m_topIndex.compare_exchange_strong(topIndex, topIndex + 1) ? node : nullptr;
 }
 
