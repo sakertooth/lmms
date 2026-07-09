@@ -161,20 +161,34 @@ auto AudioEngineWorkerThread::WorkQueue::push(WorkNode* node) -> bool
 
 auto AudioEngineWorkerThread::WorkQueue::pop() -> WorkNode*
 {
-	const auto bottomIndex = m_bottomIndex.fetch_sub(1, std::memory_order_release) - 1;
+	const auto bottomIndex = m_bottomIndex.fetch_sub(1, std::memory_order_acquire) - 1;
 	auto topIndex = m_topIndex.load(std::memory_order_acquire);
+
+	if (bottomIndex > topIndex)
+	{
+		// Normal case, we have more than one element in the queue
+		return m_queue[bottomIndex % m_queue.size()];
+	}
 
 	if (bottomIndex < topIndex)
 	{
+		// The queue was empty, so we did not pop anything
+		// Correct the bottom index and return nullptr
 		m_bottomIndex.store(bottomIndex + 1, std::memory_order_release);
 		return nullptr;
 	}
 
-	if (bottomIndex > topIndex) { return m_queue[bottomIndex % m_queue.size()]; }
-
 	const auto node = m_queue[topIndex % m_queue.size()];
-	m_bottomIndex.store(bottomIndex + 1, std::memory_order_relaxed);
-	return m_topIndex.compare_exchange_strong(topIndex, topIndex + 1) ? node : nullptr;
+	if (m_topIndex.compare_exchange_strong(topIndex, topIndex + 1))
+	{
+		// If the owner wins the CAS for the last node, simply return it
+		return node;
+	}
+
+	// If the owner fails the CAS, one of the stealers got to it first,
+	// so increment bottom index to correct it and return nullptr
+	m_bottomIndex.store(bottomIndex + 1, std::memory_order_release);
+	return nullptr;
 }
 
 auto AudioEngineWorkerThread::WorkQueue::steal() -> WorkNode*
