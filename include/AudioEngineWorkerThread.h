@@ -85,12 +85,12 @@ public:
 	static void resetJobQueue( JobQueue::OperationMode _opMode =
 													JobQueue::OperationMode::Static )
 	{
-		globalJobQueue.reset( _opMode );
+		// TODO: Reimplement using dependency graph
 	}
 
 	static void addJob( ThreadableJob * _job )
 	{
-		globalJobQueue.addJob( _job );
+		// TODO: Reimplement using dependency graph
 	}
 
 	// a convenient helper function allowing to pass a container with pointers
@@ -99,11 +99,7 @@ public:
 	static void fillJobQueue( const T & _vec,
 							JobQueue::OperationMode _opMode = JobQueue::OperationMode::Static )
 	{
-		resetJobQueue( _opMode );
-		for (const auto& job : _vec)
-		{
-			addJob(job);
-		}
+		// TODO: Reimplement using dependency graph
 	}
 
 	static void startAndWaitForJobs();
@@ -111,12 +107,7 @@ public:
 
 private:
 	void run() override;
-
-	static JobQueue globalJobQueue;
-	static QWaitCondition * queueReadyWaitCond;
-	static QList<AudioEngineWorkerThread *> workerThreads;
-
-	volatile bool m_quit;
+	std::atomic<bool> m_quit;
 } ;
 
 } // namespace lmms
