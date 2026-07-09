@@ -45,8 +45,12 @@ public:
 	~AudioEngineWorkerThread() override;
 
 	//! Adds @a job as a node to the execution graph
-	//! @a job may failed to be added under sufficient load
+	//! @a job may fail to be added under sufficient load
 	static void addJob(ThreadableJob* job);
+
+	//! Adds a dependency relationship to the graph such that @a to will only run if @a from is finished
+	//! The relationship may fail to be added under sufficient load
+	static void addDependency(ThreadableJob* from, ThreadableJob* to);
 
 	//! Clears the graph to have no nodes and edges
 	static void reset();
