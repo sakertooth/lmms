@@ -46,15 +46,9 @@ public:
 
 	virtual void quit();
 
-	static void resetJobQueue()
-	{
-		// TODO: Reimplement using dependency graph
-	}
-
-	static void addJob( ThreadableJob * _job )
-	{
-		// TODO: Reimplement using dependency graph
-	}
+	static void resetJobQueue();
+	static void addJob(ThreadableJob* _job);
+	static void startAndWaitForJobs();
 
 	// a convenient helper function allowing to pass a container with pointers
 	// to ThreadableJob objects
@@ -63,9 +57,6 @@ public:
 	{
 		// TODO: Reimplement using dependency graph
 	}
-
-	static void startAndWaitForJobs();
-
 
 private:
 	void run() override;

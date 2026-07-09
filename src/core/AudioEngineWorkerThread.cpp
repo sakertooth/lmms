@@ -50,6 +50,17 @@ void AudioEngineWorkerThread::quit()
 	m_quit.store(true, std::memory_order_relaxed);
 }
 
+
+void AudioEngineWorkerThread::addJob(ThreadableJob *_job)
+{
+	// TODO: Reimplement using dependency graph
+}
+
+void AudioEngineWorkerThread::resetJobQueue()
+{
+	// TODO: Reimplement using dependency graph
+}
+
 void AudioEngineWorkerThread::startAndWaitForJobs()
 {
 	// TODO: Reimplement using dependency graph
