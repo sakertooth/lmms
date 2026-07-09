@@ -75,7 +75,6 @@ void AudioEngineWorkerThread::addConnection(ThreadableJob* from, ThreadableJob* 
 void AudioEngineWorkerThread::reset()
 {
 	s_workNodes.clear();
-	s_executorWorkQueue.reset();
 
 	for (auto& workQueue : s_workQueues)
 	{
@@ -133,6 +132,7 @@ void AudioEngineWorkerThread::processQueue(WorkQueue* workQueue)
 
 	if (!node) { return; }
 
+	assert(node->job);
 	node->job->queue();
 	node->job->process();
 	s_jobsCompleted.fetch_add(1, std::memory_order_relaxed);
