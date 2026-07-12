@@ -123,7 +123,6 @@ public:
 #ifdef LMMS_DEBUG
 			std::cerr << "AudioResampler: " << src_strerror(m_error) << '\n';
 #endif
-			std::ranges::fill(output.dataView(), 0.f);
 			return {0, 0};
 		}
 
