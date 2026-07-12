@@ -38,19 +38,6 @@
 namespace lmms {
 
 /**
- * @enum Mode
- * @brief Defines the resampling method to use.
- */
-enum class AudioResamplerMode
-{
-	ZOH,		 //!< Zero Order Hold (nearest-neighbor) interpolation.
-	Linear,		 //!< Linear interpolation.
-	SincFastest, //!< Fastest sinc-based resampling.
-	SincMedium,	 //!< Medium quality sinc-based resampling.
-	SincBest	 //!< Highest quality sinc-based resampling.
-};
-
-/**
  * @class AudioResampler
  * @brief A utility class for resampling interleaved audio buffers using various resampling algorithms.
  *
@@ -89,8 +76,8 @@ public:
 	 * @brief Constructs an `AudioResampler` instance.
 	 * @param mode The resampling mode to use.
 	 */
-	AudioResampler(AudioResamplerMode mode)
-		: m_state(src_new(convertMode(mode), Channels, &m_error))
+	AudioResampler(int mode)
+		: m_state(src_new(mode, Channels, &m_error))
 	{
 		if (!m_state)
 		{
@@ -219,25 +206,6 @@ private:
 	{
 		void operator()(SRC_STATE* state) { src_delete(state); }
 	};
-
-	constexpr auto convertMode(AudioResamplerMode mode) -> int
-	{
-		switch (mode)
-		{
-		case AudioResamplerMode::ZOH:
-			return SRC_ZERO_ORDER_HOLD;
-		case AudioResamplerMode::Linear:
-			return SRC_LINEAR;
-		case AudioResamplerMode::SincFastest:
-			return SRC_SINC_FASTEST;
-		case AudioResamplerMode::SincMedium:
-			return SRC_SINC_MEDIUM_QUALITY;
-		case AudioResamplerMode::SincBest:
-			return SRC_SINC_BEST_QUALITY;
-		default:
-			throw std::invalid_argument{"Invalid interpolation mode"};
-		}
-	}
 
 	std::unique_ptr<SRC_STATE*, StateDeleter> m_state;
 	double m_ratio = 1.0;

@@ -46,7 +46,7 @@ public:
 	class LMMS_EXPORT PlaybackState
 	{
 	public:
-		PlaybackState(AudioResamplerMode interpolationMode = AudioResamplerMode::Linear, int frameIndex = 0)
+		PlaybackState(int interpolationMode = SRC_LINEAR, int frameIndex = 0)
 			: m_resampler(interpolationMode)
 			, m_frameIndex(frameIndex)
 		{
