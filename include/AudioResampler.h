@@ -25,34 +25,42 @@
 #ifndef LMMS_AUDIO_RESAMPLER_H
 #define LMMS_AUDIO_RESAMPLER_H
 
+#ifdef LMMS_DEBUG
+#include <iostream>
+#endif
+
 #include <memory>
+#include <samplerate.h>
+
 #include "AudioBufferView.h"
 #include "lmms_export.h"
 
 namespace lmms {
 
 /**
+ * @enum Mode
+ * @brief Defines the resampling method to use.
+ */
+enum class AudioResamplerMode
+{
+	ZOH,		 //!< Zero Order Hold (nearest-neighbor) interpolation.
+	Linear,		 //!< Linear interpolation.
+	SincFastest, //!< Fastest sinc-based resampling.
+	SincMedium,	 //!< Medium quality sinc-based resampling.
+	SincBest	 //!< Highest quality sinc-based resampling.
+};
+
+/**
  * @class AudioResampler
  * @brief A utility class for resampling interleaved audio buffers using various resampling algorithms.
  *
  * This class provides support for zero-order hold, linear, and several levels of sinc-based resampling.
+ *
+ * @tparam Channels The number of audio channels to resample. Defaults to 2 (stereo).
  */
-class LMMS_EXPORT AudioResampler
+template <ch_cnt_t Channels = 2> class LMMS_EXPORT AudioResampler
 {
 public:
-	/**
-	 * @enum Mode
-	 * @brief Defines the resampling method to use.
-	 */
-	enum class Mode
-	{
-		ZOH,		 //!< Zero Order Hold (nearest-neighbor) interpolation.
-		Linear,		 //!< Linear interpolation.
-		SincFastest, //!< Fastest sinc-based resampling.
-		SincMedium,	 //!< Medium quality sinc-based resampling.
-		SincBest	 //!< Highest quality sinc-based resampling.
-	};
-
 	/**
 	 * @struct Result
 	 * @brief Result of a resampling operation.
@@ -70,10 +78,8 @@ public:
 	 * @tparam Channels The number of channels per audio frame.
 	 * @see StreamFn
 	 */
-	template <f_cnt_t Frames = 128, ch_cnt_t Channels = 2>
-	struct StreamBuffer
+	template <f_cnt_t Frames = 128> struct StreamBuffer
 	{
-		f_cnt_t (*refillFn)(InterleavedBufferView<float>);
 		std::array<float, Frames * Channels> buffer;
 		f_cnt_t index = 0;
 		f_cnt_t count = 0;
@@ -82,9 +88,15 @@ public:
 	/**
 	 * @brief Constructs an `AudioResampler` instance.
 	 * @param mode The resampling mode to use.
-	 * @param channels Number of audio channels. Defaults to `2` (stereo).
 	 */
-	AudioResampler(Mode mode, ch_cnt_t channels = 2);
+	AudioResampler(AudioResamplerMode mode)
+		: m_state(src_new(convertMode(mode), Channels, &m_error))
+	{
+		if (!m_state)
+		{
+			throw std::runtime_error{std::string{"Error when creating AudioResampler state: "} + src_strerror(m_error)};
+		}
+	}
 
 	/**
 	 * @brief Process a block of interleaved audio input from `input` and resample it into `output`.
@@ -100,20 +112,41 @@ public:
 	 *
 	 * @returns the result of the resampling process. See @ref Result for more details.
 	 */
-	[[nodiscard]] auto process(InterleavedBufferView<const float> input, InterleavedBufferView<float> output) -> Result;
+	[[nodiscard]] auto process(
+		InterleavedBufferView<const float, Channels> input, InterleavedBufferView<float, Channels> output) -> Result
+	{
+		auto data = SRC_DATA{.data_in = input.data(),
+			.input_frames = input.frames(),
+			.data_out = output.data(),
+			.output_frames = output.frames(),
+			.ratio = m_ratio,
+			.end_of_input = 0};
+
+		if ((m_error = src_process(m_state.get(), &data)))
+		{
+#ifdef LMMS_DEBUG
+			std::cerr << "AudioResampler: " << src_strerror(m_error) << '\n';
+#endif
+			std::ranges::fill(output, 0.f);
+			return {0, 0};
+		}
+
+		return {static_cast<f_cnt_t>(data.input_frames_used), static_cast<f_cnt_t>(data.output_frames_gen)};
+	}
 
 	/**
 	 * @brief Process a block of interleaved audio input from @a streamBuffer into @a output.
-	 * 
+	 *
 	 * @tparam Capacity The capacity of @a streamBuffer.
-	 * @tparam Channels The number of channels.
+	 * @tparam RefillFn The function used to refill @a streamBuffer.
 	 * @param streamBuffer The stream buffer where incoming audio samples are stored and refilled as needed.
 	 * @param output The final output destination.
 	 * @return true if the resampling process was successful, false if an error occurred.
-	 * 
+	 *
 	 */
-	template <f_cnt_t Capacity = 128, ch_cnt_t Channels = 2>
-	[[nodiscard]] auto process(StreamBuffer<Capacity, Channels>& streamBuffer, InterleavedBufferView<float> output) -> bool
+	template <f_cnt_t Capacity = 128, typename RefillFn>
+	[[nodiscard]] auto process(RefillFn refillFn, StreamBuffer<Capacity>& streamBuffer, InterleavedBufferView<float, Channels> output)
+		-> bool
 	{
 		auto outputGenerated = 0;
 		while (outputGenerated < output.frames())
@@ -123,7 +156,7 @@ public:
 				streamBuffer.index = 0;
 
 				const auto refillView = InterleavedBufferView<float, Channels>{&streamBuffer[0], Capacity};
-				streamBuffer.count = streamBuffer.refillFn(refillView);
+				refillFn(refillView);
 
 				// If the stream buffer is still empty, refill it with silence and use that as input
 				// Ensures that the audio is always treated as being continuous
@@ -134,8 +167,10 @@ public:
 				}
 			}
 
-			const auto inputView = InterleavedBufferView<float, Channels>{&streamBuffer[streamBuffer.index], streamBuffer.count};
-			const auto outputView = InterleavedBufferView<float, Channels>{output.framePtr(outputGenerated), output.frames() - outputGenerated};
+			const auto inputView
+				= InterleavedBufferView<float, Channels>{&streamBuffer[streamBuffer.index], streamBuffer.count};
+			const auto outputView = InterleavedBufferView<float, Channels>{
+				output.framePtr(outputGenerated), output.frames() - outputGenerated};
 			const auto result = process(inputView, outputView);
 
 			streamBuffer.index += result.inputFramesUsed;
@@ -150,7 +185,15 @@ public:
 	 * @brief Resets the internal resampler state.
 	 * Useful when working with unreleated pieces of audio.
 	 */
-	void reset();
+	void reset()
+	{
+		if ((m_error = src_reset(static_cast<SRC_STATE*>(m_state.get()))))
+		{
+#ifdef LMMS_DEBUG
+			std::cerr << "AudioResampler: " << src_strerror(m_error) << '\n';
+#endif
+		}
+	}
 
 	/**
 	 * @brief Sets the resampling ratio to `ratio`.
@@ -169,16 +212,34 @@ public:
 	auto ratio() const -> double { return m_ratio; }
 
 	//! @returns the number of channels expected by the resampler.
-	auto channels() const -> ch_cnt_t { return m_channels; }
-
-	//! @returns the interpolation mode used by this resampler.
-	auto mode() const -> Mode { return m_mode; }
+	constexpr auto channels() const -> ch_cnt_t { return Channels; }
 
 private:
-	struct LMMS_EXPORT StateDeleter { void operator()(void* state); };
-	std::unique_ptr<void, StateDeleter> m_state;
-	Mode m_mode;
-	ch_cnt_t m_channels = 0;
+	struct LMMS_EXPORT StateDeleter
+	{
+		void operator()(SRC_STATE* state) { src_delete(state); }
+	};
+
+	constexpr auto convertMode(AudioResamplerMode mode) -> int
+	{
+		switch (mode)
+		{
+		case AudioResamplerMode::ZOH:
+			return SRC_ZERO_ORDER_HOLD;
+		case AudioResamplerMode::Linear:
+			return SRC_LINEAR;
+		case AudioResamplerMode::SincFastest:
+			return SRC_SINC_FASTEST;
+		case AudioResamplerMode::SincMedium:
+			return SRC_SINC_MEDIUM_QUALITY;
+		case AudioResamplerMode::SincBest:
+			return SRC_SINC_BEST_QUALITY;
+		default:
+			throw std::invalid_argument{"Invalid interpolation mode"};
+		}
+	}
+
+	std::unique_ptr<SRC_STATE*, StateDeleter> m_state;
 	double m_ratio = 1.0;
 	int m_error = 0;
 };
