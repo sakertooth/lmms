@@ -141,7 +141,7 @@ public:
 				streamBuffer.index = 0;
 
 				const auto refillView = InterleavedBufferView<float, Channels>{&streamBuffer.buffer[0], Capacity};
-				refillFn(refillView);
+				streamBuffer.count = refillFn(refillView);
 
 				// If the stream buffer is still empty, refill it with silence and use that as input
 				// Ensures that the audio is always treated as being continuous
