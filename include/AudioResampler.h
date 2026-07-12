@@ -131,8 +131,7 @@ public:
 	 *
 	 */
 	template <f_cnt_t Capacity = 128, typename RefillFn>
-	[[nodiscard]] auto process(RefillFn refillFn, StreamBuffer<Capacity>& streamBuffer, InterleavedBufferView<float, Channels> output)
-		-> bool
+	void process(RefillFn refillFn, StreamBuffer<Capacity>& streamBuffer, InterleavedBufferView<float, Channels> output)
 	{
 		auto outputGenerated = 0;
 		while (outputGenerated < output.frames())
@@ -163,8 +162,6 @@ public:
 			streamBuffer.count -= result.inputFramesUsed;
 			outputGenerated += result.outputGenerated;
 		}
-
-		return true;
 	}
 
 	/**
