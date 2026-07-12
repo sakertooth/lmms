@@ -431,9 +431,9 @@ void GigInstrument::play( SampleFrame* _working_buffer )
 			// resampling, the ADSR doesn't get messed up
 			ADSR copy = sample.adsr;
 
-			sample.m_resampler.setRatio(freq_factor);
-
 			std::array<SampleFrame, MAXIMUM_BUFFER_SIZE> mixBuffer;
+
+			sample.m_resampler.setRatio(freq_factor);
 			sample.m_resampler.process([&](InterleavedBufferView<float, 2> output) {
 				loadSample(sample, output.asSampleFrames().data(), output.frames());
 
