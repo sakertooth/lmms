@@ -161,11 +161,7 @@ public:
 				output.framePtr(outputFramesGenerated), output.frames() - outputFramesGenerated};
 			const auto result = process(inputView, outputView, ratio);
 
-			if (result.inputFramesUsed == 0 && result.outputFramesGenerated == 0)
-			{
-				std::ranges::fill(outputView.dataView(), 0.f);
-				return outputFramesGenerated;
-			}
+			if (result.inputFramesUsed == 0 && result.outputFramesGenerated == 0) { return outputFramesGenerated; }
 
 			streamBuffer.index += result.inputFramesUsed;
 			streamBuffer.count -= result.inputFramesUsed;
