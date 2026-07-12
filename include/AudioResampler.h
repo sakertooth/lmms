@@ -62,7 +62,6 @@ public:
 	 * @struct StreamBuffer
 	 * @brief Represents a buffer storage used when resampling from audio streams.
 	 * @tparam Frames The buffer capacity measured in audio frames.
-	 * @tparam Channels The number of channels per audio frame.
 	 * @see StreamFn
 	 */
 	template <f_cnt_t Frames = 128> struct StreamBuffer
