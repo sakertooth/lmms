@@ -60,7 +60,7 @@ public:
 
 	private:
 		AudioResampler<> m_resampler;
-		AudioResampler<>::StreamBuffer<DEFAULT_BUFFER_SIZE> m_streamBuffer;
+		AudioResampler<>::StreamBuffer<> m_streamBuffer;
 		int m_frameIndex = 0;
 		bool m_backwards = false;
 		friend class Sample;
