@@ -127,14 +127,14 @@ public:
 	 * @tparam RefillFn The function used to refill @a streamBuffer.
 	 * @param streamBuffer The stream buffer where incoming audio samples are stored and refilled as needed.
 	 * @param output The final output destination.
-	 * @return true if the resampling process was successful, false if an error occurred.
+	 * @returns The number of frames generated.
 	 *
 	 */
-	template <f_cnt_t Capacity = 128, typename RefillFn>
-	void process(RefillFn refillFn, StreamBuffer<Capacity>& streamBuffer, InterleavedBufferView<float, Channels> output)
+	template <typename RefillFn, f_cnt_t Capacity>
+	auto process(RefillFn refillFn, StreamBuffer<Capacity>& streamBuffer, InterleavedBufferView<float, Channels> output) -> f_cnt_t
 	{
-		auto outputGenerated = 0;
-		while (outputGenerated < output.frames())
+		auto outputFramesGenerated = 0;
+		while (outputFramesGenerated < output.frames())
 		{
 			if (streamBuffer.count == 0)
 			{
@@ -142,26 +142,26 @@ public:
 
 				const auto refillView = InterleavedBufferView<float, Channels>{&streamBuffer.buffer[0], Capacity};
 				streamBuffer.count = refillFn(refillView);
-
-				// If the stream buffer is still empty, refill it with silence and use that as input
-				// Ensures that the audio is always treated as being continuous
-				if (streamBuffer.count == 0)
-				{
-					std::ranges::fill(streamBuffer.buffer, 0.f);
-					streamBuffer.count = Capacity;
-				}
 			}
 
-			const auto inputView
-				= InterleavedBufferView<float, Channels>{&streamBuffer.buffer[streamBuffer.index], streamBuffer.count};
-			const auto outputView = InterleavedBufferView<float, Channels>{
-				output.framePtr(outputGenerated), output.frames() - outputGenerated};
+			const auto inputView = InterleavedBufferView<float, Channels>{
+				&streamBuffer.buffer[streamBuffer.index * Channels], streamBuffer.count};
+			auto outputView = InterleavedBufferView<float, Channels>{
+				output.framePtr(outputFramesGenerated), output.frames() - outputFramesGenerated};
 			const auto result = process(inputView, outputView);
+
+			if (result.inputFramesUsed == 0 && result.outputFramesGenerated == 0)
+			{
+				std::ranges::fill(outputView.dataView(), 0.f);
+				return outputFramesGenerated;
+			}
 
 			streamBuffer.index += result.inputFramesUsed;
 			streamBuffer.count -= result.inputFramesUsed;
-			outputGenerated += result.outputFramesGenerated;
+			outputFramesGenerated += result.outputFramesGenerated;
 		}
+
+		return outputFramesGenerated;
 	}
 
 	/**
