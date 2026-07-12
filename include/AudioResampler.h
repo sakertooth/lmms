@@ -90,6 +90,8 @@ public:
 	 * @param input The interleaved audio input.
 	 * @param output The interleaved audio output.
 	 * @param ratio The resampling ratio (output sample rate / input sample rate).
+	 * @param endOfInput true if there is no more input data available after @a input that will enter the resampler,
+	 * false otherwise.
 	 *
 	 * @throws `std::invalid_argument` if a channel mismatch has been detected.
 	 * @throws `std::runtime_error` if the resampling process has failed.
@@ -99,8 +101,8 @@ public:
 	 *
 	 * @returns the result of the resampling process. See @ref Result for more details.
 	 */
-	[[nodiscard]] auto process(
-		InterleavedBufferView<const float, Channels> input, InterleavedBufferView<float, Channels> output, double ratio) -> Result
+	[[nodiscard]] auto process(InterleavedBufferView<const float, Channels> input,
+		InterleavedBufferView<float, Channels> output, double ratio, bool endOfInput) -> Result
 	{
 		if (ratio == 1.)
 		{
@@ -113,7 +115,7 @@ public:
 			.data_out = output.data(),
 			.input_frames = static_cast<long>(input.frames()),
 			.output_frames = static_cast<long>(output.frames()),
-			.end_of_input = 0,
+			.end_of_input = endOfInput,
 			.src_ratio = ratio};
 
 		if ((m_error = src_process(m_state.get(), &data)))
@@ -137,12 +139,12 @@ public:
 	 *
 	 * @tparam Capacity The capacity of @a streamBuffer.
 	 * @tparam RefillFn The function used to refill @a streamBuffer.
-	 * 
+	 *
 	 * @returns The number of frames generated.
 	 */
 	template <typename RefillFn, f_cnt_t Capacity>
-	auto process(RefillFn refillFn, StreamBuffer<Capacity>& streamBuffer, InterleavedBufferView<float, Channels> output, double ratio)
-		-> f_cnt_t
+	auto process(RefillFn refillFn, StreamBuffer<Capacity>& streamBuffer, InterleavedBufferView<float, Channels> output,
+		double ratio) -> f_cnt_t
 	{
 		auto outputFramesGenerated = 0;
 		while (outputFramesGenerated < output.frames())
@@ -159,7 +161,7 @@ public:
 				&streamBuffer.buffer[streamBuffer.index * Channels], streamBuffer.count};
 			auto outputView = InterleavedBufferView<float, Channels>{
 				output.framePtr(outputFramesGenerated), output.frames() - outputFramesGenerated};
-			const auto result = process(inputView, outputView, ratio);
+			const auto result = process(inputView, outputView, ratio, false);
 
 			if (result.inputFramesUsed == 0 && result.outputFramesGenerated == 0) { return outputFramesGenerated; }
 

@@ -184,7 +184,7 @@ private:
 		{
 			const auto input = InterleavedBufferView<const float, 1>{_src + srcIndex, GRAPHLEN - srcIndex};
 			const auto output = InterleavedBufferView<float, 1>{_dst + dstIndex, WAVELEN - dstIndex};
-			const auto result = m_resampler.process(input, output, WAVERATIO);
+			const auto result = m_resampler.process(input, output, WAVERATIO, true);
 
 			srcIndex = (srcIndex + result.inputFramesUsed) % GRAPHLEN;
 			dstIndex += result.outputFramesGenerated;
