@@ -64,6 +64,22 @@ public:
 	};
 
 	/**
+	 * @struct StreamBuffer
+	 * @brief Represents a buffer storage used when resampling from audio streams.
+	 * @tparam Frames The buffer capacity measured in audio frames.
+	 * @tparam Channels The number of channels per audio frame.
+	 * @see StreamFn
+	 */
+	template <f_cnt_t Frames = 128, ch_cnt_t Channels = 2>
+	struct StreamBuffer
+	{
+		f_cnt_t (*refillFn)(InterleavedBufferView<float>);
+		std::array<float, Frames * Channels> buffer;
+		f_cnt_t index = 0;
+		f_cnt_t count = 0;
+	};
+
+	/**
 	 * @brief Constructs an `AudioResampler` instance.
 	 * @param mode The resampling mode to use.
 	 * @param channels Number of audio channels. Defaults to `2` (stereo).
@@ -85,6 +101,50 @@ public:
 	 * @returns the result of the resampling process. See @ref Result for more details.
 	 */
 	[[nodiscard]] auto process(InterleavedBufferView<const float> input, InterleavedBufferView<float> output) -> Result;
+
+	/**
+	 * @brief Process a block of interleaved audio input from @a streamBuffer into @a output.
+	 * 
+	 * @tparam Capacity The capacity of @a streamBuffer.
+	 * @tparam Channels The number of channels.
+	 * @param streamBuffer The stream buffer where incoming audio samples are stored and refilled as needed.
+	 * @param output The final output destination.
+	 * @return true if the resampling process was successful, false if an error occurred.
+	 * 
+	 */
+	template <f_cnt_t Capacity = 128, ch_cnt_t Channels = 2>
+	[[nodiscard]] auto process(StreamBuffer<Capacity, Channels>& streamBuffer, InterleavedBufferView<float> output) -> bool
+	{
+		auto outputGenerated = 0;
+		while (outputGenerated < output.frames())
+		{
+			if (streamBuffer.count == 0)
+			{
+				streamBuffer.index = 0;
+
+				const auto refillView = InterleavedBufferView<float, Channels>{&streamBuffer[0], Capacity};
+				streamBuffer.count = streamBuffer.refillFn(refillView);
+
+				// If the stream buffer is still empty, refill it with silence and use that as input
+				// Ensures that the audio is always treated as being continuous
+				if (streamBuffer.count == 0)
+				{
+					std::fill(streamBuffer.buffer.begin(), streamBuffer.buffer.end(), 0.f);
+					streamBuffer.count = Capacity;
+				}
+			}
+
+			const auto inputView = InterleavedBufferView<float, Channels>{&streamBuffer[streamBuffer.index], streamBuffer.count};
+			const auto outputView = InterleavedBufferView<float, Channels>{output.framePtr(outputGenerated), output.frames() - outputGenerated};
+			const auto result = process(inputView, outputView);
+
+			streamBuffer.index += result.inputFramesUsed;
+			streamBuffer.count -= result.inputFramesUsed;
+			outputGenerated += result.outputGenerated;
+		}
+
+		return true;
+	}
 
 	/**
 	 * @brief Resets the internal resampler state.
