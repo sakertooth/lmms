@@ -100,13 +100,14 @@ bool Sample::play(SampleFrame* dst, PlaybackState* state, size_t numFrames, Loop
 {
 	state->m_frameIndex = std::max<int>(m_startFrame, state->m_frameIndex);
 
-	const auto sampleRateRatio = static_cast<double>(Engine::audioEngine()->outputSampleRate()) / m_buffer->sampleRate();
+	const auto sampleRateRatio
+		= static_cast<double>(Engine::audioEngine()->outputSampleRate()) / m_buffer->sampleRate();
 	const auto freqRatio = frequency() / DefaultBaseFreq;
-	state->m_resampler.setRatio(sampleRateRatio * freqRatio * ratio);
 
-	return state->m_resampler.process([&](auto output) {
-		return render(output.asSampleFrames().data(), output.frames(), state, loop);
-	}, state->m_streamBuffer, {dst, numFrames}) > 0;
+	return state->m_resampler.process(
+			   [&](auto output) { return render(output.asSampleFrames().data(), output.frames(), state, loop); },
+			   state->m_streamBuffer, {dst, numFrames}, sampleRateRatio * freqRatio * ratio)
+		> 0;
 }
 
 f_cnt_t Sample::render(SampleFrame* dst, f_cnt_t size, PlaybackState* state, Loop loop) const

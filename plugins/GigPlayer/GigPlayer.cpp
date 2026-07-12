@@ -433,7 +433,6 @@ void GigInstrument::play( SampleFrame* _working_buffer )
 
 			std::array<SampleFrame, MAXIMUM_BUFFER_SIZE> mixBuffer;
 
-			sample.m_resampler.setRatio(freq_factor);
 			sample.m_resampler.process([&](InterleavedBufferView<float, 2> output) {
 				loadSample(sample, output.asSampleFrames().data(), output.frames());
 
@@ -447,7 +446,7 @@ void GigInstrument::play( SampleFrame* _working_buffer )
 				sample.pos += output.frames();
 				sample.adsr.inc(output.frames());
 				return output.frames();
-			}, sample.m_streamBuffer, {mixBuffer.data(), mixBuffer.size()});
+			}, sample.m_streamBuffer, {mixBuffer.data(), mixBuffer.size()}, freq_factor);
 
 			MixHelpers::add(_working_buffer, mixBuffer.data(), frames);
 		}

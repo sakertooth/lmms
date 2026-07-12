@@ -89,6 +89,7 @@ public:
 	 *
 	 * @param input The interleaved audio input.
 	 * @param output The interleaved audio output.
+	 * @param ratio The resampling ratio (output sample rate / input sample rate).
 	 *
 	 * @throws `std::invalid_argument` if a channel mismatch has been detected.
 	 * @throws `std::runtime_error` if the resampling process has failed.
@@ -99,14 +100,21 @@ public:
 	 * @returns the result of the resampling process. See @ref Result for more details.
 	 */
 	[[nodiscard]] auto process(
-		InterleavedBufferView<const float, Channels> input, InterleavedBufferView<float, Channels> output) -> Result
+		InterleavedBufferView<const float, Channels> input, InterleavedBufferView<float, Channels> output, double ratio) -> Result
 	{
+		if (ratio == 1.)
+		{
+			const auto frames = std::min(input.frames(), output.frames());
+			std::copy_n(input.data(), frames * Channels, output.data());
+			return {frames, frames};
+		}
+
 		auto data = SRC_DATA{.data_in = input.data(),
 			.data_out = output.data(),
 			.input_frames = static_cast<long>(input.frames()),
 			.output_frames = static_cast<long>(output.frames()),
 			.end_of_input = 0,
-			.src_ratio = m_ratio};
+			.src_ratio = ratio};
 
 		if ((m_error = src_process(m_state.get(), &data)))
 		{
@@ -123,15 +131,18 @@ public:
 	/**
 	 * @brief Process a block of interleaved audio input from @a streamBuffer into @a output.
 	 *
-	 * @tparam Capacity The capacity of @a streamBuffer.
-	 * @tparam RefillFn The function used to refill @a streamBuffer.
 	 * @param streamBuffer The stream buffer where incoming audio samples are stored and refilled as needed.
 	 * @param output The final output destination.
-	 * @returns The number of frames generated.
+	 * @param ratio The resampling ratio (output sample rate / input sample rate).
 	 *
+	 * @tparam Capacity The capacity of @a streamBuffer.
+	 * @tparam RefillFn The function used to refill @a streamBuffer.
+	 * 
+	 * @returns The number of frames generated.
 	 */
 	template <typename RefillFn, f_cnt_t Capacity>
-	auto process(RefillFn refillFn, StreamBuffer<Capacity>& streamBuffer, InterleavedBufferView<float, Channels> output) -> f_cnt_t
+	auto process(RefillFn refillFn, StreamBuffer<Capacity>& streamBuffer, InterleavedBufferView<float, Channels> output, double ratio)
+		-> f_cnt_t
 	{
 		auto outputFramesGenerated = 0;
 		while (outputFramesGenerated < output.frames())
@@ -148,7 +159,7 @@ public:
 				&streamBuffer.buffer[streamBuffer.index * Channels], streamBuffer.count};
 			auto outputView = InterleavedBufferView<float, Channels>{
 				output.framePtr(outputFramesGenerated), output.frames() - outputFramesGenerated};
-			const auto result = process(inputView, outputView);
+			const auto result = process(inputView, outputView, ratio);
 
 			if (result.inputFramesUsed == 0 && result.outputFramesGenerated == 0)
 			{
@@ -178,22 +189,6 @@ public:
 		}
 	}
 
-	/**
-	 * @brief Sets the resampling ratio to `ratio`.
-	 * @param ratio Output sample rate divided by input sample rate.
-	 */
-	void setRatio(double ratio) { m_ratio = ratio; }
-
-	/**
-	 * @brief Sets the resampling ratio to `output / input`.
-	 * @param input Input sample rate.
-	 * @param output Output sample rate.
-	 */
-	void setRatio(sample_rate_t input, sample_rate_t output) { m_ratio = static_cast<double>(output) / input; }
-
-	//! @returns the resampling ratio.
-	auto ratio() const -> double { return m_ratio; }
-
 	//! @returns the number of channels expected by the resampler.
 	constexpr auto channels() const -> ch_cnt_t { return Channels; }
 
@@ -204,7 +199,6 @@ private:
 	};
 
 	std::unique_ptr<SRC_STATE, StateDeleter> m_state;
-	double m_ratio = 1.0;
 	int m_error = 0;
 };
 

@@ -587,7 +587,6 @@ void Sf2Instrument::reloadSynth()
 	fluid_settings_getnum( m_settings, (char *) "synth.sample-rate", &tempRate );
 
 	m_internalSampleRate = static_cast<int>( tempRate );
-	m_resampler.setRatio(m_internalSampleRate, Engine::audioEngine()->outputSampleRate());
 
 	if( m_font )
 	{
@@ -873,17 +872,13 @@ void Sf2Instrument::renderFrames( f_cnt_t frames, SampleFrame* buf )
 
 	fluid_synth_get_gain(m_synth); // This flushes voice updates as a side effect
 
-	if (m_internalSampleRate == Engine::audioEngine()->outputSampleRate()) {
-		fluid_synth_write_float(m_synth, frames, buf, 0, 2, buf, 1, 2);
-		return;
-	}
-
 	m_resampler.process(
 		[&](auto output) {
 			fluid_synth_write_float(m_synth, output.frames(), output.data(), 0, 2, output.data(), 1, 2);
 			return output.frames();
 		},
-		m_streamBuffer, {buf, frames});
+		m_streamBuffer, {buf, frames},
+		static_cast<double>(Engine::audioEngine()->outputSampleRate()) / m_internalSampleRate);
 }
 
 
