@@ -102,18 +102,18 @@ public:
 		InterleavedBufferView<const float, Channels> input, InterleavedBufferView<float, Channels> output) -> Result
 	{
 		auto data = SRC_DATA{.data_in = input.data(),
-			.input_frames = input.frames(),
 			.data_out = output.data(),
-			.output_frames = output.frames(),
-			.ratio = m_ratio,
-			.end_of_input = 0};
+			.input_frames = static_cast<long>(input.frames()),
+			.output_frames = static_cast<long>(output.frames()),
+			.end_of_input = 0,
+			.src_ratio = m_ratio};
 
 		if ((m_error = src_process(m_state.get(), &data)))
 		{
 #ifdef LMMS_DEBUG
 			std::cerr << "AudioResampler: " << src_strerror(m_error) << '\n';
 #endif
-			std::ranges::fill(output, 0.f);
+			std::ranges::fill(output.dataView(), 0.f);
 			return {0, 0};
 		}
 
@@ -140,27 +140,27 @@ public:
 			{
 				streamBuffer.index = 0;
 
-				const auto refillView = InterleavedBufferView<float, Channels>{&streamBuffer[0], Capacity};
+				const auto refillView = InterleavedBufferView<float, Channels>{&streamBuffer.buffer[0], Capacity};
 				refillFn(refillView);
 
 				// If the stream buffer is still empty, refill it with silence and use that as input
 				// Ensures that the audio is always treated as being continuous
 				if (streamBuffer.count == 0)
 				{
-					std::fill(streamBuffer.buffer.begin(), streamBuffer.buffer.end(), 0.f);
+					std::ranges::fill(streamBuffer.buffer, 0.f);
 					streamBuffer.count = Capacity;
 				}
 			}
 
 			const auto inputView
-				= InterleavedBufferView<float, Channels>{&streamBuffer[streamBuffer.index], streamBuffer.count};
+				= InterleavedBufferView<float, Channels>{&streamBuffer.buffer[streamBuffer.index], streamBuffer.count};
 			const auto outputView = InterleavedBufferView<float, Channels>{
 				output.framePtr(outputGenerated), output.frames() - outputGenerated};
 			const auto result = process(inputView, outputView);
 
 			streamBuffer.index += result.inputFramesUsed;
 			streamBuffer.count -= result.inputFramesUsed;
-			outputGenerated += result.outputGenerated;
+			outputGenerated += result.outputFramesGenerated;
 		}
 	}
 
@@ -203,7 +203,7 @@ private:
 		void operator()(SRC_STATE* state) { src_delete(state); }
 	};
 
-	std::unique_ptr<SRC_STATE*, StateDeleter> m_state;
+	std::unique_ptr<SRC_STATE, StateDeleter> m_state;
 	double m_ratio = 1.0;
 	int m_error = 0;
 };

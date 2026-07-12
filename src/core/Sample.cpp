@@ -105,7 +105,7 @@ bool Sample::play(SampleFrame* dst, PlaybackState* state, size_t numFrames, Loop
 	state->m_resampler.setRatio(sampleRateRatio * freqRatio * ratio);
 
 	state->m_resampler.process([&](auto output) {
-		return render(output.data(), output.frames(), state, loop);
+		return render(output.asSampleFrames().data(), output.frames(), state, loop);
 	}, state->m_streamBuffer, {dst, numFrames});
 
 	return true;

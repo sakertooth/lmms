@@ -434,12 +434,14 @@ void GigInstrument::play( SampleFrame* _working_buffer )
 			sample.m_resampler.setRatio(freq_factor);
 
 			std::array<SampleFrame, MAXIMUM_BUFFER_SIZE> mixBuffer;
-			sample.m_resampler.process([&](auto output) {
+			sample.m_resampler.process([&](InterleavedBufferView<float, 2> output) {
 				loadSample(sample, output.asSampleFrames().data(), output.frames());
 
-				for (auto& frame : output)
+				for (auto* frame : output.framesView())
 				{
-					frame *= copy.value();
+					const auto value = copy.value();
+					frame[0] *= value;
+					frame[1] *= value;
 				}
 
 				sample.pos += output.frames();
