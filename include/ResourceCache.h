@@ -35,7 +35,6 @@ namespace lmms {
 
 template <typename T> class ResourceCache
 {
-	struct ActiveEntry;
 public:
 	inline static constexpr auto DefaultInactiveCapacity = 32;
 
@@ -52,43 +51,39 @@ public:
 
 		if (const auto activeIt = m_activeResources.find(path); activeIt != m_activeResources.end())
 		{
-			if (activeIt->second.lastWriteTime == latestWriteTime)
+			auto& activeEntry = activeIt->second;
+			if (activeEntry.lastWriteTime == latestWriteTime)
 			{
-				const auto resource = activeIt->second.resource.lock();
+				const auto resource = activeEntry.resource.lock();
 				assert(resource);
 				return resource;
 			}
 
 			const auto resource = createActiveResource(path, new T{std::forward<Args>(args)...}, latestWriteTime);
-			activeIt->second.resource = resource;
-			activeIt->second.lastWriteTime = latestWriteTime;
+			activeEntry.resource = resource;
+			activeEntry.lastWriteTime = latestWriteTime;
 			return resource;
 		}
 		else if (const auto inactiveIt = m_inactiveResources.find(path); inactiveIt != m_inactiveResources.end())
 		{
-			if (inactiveIt->second.lastWriteTime == latestWriteTime)
-			{
-				const auto handle = m_inactiveResources.extract(inactiveIt);
-				const auto resource = createActiveResource(path, handle.mapped().resource.release(), latestWriteTime);
-				const auto [newIt, inserted] = m_activeResources.emplace(path, resource);
-				assert(inserted);
-				return resource;
-			}
-
-			const auto evictIt = std::find(m_inactiveEvictionList.begin(), m_inactiveEvictionList.end(), inactiveIt);
-			assert(evictIt != m_inactiveEvictionList.end());
-
-			m_inactiveEvictionList.erase(evictIt);
+			auto [inactiveResource, inactiveWriteTime] = std::move(inactiveIt->second);
 			m_inactiveResources.erase(inactiveIt);
 
-			const auto resource = createActiveResource(path, new const T{std::forward<Args>(args)...}, latestWriteTime);
-			const auto [newIt, inserted] = m_activeResources.emplace(path, resource);
-			assert(inserted);
-			return resource;
+			const auto inactiveEvictIt = std::find(m_inactiveEvictionList.begin(), m_inactiveEvictionList.end(), inactiveIt);
+			assert(inactiveEvictIt != m_inactiveEvictionList.end());
+
+			m_inactiveEvictionList.erase(inactiveEvictIt);
+
+			if (inactiveWriteTime == latestWriteTime)
+			{
+				const auto resource = createActiveResource(path, inactiveResource.release(), latestWriteTime);
+				m_activeResources.emplace(path, ActiveEntry{resource, latestWriteTime});
+				return resource;
+			}
 		}
 
 		const auto resource = createActiveResource(path, new const T{std::forward<Args>(args)...}, latestWriteTime);
-		const auto [it, inserted] = m_activeResources.emplace(path, resource);
+		const auto [it, inserted] = m_activeResources.emplace(path, ActiveEntry{resource, latestWriteTime});
 		assert(inserted);
 		return resource;
 	}
@@ -109,7 +104,7 @@ private:
 				auto it = m_activeResources.find(path);
 				assert(it != m_activeResources.end());
 
-				// If its old, we can just delete it
+				// If its a previous version, we can just delete it
 				if (ptr != it->second.resource.lock().get())
 				{
 					delete ptr;
