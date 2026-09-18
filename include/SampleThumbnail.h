@@ -33,6 +33,7 @@
 #include "lmms_export.h"
 #include "SampleBuffer.h"
 #include "SampleFrame.h"
+#include "ResourceCache.h"
 
 class QPainter;
 
@@ -140,6 +141,7 @@ private:
 	using ThumbnailCache = std::vector<Thumbnail>;
 	std::shared_ptr<ThumbnailCache> m_thumbnailCache = std::make_shared<ThumbnailCache>();
 	std::shared_ptr<const SampleBuffer> m_buffer = SampleBuffer::emptyBuffer();
+	inline static ResourceCache<ThumbnailCache> m_cache;
 	inline static std::unordered_map<SampleThumbnailEntry, std::shared_ptr<ThumbnailCache>, Hash> s_sampleThumbnailCacheMap;
 };
 

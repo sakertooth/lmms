@@ -28,6 +28,7 @@
 #include <QFileInfo>
 #include <QPainter>
 
+#include "PathUtil.h"
 #include "Sample.h"
 
 namespace {
@@ -77,21 +78,23 @@ SampleThumbnail::SampleThumbnail(const Sample& sample)
 	auto entry = SampleThumbnailEntry{sample.sampleFile(), QFileInfo{sample.sampleFile()}.lastModified()};
 	if (!entry.filePath.isEmpty())
 	{
-		const auto it = s_sampleThumbnailCacheMap.find(entry);
-		if (it != s_sampleThumbnailCacheMap.end())
-		{
-			m_thumbnailCache = it->second;
-			return;
-		}
+		m_thumbnailCache = std::const_pointer_cast<ThumbnailCache>(m_cache.fetch(PathUtil::fsConvert(sample.sampleFile())));
+	
+		// const auto it = s_sampleThumbnailCacheMap.find(entry);
+		// if (it != s_sampleThumbnailCacheMap.end())
+		// {
+		// 	m_thumbnailCache = it->second;
+		// 	return;
+		// }
 
-		if (s_sampleThumbnailCacheMap.size() == MaxSampleThumbnailCacheSize)
-		{
-			const auto leastUsed = std::min_element(s_sampleThumbnailCacheMap.begin(), s_sampleThumbnailCacheMap.end(),
-				[](const auto& a, const auto& b) { return a.second.use_count() < b.second.use_count(); });
-			s_sampleThumbnailCacheMap.erase(leastUsed->first);
-		}
+		// if (s_sampleThumbnailCacheMap.size() == MaxSampleThumbnailCacheSize)
+		// {
+		// 	const auto leastUsed = std::min_element(s_sampleThumbnailCacheMap.begin(), s_sampleThumbnailCacheMap.end(),
+		// 		[](const auto& a, const auto& b) { return a.second.use_count() < b.second.use_count(); });
+		// 	s_sampleThumbnailCacheMap.erase(leastUsed->first);
+		// }
 
-		s_sampleThumbnailCacheMap[std::move(entry)] = m_thumbnailCache;
+		// s_sampleThumbnailCacheMap[std::move(entry)] = m_thumbnailCache;
 	}
 
 	const auto flatBuffer = m_buffer->data()->data();
