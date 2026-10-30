@@ -48,7 +48,6 @@ public:
 		}
 
 		const auto resource = SampleBuffer::fromFile(PathUtil::pathToQString(path));
-		if (!resource) { return nullptr; }
 
 		entry.resource = resource;
 		entry.lastWriteTime = lastWriteTime;
@@ -68,9 +67,8 @@ public:
 		}
 
 		const auto buffer = fetchBuffer(path);
-		if (!buffer) { return nullptr; }
-
 		const auto resource = std::make_shared<const SampleThumbnailCache>(*buffer);
+
 		entry.resource = resource;
 		entry.lastWriteTime = lastWriteTime;
 		return resource;
