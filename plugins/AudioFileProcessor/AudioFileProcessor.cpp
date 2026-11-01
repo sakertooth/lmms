@@ -322,8 +322,8 @@ void AudioFileProcessor::setAudioFile(const QString& _audio_file, bool _rename)
 	// else we don't touch the track-name, because the user named it self
 
 	const auto path = PathUtil::stringToPath(_audio_file);
-	m_sample = Sample{SampleCache::fetchBuffer(path)};
-	m_sampleThumbnailCache = SampleCache::fetchThumbnail(path);
+	m_sample = Sample{SampleCache::instance().fetchBuffer(path)};
+	m_sampleThumbnailCache = SampleCache::instance().fetchThumbnailCache(path);
 
 	loopPointChanged();
 	ampModelChanged();

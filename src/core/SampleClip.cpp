@@ -161,8 +161,8 @@ void SampleClip::setSampleFile(const QString& sf)
 	if (!sf.isEmpty())
 	{
 		const auto path = PathUtil::stringToPath(sf);
-		m_sample = Sample{SampleCache::fetchBuffer(path)};
-		m_sampleThumbnailCache = SampleCache::fetchThumbnail(path);
+		m_sample = Sample{SampleCache::instance().fetchBuffer(path)};
+		m_sampleThumbnailCache = SampleCache::instance().fetchThumbnailCache(path);
 
 		updateLength();
 	}

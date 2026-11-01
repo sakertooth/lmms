@@ -27,68 +27,41 @@
 
 #include <filesystem>
 
+#include "FileResourceCache.h"
 #include "PathUtil.h"
 #include "SampleBuffer.h"
 #include "SampleThumbnailCache.h"
 
 namespace lmms {
+
 class SampleCache
 {
 public:
-	static auto fetchBuffer(const std::filesystem::path& path) -> std::shared_ptr<const SampleBuffer>
+	auto fetchBuffer(const std::filesystem::path& path) -> std::shared_ptr<const SampleBuffer>
 	{
-		auto [it, inserted] = s_buffers.try_emplace(path, SampleBufferEntry{});
-		auto& entry = it->second;
-		const auto lastWriteTime = std::filesystem::last_write_time(path);
-
-		if (!inserted && entry.lastWriteTime == lastWriteTime)
-		{
-			const auto resource = entry.resource.lock();
-			if (resource) { return resource; }
-		}
-
-		const auto resource = SampleBuffer::fromFile(PathUtil::pathToQString(path));
-
-		entry.resource = resource;
-		entry.lastWriteTime = lastWriteTime;
-		return resource;
+		return m_buffers.fetch(path, [&path] {
+			auto buffer = SampleBuffer::fromFile(PathUtil::pathToQString(path));
+			return buffer ? std::make_shared<SampleBuffer>(std::move(*buffer)) : nullptr;
+		});
 	}
 
-	static auto fetchThumbnail(const std::filesystem::path& path) -> std::shared_ptr<const SampleThumbnailCache>
+	auto fetchThumbnailCache(const std::filesystem::path& path) -> std::shared_ptr<const SampleThumbnailCache>
 	{
-		auto [it, inserted] = s_thumbnailCaches.try_emplace(path, SampleThumbnailCacheEntry{});
-		auto& entry = it->second;
-		const auto lastWriteTime = std::filesystem::last_write_time(path);
+		return m_thumbnailCaches.fetch(path, [&path, this] {
+			auto buffer = fetchBuffer(path);
+			return buffer ? std::make_shared<SampleThumbnailCache>(*buffer) : nullptr;
+		});
+	}
 
-		if (!inserted && entry.lastWriteTime == lastWriteTime)
-		{
-			const auto resource = entry.resource.lock();
-			if (resource) { return resource; }
-		}
-
-		const auto buffer = fetchBuffer(path);
-		const auto resource = std::make_shared<const SampleThumbnailCache>(*buffer);
-
-		entry.resource = resource;
-		entry.lastWriteTime = lastWriteTime;
-		return resource;
+	static auto instance() -> SampleCache&
+	{
+		static auto s_inst = SampleCache{};
+		return s_inst;
 	}
 
 private:
-	struct SampleBufferEntry
-	{
-		std::weak_ptr<const SampleBuffer> resource;
-		std::filesystem::file_time_type lastWriteTime;
-	};
-
-	struct SampleThumbnailCacheEntry
-	{
-		std::weak_ptr<const SampleThumbnailCache> resource;
-		std::filesystem::file_time_type lastWriteTime;
-	};
-
-	inline static std::unordered_map<std::filesystem::path, SampleBufferEntry> s_buffers;
-	inline static std::unordered_map<std::filesystem::path, SampleThumbnailCacheEntry> s_thumbnailCaches;
+	FileResourceCache<SampleBuffer> m_buffers;
+	FileResourceCache<SampleThumbnailCache> m_thumbnailCaches;
 };
 } // namespace lmms
 

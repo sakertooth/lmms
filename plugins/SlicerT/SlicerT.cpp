@@ -308,8 +308,8 @@ std::vector<Note> SlicerT::getMidi()
 void SlicerT::updateFile(QString file)
 {
 	const auto path = PathUtil::stringToPath(file);
-	m_originalSample = Sample{SampleCache::fetchBuffer(path)};
-	m_sampleThumbnailCache = SampleCache::fetchThumbnail(path);
+	m_originalSample = Sample{SampleCache::instance().fetchBuffer(path)};
+	m_sampleThumbnailCache = SampleCache::instance().fetchThumbnailCache(path);
 
 	findBPM();
 	findSlices();
