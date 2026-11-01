@@ -51,7 +51,6 @@
 #include "PatternStore.h"
 #include "PianoRoll.h"
 #include "ProjectJournal.h"
-#include "SampleCache.h"
 #include "SampleClip.h"
 #include "SampleThumbnailRenderer.h"
 #include "StringPairDrag.h"

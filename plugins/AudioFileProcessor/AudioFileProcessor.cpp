@@ -310,6 +310,16 @@ gui::PluginView* AudioFileProcessor::instantiateView( QWidget * _parent )
 
 void AudioFileProcessor::setAudioFile(const QString& _audio_file, bool _rename)
 {
+	const auto path = PathUtil::stringToPath(_audio_file);
+
+	// TODO: Return an error value back to the caller (via std::expected or our own polyfill)
+	auto buffer = SampleCache::instance().fetchBuffer(path);
+	if (!buffer) { return; }
+
+	// TODO: Return an error value back to the caller (via std::expected or our own polyfill)
+	auto thumbnailCache = SampleCache::instance().fetchThumbnailCache(path);
+	if (!thumbnailCache) { return; }
+
 	// is current channel-name equal to previous-filename??
 	if( _rename &&
 		( instrumentTrack()->name() ==
@@ -321,9 +331,8 @@ void AudioFileProcessor::setAudioFile(const QString& _audio_file, bool _rename)
 	}
 	// else we don't touch the track-name, because the user named it self
 
-	const auto path = PathUtil::stringToPath(_audio_file);
-	m_sample = Sample{SampleCache::instance().fetchBuffer(path)};
-	m_sampleThumbnailCache = SampleCache::instance().fetchThumbnailCache(path);
+	m_sample = Sample{std::move(buffer)};
+	m_sampleThumbnailCache = std::move(thumbnailCache);
 
 	loopPointChanged();
 	ampModelChanged();

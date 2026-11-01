@@ -156,23 +156,31 @@ void SampleClip::setSampleBuffer(std::shared_ptr<const SampleBuffer> sb)
 
 void SampleClip::setSampleFile(const QString& sf)
 {
-	// Remove any prior offset in the clip
-	setStartTimeOffset(0);
-	if (!sf.isEmpty())
-	{
-		const auto path = PathUtil::stringToPath(sf);
-		m_sample = Sample{SampleCache::instance().fetchBuffer(path)};
-		m_sampleThumbnailCache = SampleCache::instance().fetchThumbnailCache(path);
-
-		updateLength();
-	}
-	else
+	if (sf.isEmpty())
 	{
 		// If there is no sample, make the clip a bar long
 		float nom = Engine::getSong()->getTimeSigModel().getNumerator();
 		float den = Engine::getSong()->getTimeSigModel().getDenominator();
 		changeLength(DefaultTicksPerBar * (nom / den));
+		return;
 	}
+
+	const auto path = PathUtil::stringToPath(sf);
+
+	// TODO: Return an error value back to the caller (via std::expected or our own polyfill)
+	auto buffer = SampleCache::instance().fetchBuffer(path);
+	if (!buffer) { return; }
+
+	// TODO: Return an error value back to the caller (via std::expected or our own polyfill)
+	auto thumbnailCache = SampleCache::instance().fetchThumbnailCache(path);
+	if (!thumbnailCache) { return; }
+
+	// Remove any prior offset in the clip
+	setStartTimeOffset(0);
+
+	m_sample = Sample{std::move(buffer)};
+	m_sampleThumbnailCache = std::move(thumbnailCache);
+	updateLength();
 
 	emit sampleChanged();
 	emit playbackPositionChanged();
